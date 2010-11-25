@@ -1,0 +1,39 @@
+Makeinstall.bat goes to /acc/dsc/<accelerator>/<front-end>/etc/transfer.ref
+and extracts information from this file to build a driver install script for
+the driver with name <NAME> in the local file: install.<NAME>
+
+As not all information is in the transfer.ref file concerning interrupts, it
+may be required to edit the file to add the options you want.
+Some options not set up are ...
+
+   lvls=<interrupt levels>
+   vecs=<interrupt vectors>
+   isrc=<interrupt register offset>  isrc is optional
+
+./makeinstall.bat <NAME> <accelerator> <front-end>
+
+Example: ./makeinstall.bat VD80 tst cfv-864-cdv28
+
+This would generate the script: install.VD80
+
+==============================
+
+The doinstall.bat file is intended to be run on an actual front-end.
+It uses the transfer.ref in /etc and after generating the script it
+then runs it. The script requires that <name>.ko is present in the
+current directory.
+
+in /usr/local/drivers/<name/ the following files are required
+geninstall.awk
+doinstall.bat
+<name>.ko
+
+To install the driver named VD80 do this
+
+cd /usr/local/drivers/vd80
+./doinstall VD80
+
+N.B. There is no write access allowed to /usr from typical front-end
+computers. All temporary files reside in /tmp
+
+Julian
