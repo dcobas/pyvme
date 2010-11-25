@@ -1,0 +1,29 @@
+NAME cvorb
+
+  RegName		RwFlags	Offset		Size	Window	Depth
+
+$          INT_SRC 	RO 	0x00000000 	4 	1 	1 	
+$           VHDL_V 	RO 	0x00000010 	4 	1 	1 	
+$         PCB_SN_H 	RO 	0x00000014 	4 	1 	1 	
+$         PCB_SN_L 	RO 	0x00000018 	4 	1 	1 	
+$             TEMP 	RO 	0x0000001C 	4 	1 	1 	
+$              ADC 	RO 	0x00000020 	4 	1 	1 	
+$       SOFT_PULSE 	WO 	0x00000024 	4 	1 	1 	
+$     EXT_CLK_FREQ 	RO 	0x00000028 	4 	1 	1 	
+$     CLK_GEN_CNTL 	RW 	0x0000002C 	4 	1 	1 	
+$           INT_EN 	RW 	0x00000004 	4 	1 	1 	
+$         MOD_STAT 	RO 	0x00000040 	4 	1 	1 	
+$          MOD_CFG 	RW 	0x00000044 	4 	1 	1 	
+$          DAC_VAL 	RW 	0x00000048 	4 	1 	1 	
+$          SRAM_SA 	RW 	0x0000004C 	4 	1 	1 	
+$        SRAM_DATA 	RW 	0x00000050 	4 	1 	1 	
+$         DAC_CNTL 	RW 	0x00000060 	4 	1 	1 	
+$            INT_L 	RW 	0x00000008 	4 	1 	1 	
+$            INT_V 	RW 	0x0000000C 	4 	1 	1 	
+$          CH_STAT 	RO 	0x00000080 	4 	1 	1 	
+$         FCT_EM_L 	RW 	0x00000090 	4 	1 	1 	
+$            SLOPE 	RW 	0x00000094 	4 	1 	1 	
+$       CH_REC_CYC 	RW 	0x00000098 	4 	1 	1 	
+$           CH_CFG 	RW 	0x00000084 	4 	1 	1 	
+$         FUNC_SEL 	RW 	0x00000088 	4 	1 	1 	
+$         FCT_EM_H 	RW 	0x0000008C 	4 	1 	1 	
