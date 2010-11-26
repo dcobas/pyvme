@@ -38,6 +38,13 @@ BEGIN {
 	 win1[lun] = $12;
 	 win2[lun] = $17;
 
+	 if (NF >= 23) {
+	    lvl[lun] = strtonum($22);
+	    vec[lun] = strtonum($23);
+	 } else {
+	    lvl[lun] = 0;
+	    vec[lun] = 0;
+	 }
 	 lun++;
       }
    }
@@ -73,6 +80,20 @@ END {
       printf " amd2="   amd2[0]
       printf " dwd2="   dwd2[0]
    }
+
+   if ((lvl[0] != 0) && (vec[0] != 0)) {
+      printf " lvl="
+      for (i=0; i<lun; i++) {
+	 printf lvl[i]
+	 if (i < lun -2) printf ","
+      }
+      printf " vec="
+      for (i=0; i<lun; i++) {
+	 printf "0x%X",vec[i]
+	 if (i < lun -2) printf ","
+      }
+   }
+
    print ""
 
    print "MAJOR=`cat /proc/devices | awk '{if ($2 == \"" tolower("NAME") "\") printf $1}'`"
@@ -83,7 +104,7 @@ END {
    print "fi"
    print ""
 
-   print "rm -f /dev/" tolower(name) ".*"
+   print "rm -f /dev/" tolower("NAME") ".*"
    for (i=0; i<lun; i++) {
       print "/bin/mknod  -m 0666 /dev/" tolower("NAME") "." luns[i] " c ${MAJOR} " i
    }
