@@ -893,7 +893,6 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 	int iodr;		/* Io Direction */
 	int iosz;		/* Io Size in bytes */
-	int ionr;		/* Io Number */
 
 	int *ibp, *imp;		/* Integer pointers used to transfer between buf and map */
 	short *sbp, *smp;	/* Short transfer pointers */
@@ -905,7 +904,6 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 	long num;
 
-	ionr = _IOC_NR(cmd);
 	iodr = _IOC_DIR(cmd);
 	iosz = _IOC_SIZE(cmd);
 
@@ -914,9 +912,6 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		return -EACCES;
 	mcon = &module_contexts[num];
 
-	if (ionr >= vmeioLAST || ionr <= vmeioFIRST)
-		return -ENOTTY;
-
 	if ((arb = kmalloc(iosz, GFP_KERNEL)) == NULL)
 		return -ENOMEM;
 
@@ -924,42 +919,42 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		if (copy_from_user(arb, (void *)arg, iosz) != 0)
 			ioctl_err(-EACCES, arb, NULL);
 	}
-	debug_ioctl(ionr, iodr, iosz, arb, num, mcon->debug);
+	debug_ioctl(_IOC_NR(cmd), iodr, iosz, arb, num, mcon->debug);
 
 	if (!mcon)
 		return ioctl_err(-EACCES, arb, NULL);
 
-	switch (ionr) {
+	switch (cmd) {
 
-	case vmeioSET_DEBUG:
+	case VMEIO_SET_DEBUG:
 		mcon->debug = *(int *) arb;
 		break;
 
-	case vmeioGET_DEBUG:
+	case VMEIO_GET_DEBUG:
 		*(int *) arb = mcon->debug;
 		break;
 
-	case vmeioGET_VERSION:
+	case VMEIO_GET_VERSION:
 		*(int *) arb = COMPILE_TIME;
 		break;
 
-	case vmeioSET_TIMEOUT:
+	case VMEIO_SET_TIMEOUT:
 		cnt = *(int *) arb;
 		mcon->timeout = msecs_to_jiffies(cnt);
 		break;
 
-	case vmeioGET_TIMEOUT:
+	case VMEIO_GET_TIMEOUT:
 		cnt = jiffies_to_msecs(mcon->timeout);
 		*(int *) arb = cnt;
 		break;
 
-	case vmeioGET_DEVICE:	   /** Get the device described in struct vmeio_get_device_s */
+	case VMEIO_GET_DEVICE:	   /** Get the device described in struct vmeio_get_device_s */
 
 		winb = (struct vmeio_get_window_s *) arb;
 		memcpy(winb, &mcon->window, sizeof(struct vmeio_get_window_s));
 		break;
 
-	case vmeioSET_DEVICE:     /** Changes the device memory map */
+	case VMEIO_SET_DEVICE:     /** Changes the device memory map */
 				  /** Super dangerous, experts only */
 
 		winb = (struct vmeio_get_window_s *) arb;
@@ -985,7 +980,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 			memcpy(&mcon->window, winb, sizeof(struct vmeio_get_window_s));     /** DMA only */
 		break;
 
-	case vmeioRAW_READ_DMA:   /** Raw read VME registers */
+	case VMEIO_RAW_READ_DMA:   /** Raw read VME registers */
 
 		riob = (struct vmeio_riob_s *) arb;
 
@@ -1043,7 +1038,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		}
 		break;
 
-	case vmeioRAW_WRITE_DMA:  /** Raw write VME registers */
+	case VMEIO_RAW_WRITE_DMA:  /** Raw write VME registers */
 
 		riob = (struct vmeio_riob_s *) arb;
 
@@ -1101,7 +1096,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		}
 		break;
 
-	case vmeioRAW_READ:	   /** Raw read VME registers */
+	case VMEIO_RAW_READ:	   /** Raw read VME registers */
 
 		riob = (struct vmeio_riob_s *) arb;
 
@@ -1162,7 +1157,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 			return ioctl_err(-EACCES, arb, NULL);
 		break;
 
-	case vmeioRAW_WRITE:	   /** Raw write VME registers */
+	case VMEIO_RAW_WRITE:	   /** Raw write VME registers */
 		riob = (struct vmeio_riob_s *) arb;
 
 		if (mcon->window.nmap)
