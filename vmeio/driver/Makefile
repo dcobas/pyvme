@@ -10,6 +10,7 @@ KVER=2.6.24.7-rt27
 KERNELSRC=/acc/sys/$(CPU)/usr/src/kernels/$(KVER)
 
 modules: 
+	cp Module.symvers.vmebus Module.symvers
 	make -C $(KERNELSRC) M=`pwd` KVER=$(KVER) modules
 clean:
 	rm -f *.o *.a *.pyc *.so
