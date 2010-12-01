@@ -75,7 +75,6 @@
  */
 
 #include "user_driver_parameters.h"
-#include <vmeio.h>
 
 #include <asm/io.h>
 #include <asm/uaccess.h>
@@ -83,6 +82,7 @@
 #include <linux/interrupt.h>
 
 #include "vmebus.h"
+#include "vmeio.h"
 
 #define TSI148_LCSR_DSTA_DON (1<<25)	/* DMA done */
 
