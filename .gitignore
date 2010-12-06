@@ -1,0 +1,6 @@
+*.so
+*.ko
+*.o
+*.cmd
+*.mod.c
+Module.symvers
