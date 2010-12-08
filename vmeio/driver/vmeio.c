@@ -471,7 +471,7 @@ void set_remaining_null(long argarray[], unsigned int argnum)
 
 void *map_window(int vme, int win, int amd, int dwd) {
 
-	void *vmeaddr = NULL;
+	unsigned long vmeaddr;
 	struct pdparam_master param;
 
 	if (!(vme && amd && win && dwd)) return NULL;
@@ -484,17 +484,18 @@ void *map_window(int vme, int win, int amd, int dwd) {
 	param.dum[1] = 0;               /* XPC ADP-type */
 	param.dum[2] = 0;               /* window is sharable */
 
-	vmeaddr = (void *) find_controller((long) vme,win,amd,0,dwd,&param);
+	vmeaddr = find_controller(vme, win, amd, 0, dwd, &param);
 
 	printk("%s:Window:", vmeio_major_name);
-	if (vmeaddr == (void *) (-1)) {
+	if (vmeaddr == -1UL) {
 		printk("ERROR:NotMapped");
-		vmeaddr = NULL;
+		vmeaddr = 0;
 	} else {
 		printk("OK:Mapped");
 	}
-	printk(":Address:0x%X Window:0x%X AddrMod:0x%X DWidth:0x%X\n",vme,win,amd,dwd);
-	return vmeaddr;
+	printk(":Address:0x%X Window:0x%X AddrMod:0x%X DWidth:0x%X\n", vme, win, amd, dwd);
+
+	return (void *)vmeaddr;
 }
 
 /* ==================== */
