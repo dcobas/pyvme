@@ -473,6 +473,7 @@ void *map_window(int vme, int win, int amd, int dwd) {
 
 	unsigned long vmeaddr;
 	struct pdparam_master param;
+	char *msg;
 
 	if (!(vme && amd && win && dwd)) return NULL;
 
@@ -486,15 +487,15 @@ void *map_window(int vme, int win, int amd, int dwd) {
 
 	vmeaddr = find_controller(vme, win, amd, 0, dwd, &param);
 
-	printk("%s:Window:", vmeio_major_name);
 	if (vmeaddr == -1UL) {
-		printk("ERROR:NotMapped");
+		msg = "ERROR:NotMapped";
 		vmeaddr = 0;
 	} else {
-		printk("OK:Mapped");
+		msg = "OK:Mapped";
 	}
-	printk(":Address:0x%X Window:0x%X AddrMod:0x%X DWidth:0x%X\n", vme, win, amd, dwd);
-
+	printk("%s:Window:%s:Address:0x%X Window:0x%X"
+			" AddrMod:0x%X DWidth:0x%X\n",
+			vmeio_major_name, msg, vme, win, amd, dwd);
 	return (void *)vmeaddr;
 }
 
