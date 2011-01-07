@@ -282,6 +282,7 @@ static void debug_ioctl(int ionr, int iodr, int iosz, void *arg, long num,
 			int dlevel)
 {
 	int c;
+	int *iargp = arg;
 
 	if (dlevel <= 0)
 		return;
@@ -301,7 +302,7 @@ static void debug_ioctl(int ionr, int iodr, int iosz, void *arg, long num,
 		printk("RD:");
 
 	if (arg)
-		c = *(int *) arg;
+		c = *iargp;
 	else
 		c = 0;
 	printk(" iosz:%d arg:0x%p[%d] minor:%d\n", iosz, arg, c,
@@ -381,7 +382,7 @@ static char IHRd8(void *x)
 	char res;
 
 	isr_bus_error = 0;
-	res = *(char *) x;
+	res = ioread8(x);
 	if (bus_error_count > last_bus_error)
 		isr_bus_error = 1;
 	return res;
@@ -461,7 +462,7 @@ static char HRd8(void *x)
 {
 	char res;
 
-	res = *(char *) x;
+	res = ioread8(x);
 	CheckBusError("D8", "READ", x);
 	return res;
 }
@@ -486,7 +487,7 @@ static irqreturn_t vmeio_irq(void *arg)
 	module_context_t *mcon;
 	long data;
 
-	mcon = (module_context_t *) arg;
+	mcon = arg;
 	if (mcon->isr_source_address) {
 		if (mcon->window.dwd1 == 4)
 			data = IHRd32(mcon->isr_source_address);
@@ -996,14 +997,14 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 	case VMEIO_GET_DEVICE:	   /** Get the device described in struct vmeio_get_device_s */
 
-		winb = (struct vmeio_get_window_s *) arb;
+		winb = arb;
 		memcpy(winb, &mcon->window, sizeof(struct vmeio_get_window_s));
 		break;
 
 	case VMEIO_SET_DEVICE:     /** Changes the device memory map */
 				  /** Super dangerous, experts only */
 
-		winb = (struct vmeio_get_window_s *) arb;
+		winb = arb;
 		if (!mcon->window.nmap) {
 
 			unregister_module(mcon);
@@ -1028,7 +1029,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 	case VMEIO_RAW_READ_DMA:   /** Raw read VME registers */
 
-		riob = (struct vmeio_riob_s *) arb;
+		riob = arb;
 
 #ifdef __64BIT
 		bl = (unsigned int) (long) riob->buffer & 0xFFFFFFFF;
@@ -1086,7 +1087,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 	case VMEIO_RAW_WRITE_DMA:  /** Raw write VME registers */
 
-		riob = (struct vmeio_riob_s *) arb;
+		riob = arb;
 
 #ifdef __64BIT
 		bl = (unsigned int) (long) riob->buffer & 0xFFFFFFFF;
@@ -1144,7 +1145,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 	case VMEIO_RAW_READ:	   /** Raw read VME registers */
 
-		riob = (struct vmeio_riob_s *) arb;
+		riob = arb;
 
 		if (mcon->window.nmap)
 			return ioctl_err(-ENODEV, arb, NULL); /* Not mapped */
@@ -1204,7 +1205,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		break;
 
 	case VMEIO_RAW_WRITE:	   /** Raw write VME registers */
-		riob = (struct vmeio_riob_s *) arb;
+		riob = arb;
 
 		if (mcon->window.nmap)
 			return ioctl_err(-ENODEV, arb, NULL); /* Not mapped */
