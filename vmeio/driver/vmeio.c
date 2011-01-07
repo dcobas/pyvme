@@ -471,7 +471,7 @@ static char HRd8(void *x)
 
 static void HWr8(char v, void *x)
 {
-	*(char *) x = v;
+	iowrite8(v, x);
 	CheckBusError("D8", "WRITE", x);
 	return;
 }
@@ -921,6 +921,37 @@ static inline int ioctl_err(int er, void *p, void *q)
 #define DMA_BLOCK_SIZE        4096
 #define SAMPLES_IN_DMA_BLOCK  2048
 
+static void vmeio_set_debug(module_context_t *mcon, int *debug)
+{
+	mcon->debug = *debug;
+}
+
+static void vmeio_get_debug(module_context_t *mcon, int *debug)
+{
+	*debug = mcon->debug;
+}
+
+static void vmeio_get_version(int *version)
+{
+	*version = COMPILE_TIME;
+}
+
+static void vmeio_set_timeout(module_context_t *mcon, int *timeout)
+{
+	mcon->timeout = msecs_to_jiffies(*timeout);
+}
+
+static void vmeio_get_timeout(module_context_t *mcon, int *timeout)
+{
+	*timeout = jiffies_to_msecs(mcon->timeout);
+}
+
+static void vmeio_get_device(module_context_t *mcon, 
+		struct vmeio_get_window_s *win)
+{
+		memcpy(win, &mcon->window, sizeof(*win));
+}
+
 /*
  * =====================================================
  */
@@ -974,31 +1005,27 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 	switch (cmd) {
 
 	case VMEIO_SET_DEBUG:
-		mcon->debug = *(int *) arb;
+		vmeio_set_debug(mcon, arb);
 		break;
 
 	case VMEIO_GET_DEBUG:
-		*(int *) arb = mcon->debug;
+		vmeio_get_debug(mcon, arb);
 		break;
 
 	case VMEIO_GET_VERSION:
-		*(int *) arb = COMPILE_TIME;
+		vmeio_get_version(arb);
 		break;
 
 	case VMEIO_SET_TIMEOUT:
-		cnt = *(int *) arb;
-		mcon->timeout = msecs_to_jiffies(cnt);
+		vmeio_set_timeout(mcon, arb);
 		break;
 
 	case VMEIO_GET_TIMEOUT:
-		cnt = jiffies_to_msecs(mcon->timeout);
-		*(int *) arb = cnt;
+		vmeio_get_timeout(mcon, arb);
 		break;
 
 	case VMEIO_GET_DEVICE:	   /** Get the device described in struct vmeio_get_device_s */
-
-		winb = arb;
-		memcpy(winb, &mcon->window, sizeof(struct vmeio_get_window_s));
+		vmeio_get_device(mcon, arb);
 		break;
 
 	case VMEIO_SET_DEVICE:     /** Changes the device memory map */
