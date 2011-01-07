@@ -540,9 +540,10 @@ void *map_window(int vme, int win, int amd, int dwd) {
 	} else {
 		msg = "OK:Mapped";
 	}
-	printk("%s:Window:%s:Address:0x%X Window:0x%X"
-			" AddrMod:0x%X DWidth:0x%X\n",
-			vmeio_major_name, msg, vme, win, amd, dwd);
+	printk("%s:%s:Address:0x%X Window:0x%X"
+			":AddrMod:0x%X DWidth:0x%X:VirtAddr:0x%lX\n",
+			vmeio_major_name, msg,
+			vme, win, amd, dwd, vmeaddr);
 	return (void *)vmeaddr;
 }
 
