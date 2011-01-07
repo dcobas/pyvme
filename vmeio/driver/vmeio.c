@@ -180,6 +180,52 @@ module_param_string(dname, dname, sizeof(dname), 0);
 MODULE_PARM_DESC(dname, "Driver name");
 
 /*
+ * This structure describes all the relevant information about a mapped
+ * window
+ */
+struct vmeio_map {
+	unsigned long	base_address;
+	unsigned long	address_modifier;
+	unsigned long	data_width;
+	unsigned long	window_size;
+	void		*vaddr;		/* NULL if not mapped */
+	struct vme_berr_handler
+			*bus_error_handler;	/* NULL if inexistent */
+};
+
+
+/*
+ * vmeio device descriptor:
+ *	maps[max_maps]		array of mapped VME windows
+ *
+ *	isrfl			1 if interrupt handler installed
+ *	isr_source_address	interrupt source reg address
+ *	isr_source_mask		result of the read
+ *
+ *	queue			interrupt waits
+ *	timeout			timeout value for wait queue
+ *	icnt			interrupt counter
+ *
+ *	debug			debug level
+ */
+
+#define MAX_MAPS	2
+
+struct vmeio_device {
+	struct vmeio_map	maps[MAX_MAPS];
+
+	int			isrfl;
+	void			*isr_source_address;
+	int			isr_source_mask;
+
+	wait_queue_head_t	queue;
+	int			timeout;
+	int			icnt;
+
+	int			debug;
+};
+
+/*
  * ==============================================================
  * Mapping/Module context. Its not convenient to use the above
  * module parameter storage area directly. I want a pointer
