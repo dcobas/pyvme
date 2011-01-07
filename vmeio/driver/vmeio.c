@@ -524,6 +524,24 @@ struct vme_berr_handler *set_berr_handler(int vme, int win, int amd) {
 	return handler;
 }
 
+
+void register_isr(module_context_t *mcon, unsigned vector, unsigned level)
+{
+	int err;
+
+	err = vme_intset(vector, (int (*)(void *)) vmeio_irq, mcon, 0);
+	mcon->isrfl = !(err < 0);
+	printk("%s:ISR:Level:0x%X Vector:0x%X:%s\n",
+		vmeio_major_name, level, vector,
+		(err < 0) ? "ERROR:NotRegistered" : "OK:Registered");
+}
+
+void register_int_source(module_context_t *mcon, void *map, unsigned offset)
+{
+	mcon->isr_source_address = mcon->map1 + mcon->window.isrc;
+	printk("SourceRegister:0x%p", mcon->isr_source_address);
+}
+
 /*
  * =====================================================
  * Install
@@ -638,29 +656,9 @@ int vmeio_install(void)
 			mcon->ber2 = set_berr_handler(mcon->window.vme2,mcon->window.win2,mcon->window.amd2);
 
 			if (mcon->window.lvl && mcon->window.vec) {
-				cc = vme_intset(mcon->window.vec,
-						(int (*)(void *))
-						vmeio_irq, (void *) mcon,
-						0);
-
-				printk("%s:ISR:", vmeio_major_name);
-				if (cc < 0) {
-					printk("ERROR:NotRegistered");
-				} else {
-					printk("OK:Registered");
-					mcon->isrfl = 1;
-				}
-				printk(":Level:0x%X Vector:0x%X",
-				       mcon->window.lvl, mcon->window.vec);
-
-				/* Address of the interrupt source register to be read from vme1 address space */
-
-				if (isrc_num) {
-					mcon->isr_source_address =
-					    mcon->map1 + mcon->window.isrc;
-					printk(":SourceRegister:0x%p",mcon->isr_source_address);
-				}
-				printk("\n");
+				register_isr(mcon, mcon->window.vec, mcon->window.lvl);
+				if (isrc_num)
+					register_int_source(mcon, mcon->map1,  mcon->window.isrc);
 			}
 
 		} else {
