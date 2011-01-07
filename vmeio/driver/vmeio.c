@@ -952,6 +952,16 @@ static void vmeio_get_device(module_context_t *mcon,
 		memcpy(win, &mcon->window, sizeof(*win));
 }
 
+static void vmeio_set_map(module_context_t *mcon, 
+			struct vmeio_map *map, 
+			unsigned mapno)
+{
+	void *vaddr;
+
+	vaddr = map_window(map->base_address, map->window_size,
+			map->address_modifier, map->data_width);
+}
+
 /*
  * =====================================================
  */
@@ -1059,10 +1069,10 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		riob = arb;
 
 #ifdef __64BIT
-		bl = (unsigned int) (long) riob->buffer & 0xFFFFFFFF;
-		bu = (unsigned int) (long) riob->buffer >> 32;
+		bl = (unsigned int)riob->buffer & 0xFFFFFFFF;
+		bu = (unsigned int)riob->buffer >> 32;
 #else
-		bl = (unsigned int) riob->buffer;
+		bl = (unsigned int)riob->buffer;
 		bu = 0;
 #endif
 		memset(&dma_desc, 0,sizeof(struct vme_dma));
@@ -1117,10 +1127,10 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		riob = arb;
 
 #ifdef __64BIT
-		bl = (unsigned int) (long) riob->buffer & 0xFFFFFFFF;
-		bu = (unsigned int) (long) riob->buffer >> 32;
+		bl = (unsigned int)riob->buffer & 0xFFFFFFFF;
+		bu = (unsigned int)riob->buffer >> 32;
 #else
-		bl = (unsigned int) riob->buffer;
+		bl = (unsigned int)riob->buffer;
 		bu = 0;
 #endif
 		memset(&dma_desc, 0, sizeof(struct vme_dma));
