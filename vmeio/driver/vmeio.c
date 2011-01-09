@@ -1030,6 +1030,111 @@ static int raw_dma(struct vmeio_device *dev,
 	return 0;
 }
 
+union vmeio_word {
+	int	width4;
+	short	width2;
+	char	width1;
+};
+
+
+static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
+{
+	struct vmeio_map *mapx = &dev->maps[riob->winum-1];	
+	int dwidth = mapx->data_width;
+	int i, j, cc;
+	char *map, *iob;
+	int cnt;
+
+	if (dev->nmap)
+		return -ENODEV;
+	if (riob->bsize > vmeioMAX_BUF)
+		return -E2BIG;
+	iob = kmalloc(riob->bsize, GFP_KERNEL);
+	if (!iob)
+		return -ENOMEM;
+	if ((map = mapx->vaddr) == NULL) {
+		kfree(iob);
+		return -ENODEV;
+	}
+	if (dev->debug > 1) {
+		printk("RAW:READ:win:%d map:0x%p offs:0x%X amd:0x%2lx dwd:%d len:%d\n",
+		     riob->winum, map, riob->offset,
+		     mapx->address_modifier, dwidth,
+		     riob->bsize);
+	}
+
+	cnt = GetClrBusErrCnt();
+
+	for (i = 0, j = riob->offset; i < riob->bsize; i += dwidth, j += dwidth) {
+		union vmeio_word *dst = (void *)&iob[i];
+		if (dwidth == 4)
+			dst->width4 = HRd32(&map[j]);
+		else if (dwidth == 2)
+			dst->width4 = HRd16(&map[j]);
+		else
+			dst->width1 = HRd8( &map[j]);
+		if (GetClrBusErrCnt()) {
+			kfree(iob);
+			return -EIO;
+		}
+	}
+	cc = copy_to_user(riob->buffer, iob, riob->bsize);
+	kfree(iob);
+	if (cc)
+		return -EACCES;
+}
+
+static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
+{
+	struct vmeio_map *mapx = &dev->maps[riob->winum-1];	
+	int dwidth = mapx->data_width;
+	int i, j, cc;
+	char *map, *iob;
+	int cnt;
+
+	if (dev->nmap)
+		return -ENODEV;
+	if (riob->bsize > vmeioMAX_BUF)
+		return -E2BIG;
+	iob = kmalloc(riob->bsize, GFP_KERNEL);
+	if (!iob)
+		return -ENOMEM;
+	if ((map = mapx->vaddr) == NULL) {
+		kfree(iob);
+		return -ENODEV;
+	}
+
+	cc = copy_from_user(iob, riob->buffer, riob->bsize);
+	if (cc < 0) {
+		kfree(iob);
+		return -EACCES;
+	}
+
+	if (dev->debug > 1) {
+		printk("RAW:WRITE:win:%d map:0x%p ofs:0x%X amd:0x%2lx dwd:%d len:%d\n",
+		     riob->winum, map, riob->offset,
+		     mapx->address_modifier, dwidth,
+		     riob->bsize);
+	}
+
+	cnt = GetClrBusErrCnt();
+	for (i = 0, j = riob->offset; i < riob->bsize; i += dwidth, j += dwidth) {
+		union vmeio_word *src = (void *)&iob[i];
+		if (dwidth == 4)
+			HWr32(src->width4, &map[j]);
+		else if (dwidth == 2)
+			HWr16(src->width2, &map[j]);
+		else
+			HWr8( src->width1, &map[j]);
+		if (GetClrBusErrCnt()) {
+			kfree(iob);
+			return -EIO;
+		}
+	}
+	kfree(iob);
+	return 0;
+}
+
 /*
  * =====================================================
  */
@@ -1038,21 +1143,13 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		unsigned long arg)
 {
 	void *arb;		/* Argument buffer area */
-	char *map, *iob;	/* Io memory hardware map pointer and local buffer */
 
 	struct vmeio_device *dev;
-	struct vmeio_riob_s *riob;
 	struct vmeio_get_window_s *winb;
-	struct vmeio_map *mapx;
 
 	int iodr;		/* Io Direction */
 	int iosz;		/* Io Size in bytes */
-
-	int *ibp, *imp;		/* Integer pointers used to transfer between buf and map */
-	short *sbp, *smp;	/* Short transfer pointers */
-	char *cbp, *cmp;	/* And for chars */
-
-	int i, j, cnt, cc, amd, dwd, win;
+	int cc;
 
 	long minor;
 
@@ -1146,107 +1243,16 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 	case VMEIO_RAW_READ:	   /** Raw read VME registers */
 
-		riob = arb;
-
-		if (dev->nmap)
-			return ioctl_err(-ENODEV, arb, NULL); /* Not mapped */
-
-		if (riob->bsize > vmeioMAX_BUF)
-			return -E2BIG;
-		iob = kmalloc(riob->bsize, GFP_KERNEL);
-		if (!iob)
-			return ioctl_err(-ENOMEM, arb, NULL);
-
-		mapx = &dev->maps[riob->winum-1];	/* first winum is 1 */
-		map = mapx->vaddr;
-		if (!map)
-			return ioctl_err(-ENODEV, arb, iob);
-		dwd = mapx->data_width;
-		amd = mapx->address_modifier;
-		win = mapx->window_size;
-
-		if (dev->debug > 1) {
-			printk
-			    ("RAW:READ:win:%d map:0x%p offs:0x%X amd:0x%x dwd:%d len:%d\n",
-			     riob->winum, map, riob->offset, amd, dwd,
-			     riob->bsize);
-		}
-
-		cnt = GetClrBusErrCnt();
-		for (i = 0, j = riob->offset; i < riob->bsize;
-		     i += dwd, j += dwd) {
-			if (dwd == 4) {
-				ibp = (int *) &iob[i];		/* 32 bit access */
-				imp = (int *) &map[j];
-				*ibp = HRd32(imp);
-			} else if (dwd == 2) {
-				sbp = (short *) &iob[i];	/* 16 bit access */
-				smp = (short *) &map[j];
-				*sbp = HRd16(smp);
-			} else {
-				cbp = &iob[i];	/* 8 bit access */
-				cmp = &map[j];
-				*cbp = HRd8(cmp);
-			}
-			if (GetClrBusErrCnt())
-				return ioctl_err(-EIO, arb, iob);
-		}
-		cc = copy_to_user(riob->buffer, iob, riob->bsize);
-		kfree(iob);
-		if (cc)
-			return ioctl_err(-EACCES, arb, NULL);
+		cc = raw_read(dev, arb);
+		if (cc < 0)
+			return ioctl_err(cc, arb, NULL);
 		break;
 
 	case VMEIO_RAW_WRITE:	   /** Raw write VME registers */
-		riob = arb;
 
-		if (dev->nmap)
-			return ioctl_err(-ENODEV, arb, NULL); /* Not mapped */
-
-		if (riob->bsize > vmeioMAX_BUF)
-			return ioctl_err(-E2BIG, arb, NULL);
-		iob = kmalloc(riob->bsize, GFP_KERNEL);
-		if (!iob)
-			return ioctl_err(-ENOMEM, arb, NULL);
-
-
-		cc = copy_from_user(iob, riob->buffer, riob->bsize);
-
-		mapx = &dev->maps[riob->winum-1];	/* first winum is 1 */
-		map = mapx->vaddr;
-		if (!map)
-			return ioctl_err(-ENODEV, arb, iob);
-		dwd = mapx->data_width;
-		amd = mapx->address_modifier;
-		win = mapx->window_size;
-
-		if (dev->debug > 1) {
-			printk
-			    ("RAW:WRITE:win:%d map:0x%p ofs:0x%X amd:0x%x dwd:%d len:%d\n",
-			     riob->winum, map, riob->offset, amd, dwd,
-			     riob->bsize);
-		}
-
-		cnt = GetClrBusErrCnt();
-		for (i = 0, j = riob->offset; i < riob->bsize;
-		     i += dwd, j += dwd) {
-			if (dwd == 4) {
-				ibp = (int *) &iob[i];	/* 32 bit access */
-				imp = (int *) &map[j];
-				HWr32(*ibp, imp);
-			} else if (dwd == 2) {
-				sbp = (short *) &iob[i];	/* 16 bit access */
-				smp = (short *) &map[j];
-				HWr16(*sbp, smp);
-			} else {
-				cbp = &iob[i];	/* 8 bit access */
-				cmp = &map[j];
-				HWr8(*cbp, cmp);
-			}
-			if (GetClrBusErrCnt())
-				return ioctl_err(-EIO, arb, iob);
-		}
-		kfree(iob);
+		cc = raw_read(dev, arb);
+		if (cc < 0)
+			return ioctl_err(cc, arb, NULL);
 		break;
 
 	default:
