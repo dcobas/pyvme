@@ -1,0 +1,15 @@
+#!/bin/sh
+echo Installing vmeio driver...
+# echo 8 > /proc/sys/kernel/printk
+/sbin/insmod vmeio.ko luns=0 vme1=0x20000000 lvls=2 vecs=0xc9 amd1=0x9 win1=0x800000 dwd1=4
+# /sbin/insmod vmeio.ko luns=0 vme1=0x100000 amd1=0x39 win1=0x80000 dwd1=4
+# /sbin/insmod vmeio.ko luns=0 vme1=0x6200 amd1=0x29 win1=0x200 dwd1=2 lvls=2 vecs=125
+
+MAJOR=`cat /proc/devices | awk '{if ($2 == "vmeio") printf $1}'`
+echo Making nodes for ${MODULE} major device vmeio ${MAJOR}
+if [ -z "$MAJOR" ]; then
+	echo "driver vmeio not installed!"
+	exit 2
+fi
+rm -f /dev/vmeio.*
+/bin/mknod  -m 0666 /dev/vmeio.0 c ${MAJOR} 0
