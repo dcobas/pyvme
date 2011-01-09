@@ -1,3 +1,4 @@
+
 /**
  * =================================================
  * Implement driver to do basic VME IO
@@ -193,12 +194,12 @@ struct vmeio_map {
 			*bus_error_handler;	/* NULL if inexistent */
 };
 
-
 /*
  * vmeio device descriptor:
  *	maps[max_maps]		array of mapped VME windows
  *
  *	isrfl			1 if interrupt handler installed
+ *	isrc			offset of int source reg in map0
  *	isr_source_address	interrupt source reg address
  *	isr_source_mask		result of the read
  *
@@ -212,8 +213,13 @@ struct vmeio_map {
 #define MAX_MAPS	2
 
 struct vmeio_device {
+	int			lun;
 	struct vmeio_map	maps[MAX_MAPS];
+	int			nmap;
 
+	int			vec;
+	int			lvl;
+	unsigned		isrc;
 	int			isrfl;
 	void			*isr_source_address;
 	int			isr_source_mask;
@@ -225,36 +231,7 @@ struct vmeio_device {
 	int			debug;
 };
 
-/*
- * ==============================================================
- * Mapping/Module context. Its not convenient to use the above
- * module parameter storage area directly. I want a pointer
- * that contains all the data about a modules mappings etc
- */
-
-typedef struct {
-
-	struct vmeio_get_window_s window;
-
-	void *map1;                     /* First mapped vme address */
-	void *map2;                     /* Second mapped vme address */
-	int isrfl;                      /* Isr installed flag */
-
-	struct vme_berr_handler *ber1;	/* First bus error handler */
-	struct vme_berr_handler *ber2;	/* Second bus error handler */
-
-	void *isr_source_address;	/* Where to read in map */
-	int isr_source_mask;            /* result of the read */
-
-	wait_queue_head_t queue;	/* For interrupt waiting */
-	int timeout;                    /* Timeout value for wait queue */
-	int icnt;                       /* Interrupt counter */
-
-	int debug;                      /* Debug level */
-
-} module_context_t;
-
-static module_context_t module_contexts[DRV_MAX_DEVICES];
+static struct vmeio_device devices[DRV_MAX_DEVICES];
 
 struct file_operations vmeio_fops;
 
@@ -484,21 +461,21 @@ static void HWr8(char v, void *x)
 
 static irqreturn_t vmeio_irq(void *arg)
 {
-	module_context_t *mcon;
+	struct vmeio_device *dev = arg;
 	long data;
 
-	mcon = arg;
-	if (mcon->isr_source_address) {
-		if (mcon->window.dwd1 == 4)
-			data = IHRd32(mcon->isr_source_address);
-		else if (mcon->window.dwd1 == 2)
-			data = IHRd16(mcon->isr_source_address);
+	if (dev->isr_source_address) {
+		unsigned long data_width = dev->maps[0].data_width;
+		if (data_width == 4)
+			data = IHRd32(dev->isr_source_address);
+		else if (data_width == 2)
+			data = IHRd16(dev->isr_source_address);
 		else
-			data = IHRd8(mcon->isr_source_address);
-		mcon->isr_source_mask = data;
+			data = IHRd8(dev->isr_source_address);
+		dev->isr_source_mask = data;
 	}
-	mcon->icnt++;
-	wake_up(&mcon->queue);
+	dev->icnt++;
+	wake_up(&dev->queue);
 	return IRQ_HANDLED;
 }
 
@@ -573,21 +550,21 @@ struct vme_berr_handler *set_berr_handler(int vme, int win, int amd) {
 }
 
 
-void register_isr(module_context_t *mcon, unsigned vector, unsigned level)
+void register_isr(struct vmeio_device *dev, unsigned vector, unsigned level)
 {
 	int err;
 
-	err = vme_intset(vector, (int (*)(void *)) vmeio_irq, mcon, 0);
-	mcon->isrfl = !(err < 0);
+	err = vme_intset(vector, (int (*)(void *)) vmeio_irq, dev, 0);
+	dev->isrfl = !(err < 0);
 	printk("%s:ISR:Level:0x%X Vector:0x%X:%s\n",
 		vmeio_major_name, level, vector,
 		(err < 0) ? "ERROR:NotRegistered" : "OK:Registered");
 }
 
-void register_int_source(module_context_t *mcon, void *map, unsigned offset)
+void register_int_source(struct vmeio_device *dev, void *map, unsigned offset)
 {
-	mcon->isr_source_address = mcon->map1 + mcon->window.isrc;
-	printk("SourceRegister:0x%p", mcon->isr_source_address);
+	dev->isr_source_address = dev->maps[0].vaddr + dev->isrc;
+	printk("SourceRegister:0x%p", dev->isr_source_address);
 }
 
 /*
@@ -599,7 +576,6 @@ void register_int_source(module_context_t *mcon, void *map, unsigned offset)
 int vmeio_install(void)
 {
 	int i, cc;
-	module_context_t *mcon;
 
 	if (luns_num <= 0 || luns_num > DRV_MAX_DEVICES) {
 		printk("%s:Fatal:No logical units defined.\n",
@@ -647,30 +623,37 @@ int vmeio_install(void)
 	/* Build module contexts */
 
 	for (i = 0; i < luns_num; i++) {
+		struct vmeio_device *dev = &devices[i];
+		struct vmeio_map *map0 = &dev->maps[0];
+		struct vmeio_map *map1 = &dev->maps[1];
 
-		mcon = &module_contexts[i];
-		memset(mcon, 0, sizeof(module_context_t));
+		memset(dev, 0, sizeof(*dev));
 
-		mcon->window.lun = luns[i];
-		mcon->window.lvl = lvls[i];
-		mcon->window.vec = vecs[i];
-		mcon->window.nmap = nmap[i];
-		mcon->window.amd1 = amd1[i];
-		mcon->window.amd2 = amd2[i];
-		mcon->window.dwd1 = dwd1[i];
-		mcon->window.dwd2 = dwd2[i];
-		mcon->window.win1 = win1[i];
-		mcon->window.win2 = win2[i];
-		mcon->window.nmap = nmap[i];
-		mcon->window.isrc = isrc[i];
-		mcon->window.vme1 = vme1[i];
-		mcon->window.vme2 = vme2[i];
+		dev->lun = luns[i];
 
-		init_waitqueue_head(&mcon->queue);
+		map0->base_address     = vme1[i];
+		map0->address_modifier = amd1[i];
+		map0->data_width       = dwd1[i];
+		map0->window_size      = win1[i];
+		map0->vaddr            = NULL;
+		map0->bus_error_handler = NULL;
+
+		map1->base_address     = vme2[i];
+		map1->address_modifier = amd2[i];
+		map1->data_width       = dwd2[i];
+		map1->window_size      = win2[i];
+		map1->vaddr            = NULL;
+		map1->bus_error_handler = NULL;
+
+		dev->isrc = isrc[i];
+		dev->lvl  = lvls[i];
+		dev->vec  = vecs[i];
+		dev->nmap = nmap[i];
+
+		init_waitqueue_head(&dev->queue);
 	}
 
 	/* Register driver */
-
 	cc = register_chrdev(vmeio_major, vmeio_major_name, &vmeio_fops);
 	if (cc < 0) {
 		printk("%s:Fatal:Error from register_chrdev [%d]\n",
@@ -683,35 +666,38 @@ int vmeio_install(void)
 	/* Create VME mappings and register ISRs */
 
 	for (i = 0; i < luns_num; i++) {
+		struct vmeio_device *dev = &devices[i];
+		struct vmeio_map *map0 = &dev->maps[0];
+		struct vmeio_map *map1 = &dev->maps[1];
 
-		mcon = &module_contexts[i];
-		mcon->debug = DEBUG;
-		mcon->timeout = msecs_to_jiffies(TIMEOUT);
-		mcon->icnt = 0;
+		dev->debug = DEBUG;
+		dev->timeout = msecs_to_jiffies(TIMEOUT);
+		dev->icnt = 0;
 
 		if (strlen(dname))
 			vmeio_major_name = dname;
 
-		if (!mcon->window.nmap) {
-
-			printk("\n%s:Mapping:Logical unit:%d\n",
-			     vmeio_major_name, mcon->window.lun);
-
-			mcon->map1 = map_window(mcon->window.vme1,mcon->window.win1,mcon->window.amd1,mcon->window.dwd1);
-			mcon->ber1 = set_berr_handler(mcon->window.vme1,mcon->window.win1,mcon->window.amd1);
-
-			mcon->map2 = map_window(mcon->window.vme2,mcon->window.win2,mcon->window.amd2,mcon->window.dwd2);
-			mcon->ber2 = set_berr_handler(mcon->window.vme2,mcon->window.win2,mcon->window.amd2);
-
-			if (mcon->window.lvl && mcon->window.vec) {
-				register_isr(mcon, mcon->window.vec, mcon->window.lvl);
-				if (isrc_num)
-					register_int_source(mcon, mcon->map1,  mcon->window.isrc);
-			}
-
-		} else {
+		if (dev->nmap != 0) {
 			printk("%s:Logical unit:%d is not mapped: DMA only\n",
-			     vmeio_major_name, mcon->window.lun);
+			     vmeio_major_name, dev->lun);
+			continue;
+		} 
+
+		printk("%s:Mapping:Logical unit:%d\n", vmeio_major_name, dev->lun);
+
+		map0->vaddr = map_window(map0->base_address, map0->address_modifier,
+						map0->data_width, map0->window_size);
+		map0->bus_error_handler = set_berr_handler(map0->base_address, 
+					map0->window_size, map0->address_modifier);
+		map1->vaddr = map_window(map1->base_address, map1->address_modifier,
+						map1->data_width, map1->window_size);
+		map1->bus_error_handler = set_berr_handler(map1->base_address, 
+					map1->window_size, map1->address_modifier);
+
+		if (dev->lvl && dev->vec) {
+			register_isr(dev, dev->vec, dev->lvl);
+			if (isrc_num)
+				register_int_source(dev, map0->vaddr, dev->isrc);
 		}
 	}
 	return 0;
@@ -719,20 +705,20 @@ int vmeio_install(void)
 
 /* ==================== */
 
-void unregister_module(module_context_t *mcon) {
+void unregister_module(struct vmeio_device *dev) {
+	struct vmeio_map *map0 = &dev->maps[0];
+	struct vmeio_map *map1 = &dev->maps[1];
 
-	if (mcon->window.vec)
-		vme_intclr(mcon->window.vec, NULL);
-	if (mcon->map1)
-		return_controller((unsigned) mcon->map1,
-				  mcon->window.win1);
-	if (mcon->map2)
-		return_controller((unsigned) mcon->map2,
-				  mcon->window.win2);
-	if (mcon->ber1)
-		vme_unregister_berr_handler(mcon->ber1);
-	if (mcon->ber2)
-		vme_unregister_berr_handler(mcon->ber2);
+	if (dev->vec)
+		vme_intclr(dev->vec, NULL);
+	if (map0->base_address)
+		return_controller((unsigned long)map0->base_address, map0->window_size);
+	if (map1->base_address)
+		return_controller((unsigned long)map1->base_address, map1->window_size);
+	if (map0->bus_error_handler)
+		vme_unregister_berr_handler(map0->bus_error_handler);
+	if (map1->bus_error_handler)
+		vme_unregister_berr_handler(map1->bus_error_handler);
 }
 
 /*
@@ -744,11 +730,9 @@ void unregister_module(module_context_t *mcon) {
 void vmeio_uninstall(void)
 {
 	int i;
-	module_context_t *mcon;
 
 	for (i = 0; i < luns_num; i++) {
-		mcon = &module_contexts[i];
-		unregister_module(mcon);
+		unregister_module(&devices[i]);
 	}
 	unregister_chrdev(vmeio_major, vmeio_major_name);
 }
@@ -797,47 +781,47 @@ ssize_t vmeio_read(struct file * filp, char *buf, size_t count,
 		   loff_t * f_pos)
 {
 	int cc;
-	long num;
+	long minor;
 	struct inode *inode;
 
 	struct vmeio_read_buf_s rbuf;
-	module_context_t *mcon;
+	struct vmeio_device *dev;
 	int icnt;
 
 	inode = filp->f_dentry->d_inode;
-	num = MINOR(inode->i_rdev);
-	if (!check_minor(num))
+	minor = MINOR(inode->i_rdev);
+	if (!check_minor(minor))
 		return -EACCES;
-	mcon = &module_contexts[num];
+	dev = &devices[minor];
 
-	if (mcon->debug) {
+	if (dev->debug) {
 		printk("%s:read:count:%d minor:%d\n", vmeio_major_name,
-		       count, (int) num);
-		if (mcon->debug > 1) {
+		       count, (int) minor);
+		if (dev->debug > 1) {
 			printk("%s:read:timout:%d\n", vmeio_major_name,
-			       mcon->timeout);
+			       dev->timeout);
 		}
 	}
 
-	if (count < sizeof(struct vmeio_read_buf_s)) {
-		if (mcon->debug) {
+	if (count < sizeof(rbuf)) {
+		if (dev->debug) {
 			printk("%s:read:Access error buffer too small\n",
 			       vmeio_major_name);
 		}
 		return -EACCES;
 	}
 
-	icnt = mcon->icnt;
-	if (mcon->timeout) {
-		cc = wait_event_interruptible_timeout(mcon->queue,
-						      icnt != mcon->icnt,
-						      mcon->timeout);
+	icnt = dev->icnt;
+	if (dev->timeout) {
+		cc = wait_event_interruptible_timeout(dev->queue,
+						      icnt != dev->icnt,
+						      dev->timeout);
 	} else {
-		cc = wait_event_interruptible(mcon->queue,
-					      icnt != mcon->icnt);
+		cc = wait_event_interruptible(dev->queue,
+					      icnt != dev->icnt);
 	}
 
-	if (mcon->debug > 2) {
+	if (dev->debug > 2) {
 		printk("%s:wait_event:returned:%d\n", vmeio_major_name,
 		       cc);
 	}
@@ -847,16 +831,16 @@ ssize_t vmeio_read(struct file * filp, char *buf, size_t count,
 		       vmeio_major_name);
 		return cc;
 	}
-	if (cc == 0 && mcon->timeout)
+	if (cc == 0 && dev->timeout)
 		return -ETIME;	/* Timer expired */
 	if (cc < 0)
 		return cc;	/* Error */
 
-	rbuf.logical_unit = mcon->window.lun;
-	rbuf.interrupt_mask = mcon->isr_source_mask;
-	rbuf.interrupt_count = mcon->icnt;
+	rbuf.logical_unit = dev->lun;
+	rbuf.interrupt_mask = dev->isr_source_mask;
+	rbuf.interrupt_count = dev->icnt;
 
-	cc = copy_to_user(buf, &rbuf, sizeof(struct vmeio_read_buf_s));
+	cc = copy_to_user(buf, &rbuf, sizeof(rbuf));
 	if (cc != 0) {
 		printk("%s:Can't copy to user space:cc=%d\n", vmeio_major_name, cc);
 		return -EACCES;
@@ -874,16 +858,16 @@ ssize_t vmeio_read(struct file * filp, char *buf, size_t count,
 ssize_t vmeio_write(struct file * filp, const char *buf, size_t count,
 		    loff_t * f_pos)
 {
-	long num;
-	module_context_t *mcon;
+	long minor;
+	struct vmeio_device *dev;
 	struct inode *inode;
 	int cc, mask;
 
 	inode = filp->f_dentry->d_inode;
-	num = MINOR(inode->i_rdev);
-	if (!check_minor(num))
+	minor = MINOR(inode->i_rdev);
+	if (!check_minor(minor))
 		return -EACCES;
-	mcon = &module_contexts[num];
+	dev = &devices[minor];
 
 	if (count < sizeof(int)) {
 		cc = copy_from_user(&mask, buf, sizeof(int));
@@ -894,14 +878,14 @@ ssize_t vmeio_write(struct file * filp, const char *buf, size_t count,
 		}
 	}
 
-	if (mcon->debug) {
+	if (dev->debug) {
 		printk("%s:write:count:%d minor:%d mask:0x%X\n",
-		       vmeio_major_name, count, (int) num, mask);
+		       vmeio_major_name, count, (int) minor, mask);
 	}
 
-	mcon->isr_source_mask = mask;
-	mcon->icnt++;
-	wake_up(&mcon->queue);
+	dev->isr_source_mask = mask;
+	dev->icnt++;
+	wake_up(&dev->queue);
 	return sizeof(int);
 }
 
@@ -922,14 +906,14 @@ static inline int ioctl_err(int er, void *p, void *q)
 #define DMA_BLOCK_SIZE        4096
 #define SAMPLES_IN_DMA_BLOCK  2048
 
-static void vmeio_set_debug(module_context_t *mcon, int *debug)
+static void vmeio_set_debug(struct vmeio_device *dev, int *debug)
 {
-	mcon->debug = *debug;
+	dev->debug = *debug;
 }
 
-static void vmeio_get_debug(module_context_t *mcon, int *debug)
+static void vmeio_get_debug(struct vmeio_device *dev, int *debug)
 {
-	*debug = mcon->debug;
+	*debug = dev->debug;
 }
 
 static void vmeio_get_version(int *version)
@@ -937,23 +921,24 @@ static void vmeio_get_version(int *version)
 	*version = COMPILE_TIME;
 }
 
-static void vmeio_set_timeout(module_context_t *mcon, int *timeout)
+static void vmeio_set_timeout(struct vmeio_device *dev, int *timeout)
 {
-	mcon->timeout = msecs_to_jiffies(*timeout);
+	dev->timeout = msecs_to_jiffies(*timeout);
 }
 
-static void vmeio_get_timeout(module_context_t *mcon, int *timeout)
+static void vmeio_get_timeout(struct vmeio_device *dev, int *timeout)
 {
-	*timeout = jiffies_to_msecs(mcon->timeout);
+	*timeout = jiffies_to_msecs(dev->timeout);
 }
 
-static void vmeio_get_device(module_context_t *mcon, 
-		struct vmeio_get_window_s *win)
+static void vmeio_get_map(struct vmeio_device *dev,
+		struct vmeio_map *map, unsigned mapno)
 {
-		memcpy(win, &mcon->window, sizeof(*win));
+	/* warning: check boundaries later */
+	memcpy(map, &dev->maps[mapno], sizeof(*map));
 }
 
-static void vmeio_set_map(module_context_t *mcon, 
+static void vmeio_set_map(struct vmeio_device *dev, 
 			struct vmeio_map *map, 
 			unsigned mapno)
 {
@@ -961,6 +946,29 @@ static void vmeio_set_map(module_context_t *mcon,
 
 	vaddr = map_window(map->base_address, map->window_size,
 			map->address_modifier, map->data_width);
+}
+
+static void vmeio_get_device(struct vmeio_device *dev, 
+		struct vmeio_get_window_s *win)
+{
+	struct vmeio_map *map0 = &dev->maps[0];
+	struct vmeio_map *map1 = &dev->maps[0];
+
+	win->lun	= dev->lun;
+	win->lvl	= dev->lvl;
+	win->vec	= dev->vec;
+	win->nmap	= dev->nmap;
+	win->isrc	= dev->isrc;
+
+	win->amd1	= map0->address_modifier;
+	win->dwd1	= map0->data_width;
+	win->vme1	= map0->base_address;
+	win->win1	= map0->window_size;
+
+	win->amd2	= map1->address_modifier;
+	win->dwd2	= map1->data_width;
+	win->vme2	= map1->base_address;
+	win->win2	= map1->window_size;
 }
 
 /*
@@ -973,10 +981,10 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 	void *arb;		/* Argument buffer area */
 	char *map, *iob;	/* Io memory hardware map pointer and local buffer */
 
-	module_context_t *mcon;
-
+	struct vmeio_device *dev;
 	struct vmeio_riob_s *riob;
 	struct vmeio_get_window_s *winb;
+	struct vmeio_map *mapx;
 
 	struct vme_dma dma_desc;
 
@@ -991,15 +999,15 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 	unsigned int bu, bl;	/* Upper and lower 32 bits of buffer address */
 
-	long num;
+	long minor;
 
 	iodr = _IOC_DIR(cmd);
 	iosz = _IOC_SIZE(cmd);
 
-	num = MINOR(inode->i_rdev);
-	if (!check_minor(num))
+	minor = MINOR(inode->i_rdev);
+	if (!check_minor(minor))
 		return -EACCES;
-	mcon = &module_contexts[num];
+	dev = &devices[minor];
 
 	if ((arb = kmalloc(iosz, GFP_KERNEL)) == NULL)
 		return -ENOMEM;
@@ -1008,19 +1016,19 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		if (copy_from_user(arb, (void *)arg, iosz) != 0)
 			ioctl_err(-EACCES, arb, NULL);
 	}
-	debug_ioctl(_IOC_NR(cmd), iodr, iosz, arb, num, mcon->debug);
+	debug_ioctl(_IOC_NR(cmd), iodr, iosz, arb, minor, dev->debug);
 
-	if (!mcon)
+	if (!dev)
 		return ioctl_err(-EACCES, arb, NULL);
 
 	switch (cmd) {
 
 	case VMEIO_SET_DEBUG:
-		vmeio_set_debug(mcon, arb);
+		vmeio_set_debug(dev, arb);
 		break;
 
 	case VMEIO_GET_DEBUG:
-		vmeio_get_debug(mcon, arb);
+		vmeio_get_debug(dev, arb);
 		break;
 
 	case VMEIO_GET_VERSION:
@@ -1028,17 +1036,18 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		break;
 
 	case VMEIO_SET_TIMEOUT:
-		vmeio_set_timeout(mcon, arb);
+		vmeio_set_timeout(dev, arb);
 		break;
 
 	case VMEIO_GET_TIMEOUT:
-		vmeio_get_timeout(mcon, arb);
+		vmeio_get_timeout(dev, arb);
 		break;
 
 	case VMEIO_GET_DEVICE:	   /** Get the device described in struct vmeio_get_device_s */
-		vmeio_get_device(mcon, arb);
+		vmeio_get_device(dev, arb);
 		break;
 
+#if 0
 	case VMEIO_SET_DEVICE:     /** Changes the device memory map */
 				  /** Super dangerous, experts only */
 
@@ -1180,12 +1189,13 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 			return ioctl_err(-EIO, arb, NULL);
 		}
 		break;
+#endif
 
 	case VMEIO_RAW_READ:	   /** Raw read VME registers */
 
 		riob = arb;
 
-		if (mcon->window.nmap)
+		if (dev->nmap)
 			return ioctl_err(-ENODEV, arb, NULL); /* Not mapped */
 
 		if (riob->bsize > vmeioMAX_BUF)
@@ -1194,23 +1204,15 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		if (!iob)
 			return ioctl_err(-ENOMEM, arb, NULL);
 
-		if (riob->winum == 2) {	/* Second window */
-			map = mcon->map2;
-			if (!map)
-				return ioctl_err(-ENODEV, arb, iob);
-			dwd = mcon->window.dwd2;
-			amd = mcon->window.amd2;
-			win = mcon->window.win2;
-		} else {	/* First window */
-			map = mcon->map1;
-			if (!map)
-				return ioctl_err(-ENODEV, arb, iob);
-			dwd = mcon->window.dwd1;
-			amd = mcon->window.amd1;
-			win = mcon->window.win1;
-		}
+		mapx = &dev->maps[riob->winum-1];	/* first winum is 1 */
+		map = mapx->vaddr;
+		if (!map)
+			return ioctl_err(-ENODEV, arb, iob);
+		dwd = mapx->data_width;
+		amd = mapx->address_modifier;
+		win = mapx->window_size;
 
-		if (mcon->debug > 1) {
+		if (dev->debug > 1) {
 			printk
 			    ("RAW:READ:win:%d map:0x%p offs:0x%X amd:0x%x dwd:%d len:%d\n",
 			     riob->winum, map, riob->offset, amd, dwd,
@@ -1245,7 +1247,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 	case VMEIO_RAW_WRITE:	   /** Raw write VME registers */
 		riob = arb;
 
-		if (mcon->window.nmap)
+		if (dev->nmap)
 			return ioctl_err(-ENODEV, arb, NULL); /* Not mapped */
 
 		if (riob->bsize > vmeioMAX_BUF)
@@ -1257,23 +1259,15 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 		cc = copy_from_user(iob, riob->buffer, riob->bsize);
 
-		if (riob->winum == 2) {	/* Second window */
-			map = mcon->map2;
-			if (!map)
-				return ioctl_err(-ENODEV, arb, iob);
-			dwd = mcon->window.dwd2;
-			amd = mcon->window.amd2;
-			win = mcon->window.win2;
-		} else {	/* First window */
-			map = mcon->map1;
-			if (!map)
-				return ioctl_err(-ENODEV, arb, iob);
-			dwd = mcon->window.dwd1;
-			amd = mcon->window.amd1;
-			win = mcon->window.win1;
-		}
+		mapx = &dev->maps[riob->winum-1];	/* first winum is 1 */
+		map = mapx->vaddr;
+		if (!map)
+			return ioctl_err(-ENODEV, arb, iob);
+		dwd = mapx->data_width;
+		amd = mapx->address_modifier;
+		win = mapx->window_size;
 
-		if (mcon->debug > 1) {
+		if (dev->debug > 1) {
 			printk
 			    ("RAW:WRITE:win:%d map:0x%p ofs:0x%X amd:0x%x dwd:%d len:%d\n",
 			     riob->winum, map, riob->offset, amd, dwd,
