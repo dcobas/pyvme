@@ -1210,9 +1210,9 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 	if ((arb = kmalloc(iosz, GFP_KERNEL)) == NULL)
 		return -ENOMEM;
 
-	if (iodr & _IOC_WRITE) {
-		if (copy_from_user(arb, (void *)arg, iosz) != 0)
-			ioctl_err(-EACCES, arb, NULL);
+	if ((iodr & _IOC_WRITE) && copy_from_user(arb, (void *)arg, iosz) != 0) {
+		cc = -EACCES;
+		goto out;
 	}
 	debug_ioctl(_IOC_NR(cmd), iodr, iosz, arb, minor, dev->debug);
 
@@ -1249,46 +1249,48 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 				  /** Super dangerous, experts only */
 		vmeio_set_device(dev, arb);
 		if (dev->maps[0].vaddr == NULL && dev->maps[1].vaddr == NULL)
-			return ioctl_err(cc, arb, NULL);
+			goto out;
 		break;
 
 	case VMEIO_RAW_READ_DMA:   /** Raw read VME registers */
 
 		cc = raw_dma(dev, arb, VME_DMA_FROM_DEVICE);
 		if (cc < 0)
-			return ioctl_err(cc, arb, NULL);
+			goto out;
 		break;
 
 	case VMEIO_RAW_WRITE_DMA:  /** Raw write VME registers */
 
 		cc = raw_dma(dev, arb, VME_DMA_TO_DEVICE);
 		if (cc < 0)
-			return ioctl_err(cc, arb, NULL);
+			goto out;
 		break;
 
 	case VMEIO_RAW_READ:	   /** Raw read VME registers */
 
 		cc = raw_read(dev, arb);
 		if (cc < 0)
-			return ioctl_err(cc, arb, NULL);
+			goto out;
 		break;
 
 	case VMEIO_RAW_WRITE:	   /** Raw write VME registers */
-
 		cc = raw_write(dev, arb);
-		if (cc < 0)
-			return ioctl_err(cc, arb, NULL);
+		if (cc < 0) 
+			goto out;
 		break;
 
 	default:
-		return ioctl_err(-ENOENT, arb, NULL);
+		cc = -ENOENT;
+		goto out;
+		break;
 	}
 
-	if (iodr & _IOC_READ) {
-		if (copy_to_user((void *)arg, arb, iosz) != 0)
-			return ioctl_err(-EACCES, arb, NULL);
+	if ((iodr & _IOC_READ) && copy_to_user((void *)arg, arb, iosz) != 0) {
+			cc = -EACCES;
+			goto out;
 	}
-	return ioctl_err(0, arb, NULL);
+out:	kfree(arb);
+	return cc;
 }
 
 /* ===================================================== */
