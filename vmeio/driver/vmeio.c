@@ -681,17 +681,17 @@ int vmeio_install(void)
 			printk("%s:Logical unit:%d is not mapped: DMA only\n",
 			     vmeio_major_name, dev->lun);
 			continue;
-		} 
+		}
 
 		printk("%s:Mapping:Logical unit:%d\n", vmeio_major_name, dev->lun);
 
 		map0->vaddr = map_window(map0->base_address, map0->address_modifier,
 						map0->data_width, map0->window_size);
-		map0->bus_error_handler = set_berr_handler(map0->base_address, 
+		map0->bus_error_handler = set_berr_handler(map0->base_address,
 					map0->window_size, map0->address_modifier);
 		map1->vaddr = map_window(map1->base_address, map1->address_modifier,
 						map1->data_width, map1->window_size);
-		map1->bus_error_handler = set_berr_handler(map1->base_address, 
+		map1->bus_error_handler = set_berr_handler(map1->base_address,
 					map1->window_size, map1->address_modifier);
 
 		if (dev->lvl && dev->vec) {
@@ -938,8 +938,8 @@ static void vmeio_get_map(struct vmeio_device *dev,
 	memcpy(map, &dev->maps[mapno], sizeof(*map));
 }
 
-static void vmeio_set_map(struct vmeio_device *dev, 
-			struct vmeio_map *map, 
+static void vmeio_set_map(struct vmeio_device *dev,
+			struct vmeio_map *map,
 			unsigned mapno)
 {
 	void *vaddr;
@@ -948,7 +948,7 @@ static void vmeio_set_map(struct vmeio_device *dev,
 			map->address_modifier, map->data_width);
 }
 
-static void vmeio_get_device(struct vmeio_device *dev, 
+static void vmeio_get_device(struct vmeio_device *dev,
 		struct vmeio_get_window_s *win)
 {
 	struct vmeio_map *map0 = &dev->maps[0];
@@ -971,6 +971,65 @@ static void vmeio_get_device(struct vmeio_device *dev,
 	win->win2	= map1->window_size;
 }
 
+static int raw_dma(struct vmeio_device *dev,
+	struct vmeio_riob_s *riob, enum vme_dma_dir direction)
+{
+	struct vme_dma dma_desc;
+	struct vmeio_map *map = &dev->maps[riob->winum];
+	unsigned int buf = (unsigned int)riob->buffer;
+	unsigned int bu, bl;
+	int cc;
+
+#ifdef __64BIT
+	bl = buf & 0xFFFFFFFF;
+	bu = buf >> 32;
+#else
+	bl = buf;
+	bu = 0;
+#endif
+	memset(&dma_desc, 0, sizeof(dma_desc));
+
+	dma_desc.dir = direction;
+	dma_desc.dst.data_width = map->data_width * 8;
+	dma_desc.dst.am = map->address_modifier;
+	dma_desc.novmeinc = 0;
+	dma_desc.length = riob->bsize;
+
+	dma_desc.ctrl.pci_block_size = VME_DMA_BSIZE_4096;
+	dma_desc.ctrl.pci_backoff_time = VME_DMA_BACKOFF_0;
+	dma_desc.ctrl.vme_block_size = VME_DMA_BSIZE_4096;
+	dma_desc.ctrl.vme_backoff_time = VME_DMA_BACKOFF_0;
+
+	if (direction == VME_DMA_TO_DEVICE) {
+		dma_desc.src.addrl = bl;
+		dma_desc.src.addru = bu;
+		dma_desc.dst.addrl = (unsigned int) map->vaddr + riob->offset;
+	} else {
+		dma_desc.src.addrl = (unsigned int) map->vaddr + riob->offset;
+		dma_desc.dst.addrl = bl;
+		dma_desc.dst.addru = bu;
+	}
+
+	if (dev->debug > 1) {
+		char *msg = (direction == VME_DMA_FROM_DEVICE) ?
+			"DMA:READ:win:%d src:0x%p amd:0x%x dwd:%d len:%d dst:0x%08x%08x\n" :
+			"DMA:WRIT:win:%d dst:0x%p amd:0x%x dwd:%d len:%d src:0x%08x%08x\n";
+		printk(msg, riob->winum, map->vaddr, map->address_modifier,
+		     map->data_width, riob->bsize, bu, bl);
+	}
+
+	if ((cc = vme_do_dma(&dma_desc)) < 0)
+		return cc;
+
+	if (!(dma_desc.status & TSI148_LCSR_DSTA_DON)) {
+		printk("%s:DMA:NotDone:Status:0x%X\n",
+		       vmeio_major_name, dma_desc.status);
+		return -EIO;
+	}
+
+	return 0;
+}
+
 /*
  * =====================================================
  */
@@ -986,8 +1045,6 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 	struct vmeio_get_window_s *winb;
 	struct vmeio_map *mapx;
 
-	struct vme_dma dma_desc;
-
 	int iodr;		/* Io Direction */
 	int iosz;		/* Io Size in bytes */
 
@@ -996,8 +1053,6 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 	char *cbp, *cmp;	/* And for chars */
 
 	int i, j, cnt, cc, amd, dwd, win;
-
-	unsigned int bu, bl;	/* Upper and lower 32 bits of buffer address */
 
 	long minor;
 
@@ -1073,123 +1128,21 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		} else
 			memcpy(&mcon->window, winb, sizeof(struct vmeio_get_window_s));     /** DMA only */
 		break;
+#endif
 
 	case VMEIO_RAW_READ_DMA:   /** Raw read VME registers */
 
-		riob = arb;
-
-#ifdef __64BIT
-		bl = (unsigned int)riob->buffer & 0xFFFFFFFF;
-		bu = (unsigned int)riob->buffer >> 32;
-#else
-		bl = (unsigned int)riob->buffer;
-		bu = 0;
-#endif
-		memset(&dma_desc, 0,sizeof(struct vme_dma));
-
-		if (riob->winum == 2) {	/* Second window */
-			map = (char *) mcon->window.vme2;
-			amd = mcon->window.amd2;
-			dwd = mcon->window.dwd2;
-		} else {	/* First window */
-			map = (char *) mcon->window.vme1;
-			amd = mcon->window.amd1;
-			dwd = mcon->window.dwd1;
-		}
-
-		map += riob->offset;
-
-		dma_desc.dir = VME_DMA_FROM_DEVICE;
-		dma_desc.src.data_width = dwd * 8;
-		dma_desc.src.am = amd;
-		dma_desc.novmeinc = 0;
-
-		dma_desc.ctrl.pci_block_size = VME_DMA_BSIZE_4096;
-		dma_desc.ctrl.pci_backoff_time = VME_DMA_BACKOFF_0;
-		dma_desc.ctrl.vme_block_size = VME_DMA_BSIZE_4096;
-		dma_desc.ctrl.vme_backoff_time = VME_DMA_BACKOFF_0;
-
-		dma_desc.src.addrl = (unsigned int) map;
-		dma_desc.dst.addrl = bl;
-		dma_desc.dst.addru = bu;
-		dma_desc.length = riob->bsize;
-
-		if (mcon->debug > 1) {
-			printk
-			    ("DMA:READ:win:%d src:0x%p amd:0x%x dwd:%d len:%d dst:0x%08x%08x\n",
-			     riob->winum, map, amd, dwd, riob->bsize, bu,
-			     bl);
-		}
-
-		cc = vme_do_dma(&dma_desc);
+		cc = raw_dma(dev, arb, VME_DMA_FROM_DEVICE);
 		if (cc < 0)
-			return (ioctl_err(cc, arb, NULL));
-
-		if (!(dma_desc.status & TSI148_LCSR_DSTA_DON)) {
-			printk("%s:DMA:NotDone:Status:0x%X\n",
-			       vmeio_major_name, dma_desc.status);
-			return ioctl_err(-EIO, arb, NULL);
-		}
+			return ioctl_err(cc, arb, NULL);
 		break;
 
 	case VMEIO_RAW_WRITE_DMA:  /** Raw write VME registers */
 
-		riob = arb;
-
-#ifdef __64BIT
-		bl = (unsigned int)riob->buffer & 0xFFFFFFFF;
-		bu = (unsigned int)riob->buffer >> 32;
-#else
-		bl = (unsigned int)riob->buffer;
-		bu = 0;
-#endif
-		memset(&dma_desc, 0, sizeof(struct vme_dma));
-
-		if (riob->winum == 2) {	/* Second window */
-			map = (char *) mcon->window.vme2;
-			amd = mcon->window.amd2;
-			dwd = mcon->window.dwd2;
-		} else {	/* First window */
-			map = (char *) mcon->window.vme1;
-			amd = mcon->window.amd1;
-			dwd = mcon->window.dwd1;
-		}
-
-		map += riob->offset;
-
-		dma_desc.dir = VME_DMA_TO_DEVICE;
-		dma_desc.dst.data_width = dwd * 8;
-		dma_desc.dst.am = amd;
-		dma_desc.novmeinc = 0;
-
-		dma_desc.ctrl.pci_block_size = VME_DMA_BSIZE_4096;
-		dma_desc.ctrl.pci_backoff_time = VME_DMA_BACKOFF_0;
-		dma_desc.ctrl.vme_block_size = VME_DMA_BSIZE_4096;
-		dma_desc.ctrl.vme_backoff_time = VME_DMA_BACKOFF_0;
-
-		dma_desc.src.addrl = bl;
-		dma_desc.src.addru = bu;
-		dma_desc.dst.addrl = (unsigned int) map;
-		dma_desc.length = riob->bsize;
-
-		if (mcon->debug > 1) {
-			printk
-			    ("DMA:WRITE:win:%d dst:0x%p amd:0x%x dwd:%d len:%d src:0x%08x%08x\n",
-			     riob->winum, map, amd, dwd, riob->bsize, bu,
-			     bl);
-		}
-
-		cc = vme_do_dma(&dma_desc);
+		cc = raw_dma(dev, arb, VME_DMA_TO_DEVICE);
 		if (cc < 0)
-			return (ioctl_err(cc, arb, NULL));
-
-		if (!(dma_desc.status & TSI148_LCSR_DSTA_DON)) {
-			printk("%s:DMA:NotDone:Status:0x%X\n",
-			       vmeio_major_name, dma_desc.status);
-			return ioctl_err(-EIO, arb, NULL);
-		}
+			return ioctl_err(cc, arb, NULL);
 		break;
-#endif
 
 	case VMEIO_RAW_READ:	   /** Raw read VME registers */
 
