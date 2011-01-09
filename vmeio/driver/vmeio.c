@@ -524,8 +524,6 @@ void *map_window(int vme, int win, int amd, int dwd) {
 	return (void *)vmeaddr;
 }
 
-/* ==================== */
-
 struct vme_berr_handler *set_berr_handler(int vme, int win, int amd) {
 
 	struct vme_bus_error berr;
@@ -547,6 +545,34 @@ struct vme_berr_handler *set_berr_handler(int vme, int win, int amd) {
 	}
 	printk(":Address:0x%X Window:0x%X AddrMod:0x%X\n",vme,win,amd);
 	return handler;
+}
+
+
+static void vmeio_map_init(struct vmeio_map *map,
+		int vme, int win, int amd, int dwd)
+{
+	map->base_address	= vme;
+	map->window_size	= win;
+	map->address_modifier	= amd;
+	map->data_width		= dwd;
+	map->vaddr		= NULL;
+	map->bus_error_handler	= NULL;
+}
+
+static void vmeio_map_register(struct vmeio_map *map)
+{
+	map->vaddr = map_window(map->base_address, map->window_size,
+			map->address_modifier, map->data_width);
+	map->bus_error_handler = set_berr_handler(map->base_address,
+			map->window_size, map->address_modifier);
+}
+
+static void vmeio_map_unregister(struct vmeio_map *map)
+{
+	if (map->base_address)
+		return_controller(map->base_address, map->window_size);
+	if (map->bus_error_handler)
+		vme_unregister_berr_handler(map->bus_error_handler);
 }
 
 
@@ -938,14 +964,18 @@ static void vmeio_get_map(struct vmeio_device *dev,
 	memcpy(map, &dev->maps[mapno], sizeof(*map));
 }
 
-static void vmeio_set_map(struct vmeio_device *dev,
+static int vmeio_set_map(struct vmeio_device *dev,
 			struct vmeio_map *map,
 			unsigned mapno)
 {
-	void *vaddr;
+	struct vmeio_map *devmap = &dev->maps[mapno];
 
-	vaddr = map_window(map->base_address, map->window_size,
-			map->address_modifier, map->data_width);
+	vmeio_map_init(devmap,
+		map->base_address, map->window_size,
+		map->address_modifier, map->data_width);
+	vmeio_map_register(devmap);
+	if (devmap->vaddr == NULL)
+		return -EACCES;
 }
 
 static void vmeio_get_device(struct vmeio_device *dev,
@@ -969,6 +999,22 @@ static void vmeio_get_device(struct vmeio_device *dev,
 	win->dwd2	= map1->data_width;
 	win->vme2	= map1->base_address;
 	win->win2	= map1->window_size;
+}
+
+static void vmeio_set_device(struct vmeio_device *dev,
+		struct vmeio_get_window_s *win)
+{
+	struct vmeio_map *map0 = &dev->maps[0];
+	struct vmeio_map *map1 = &dev->maps[1];
+
+	vmeio_map_unregister(map0);
+	vmeio_map_init(map0, win->vme1, win->win1, win->amd1, win->dwd1);
+	vmeio_map_unregister(map1);
+	vmeio_map_init(map1, win->vme2, win->win2, win->amd2, win->dwd2);
+	if (dev->nmap)		/* DMA only */
+		return;
+	vmeio_map_register(map0);
+	vmeio_map_register(map1);
 }
 
 static int raw_dma(struct vmeio_device *dev,
@@ -1082,6 +1128,7 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 	kfree(iob);
 	if (cc)
 		return -EACCES;
+	return 0;
 }
 
 static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
@@ -1145,7 +1192,6 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 	void *arb;		/* Argument buffer area */
 
 	struct vmeio_device *dev;
-	struct vmeio_get_window_s *winb;
 
 	int iodr;		/* Io Direction */
 	int iosz;		/* Io Size in bytes */
@@ -1199,33 +1245,12 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		vmeio_get_device(dev, arb);
 		break;
 
-#if 0
 	case VMEIO_SET_DEVICE:     /** Changes the device memory map */
 				  /** Super dangerous, experts only */
-
-		winb = arb;
-		if (!mcon->window.nmap) {
-
-			unregister_module(mcon);
-
-			/** Map new hardware window */
-
-			memcpy(&mcon->window, winb, sizeof(struct vmeio_get_window_s));
-
-			mcon->map1 = map_window(mcon->window.vme1,mcon->window.win1,mcon->window.amd1,mcon->window.dwd1);
-			mcon->ber1 = set_berr_handler(mcon->window.vme1,mcon->window.win1,mcon->window.amd1);
-			mcon->map2 = map_window(mcon->window.vme2,mcon->window.win2,mcon->window.amd2,mcon->window.dwd2);
-			mcon->ber2 = set_berr_handler(mcon->window.vme2,mcon->window.win2,mcon->window.amd2);
-
-			if ((mcon->map1 == NULL) && (mcon->map2 == NULL)) {                 /** Not good ! */
-				printk("%s:ERROR:No mapped hardware, DMA only\n",
-				       vmeio_major_name);
-				return ioctl_err(-EIO, arb, NULL);                          /** Too late */
-			}
-		} else
-			memcpy(&mcon->window, winb, sizeof(struct vmeio_get_window_s));     /** DMA only */
+		vmeio_set_device(dev, arb);
+		if (dev->maps[0].vaddr == NULL && dev->maps[1].vaddr == NULL)
+			return ioctl_err(cc, arb, NULL);
 		break;
-#endif
 
 	case VMEIO_RAW_READ_DMA:   /** Raw read VME registers */
 
@@ -1250,7 +1275,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 	case VMEIO_RAW_WRITE:	   /** Raw write VME registers */
 
-		cc = raw_read(dev, arb);
+		cc = raw_write(dev, arb);
 		if (cc < 0)
 			return ioctl_err(cc, arb, NULL);
 		break;
