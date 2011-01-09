@@ -5,3 +5,5 @@
 *.mod.c
 Module.symvers
 cvorg
+ct
+ctypes
