@@ -235,57 +235,6 @@ static struct vmeio_device devices[DRV_MAX_DEVICES];
 
 struct file_operations vmeio_fops;
 
-/*
- * ====================================================================
- * Debug routines
- */
-
-static char *ioctl_names[vmeioLAST - vmeioFIRST] = {
-	"Unknown IOCTL number",
-	"SET_DEBUG",
-	"GET_DEBUG",
-	"GET_VERSION",
-	"SET_TIMEOUT",
-	"GET_TIMEOUT",
-	"GET_DEVICE",
-	"RAW_READ",
-	"RAW_WRITE",
-	"RAW_READ_DMA",
-	"RAW_WRITE_DMA",
-	"SET_DEVICE"
-};
-
-static void debug_ioctl(int ionr, int iodr, int iosz, void *arg, long num,
-			int dlevel)
-{
-	int c;
-	int *iargp = arg;
-
-	if (dlevel <= 0)
-		return;
-
-	printk("%s:debug_ioctl:ionr:%d", vmeio_major_name, ionr);
-	if (ionr <= vmeioFIRST || ionr >= vmeioLAST) {
-		printk(" BAD:");
-	} else {
-		c = ionr - vmeioFIRST;
-		printk(" %s:", ioctl_names[c]);
-	}
-
-	printk(" iodr:%d:", iodr);
-	if (iodr & _IOC_WRITE)
-		printk("WR:");
-	if (iodr & _IOC_READ)
-		printk("RD:");
-
-	if (arg)
-		c = *iargp;
-	else
-		c = 0;
-	printk(" iosz:%d arg:0x%p[%d] minor:%d\n", iosz, arg, c,
-	       (int) num);
-}
-
 /* ================= */
 
 int check_minor(long num)
@@ -921,16 +870,61 @@ ssize_t vmeio_write(struct file * filp, const char *buf, size_t count,
  * =====================================================
  */
 
-static inline int ioctl_err(int er, void *p, void *q)
-{
-	if (p) kfree(p);
-	if (q) kfree(q);
-	return er;
-}
-
 #define VME_NO_ADDR_INCREMENT 1
 #define DMA_BLOCK_SIZE        4096
 #define SAMPLES_IN_DMA_BLOCK  2048
+
+/*
+ * ====================================================================
+ * Debug routines
+ */
+
+static char *ioctl_names[vmeioLAST - vmeioFIRST] = {
+	"Unknown IOCTL number",
+	"SET_DEBUG",
+	"GET_DEBUG",
+	"GET_VERSION",
+	"SET_TIMEOUT",
+	"GET_TIMEOUT",
+	"GET_DEVICE",
+	"RAW_READ",
+	"RAW_WRITE",
+	"RAW_READ_DMA",
+	"RAW_WRITE_DMA",
+	"SET_DEVICE"
+};
+
+static void debug_ioctl(int ionr, int iodr, int iosz, void *arg, long num,
+			int dlevel)
+{
+	int c;
+	int *iargp = arg;
+
+	if (dlevel <= 0)
+		return;
+
+	printk("%s:debug_ioctl:ionr:%d", vmeio_major_name, ionr);
+	if (ionr <= vmeioFIRST || ionr >= vmeioLAST) {
+		printk(" BAD:");
+	} else {
+		c = ionr - vmeioFIRST;
+		printk(" %s:", ioctl_names[c]);
+	}
+
+	printk(" iodr:%d:", iodr);
+	if (iodr & _IOC_WRITE)
+		printk("WR:");
+	if (iodr & _IOC_READ)
+		printk("RD:");
+
+	if (arg)
+		c = *iargp;
+	else
+		c = 0;
+	printk(" iosz:%d arg:0x%p[%d] minor:%d\n", iosz, arg, c,
+	       (int) num);
+}
+
 
 static void vmeio_set_debug(struct vmeio_device *dev, int *debug)
 {
@@ -1195,7 +1189,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 	int iodr;		/* Io Direction */
 	int iosz;		/* Io Size in bytes */
-	int cc;
+	int cc = 0;		/* erro return code */
 
 	long minor;
 
@@ -1210,14 +1204,16 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 	if ((arb = kmalloc(iosz, GFP_KERNEL)) == NULL)
 		return -ENOMEM;
 
-	if ((iodr & _IOC_WRITE) && copy_from_user(arb, (void *)arg, iosz) != 0) {
+	if ((iodr & _IOC_WRITE) && copy_from_user(arb, (void *)arg, iosz)) {
 		cc = -EACCES;
 		goto out;
 	}
 	debug_ioctl(_IOC_NR(cmd), iodr, iosz, arb, minor, dev->debug);
 
-	if (!dev)
-		return ioctl_err(-EACCES, arb, NULL);
+	if (!dev) {
+		cc = -EACCES;
+		goto out;
+	}
 
 	switch (cmd) {
 
@@ -1285,7 +1281,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		break;
 	}
 
-	if ((iodr & _IOC_READ) && copy_to_user((void *)arg, arb, iosz) != 0) {
+	if ((iodr & _IOC_READ) && copy_to_user((void *)arg, arb, iosz)) {
 			cc = -EACCES;
 			goto out;
 	}
