@@ -786,9 +786,9 @@ int ttmo;
    }
    if (GET_TIMEOUT(vmeio[lun],&ttmo)) tmo = ttmo;
    else printf("Error:GET_TIMEOUT\n");
-   printf("timeout:lun:%d:level:%d:",lun,tmo);
-   if (debug) printf("ON\n");
-   else       printf("OFF\n");
+   printf("timeout:lun:%d:milliseconds:%d:",lun,tmo);
+   if (tmo) printf("SET\n");
+   else     printf("NOT_SET, wait forever\n");
    return arg;
 }
 

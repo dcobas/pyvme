@@ -442,7 +442,7 @@ void set_remaining_null(long argarray[], unsigned int argnum)
 
 /* ==================== */
 
-void *map_window(int vme, int win, int amd, int dwd) {
+void *map_window(int vme, int amd, int dwd, int win) {
 
 	unsigned long vmeaddr;
 	struct pdparam_master param;
@@ -510,8 +510,8 @@ static void vmeio_map_init(struct vmeio_map *map,
 
 static void vmeio_map_register(struct vmeio_map *map)
 {
-	map->vaddr = map_window(map->base_address, map->window_size,
-			map->address_modifier, map->data_width);
+	map->vaddr = map_window(map->base_address, map->address_modifier,
+				map->data_width, map->window_size);
 	map->bus_error_handler = set_berr_handler(map->base_address,
 			map->window_size, map->address_modifier);
 }
@@ -844,7 +844,7 @@ ssize_t vmeio_write(struct file * filp, const char *buf, size_t count,
 		return -EACCES;
 	dev = &devices[minor];
 
-	if (count < sizeof(int)) {
+	if (count >= sizeof(int)) {
 		cc = copy_from_user(&mask, buf, sizeof(int));
 		if (cc != 0) {
 			printk("%s:write:Error:%d could not copy from user\n",
@@ -951,32 +951,11 @@ static void vmeio_get_timeout(struct vmeio_device *dev, int *timeout)
 	*timeout = jiffies_to_msecs(dev->timeout);
 }
 
-static void vmeio_get_map(struct vmeio_device *dev,
-		struct vmeio_map *map, unsigned mapno)
-{
-	/* warning: check boundaries later */
-	memcpy(map, &dev->maps[mapno], sizeof(*map));
-}
-
-static int vmeio_set_map(struct vmeio_device *dev,
-			struct vmeio_map *map,
-			unsigned mapno)
-{
-	struct vmeio_map *devmap = &dev->maps[mapno];
-
-	vmeio_map_init(devmap,
-		map->base_address, map->window_size,
-		map->address_modifier, map->data_width);
-	vmeio_map_register(devmap);
-	if (devmap->vaddr == NULL)
-		return -EACCES;
-}
-
 static void vmeio_get_device(struct vmeio_device *dev,
 		struct vmeio_get_window_s *win)
 {
 	struct vmeio_map *map0 = &dev->maps[0];
-	struct vmeio_map *map1 = &dev->maps[0];
+	struct vmeio_map *map1 = &dev->maps[1];
 
 	win->lun	= dev->lun;
 	win->lvl	= dev->lvl;
@@ -1018,7 +997,8 @@ static int raw_dma(struct vmeio_device *dev,
 	struct vmeio_map *map = &dev->maps[riob->winum];
 	unsigned int buf = (unsigned int)riob->buffer;
 	unsigned int bu, bl;
-	int cc;
+	int cc, winum;
+	unsigned int haddr;
 
 #ifdef __64BIT
 	bl = buf & 0xFFFFFFFF;
@@ -1030,8 +1010,6 @@ static int raw_dma(struct vmeio_device *dev,
 	memset(&dma_desc, 0, sizeof(dma_desc));
 
 	dma_desc.dir = direction;
-	dma_desc.dst.data_width = map->data_width * 8;
-	dma_desc.dst.am = map->address_modifier;
 	dma_desc.novmeinc = 0;
 	dma_desc.length = riob->bsize;
 
@@ -1040,12 +1018,24 @@ static int raw_dma(struct vmeio_device *dev,
 	dma_desc.ctrl.vme_block_size = VME_DMA_BSIZE_4096;
 	dma_desc.ctrl.vme_backoff_time = VME_DMA_BACKOFF_0;
 
+	winum = riob->winum -1;
+	if (winum < 0) winum = 0;
+
+	map = &dev->maps[winum];
+
+	dma_desc.dst.data_width = map->data_width * 8;
+	dma_desc.dst.am = map->address_modifier;
+	dma_desc.src.data_width = map->data_width * 8;
+	dma_desc.src.am = map->address_modifier;
+
+	haddr = (unsigned int) map->base_address + riob->offset;
+
 	if (direction == VME_DMA_TO_DEVICE) {
 		dma_desc.src.addrl = bl;
 		dma_desc.src.addru = bu;
-		dma_desc.dst.addrl = (unsigned int) map->vaddr + riob->offset;
+		dma_desc.dst.addrl = haddr;
 	} else {
-		dma_desc.src.addrl = (unsigned int) map->vaddr + riob->offset;
+		dma_desc.src.addrl = haddr;
 		dma_desc.dst.addrl = bl;
 		dma_desc.dst.addru = bu;
 	}
@@ -1054,7 +1044,7 @@ static int raw_dma(struct vmeio_device *dev,
 		char *msg = (direction == VME_DMA_FROM_DEVICE) ?
 			"DMA:READ:win:%d src:0x%p amd:0x%x dwd:%d len:%d dst:0x%08x%08x\n" :
 			"DMA:WRIT:win:%d dst:0x%p amd:0x%x dwd:%d len:%d src:0x%08x%08x\n";
-		printk(msg, riob->winum, map->vaddr, map->address_modifier,
+		printk(msg, riob->winum, haddr, map->address_modifier,
 		     map->data_width, riob->bsize, bu, bl);
 	}
 
