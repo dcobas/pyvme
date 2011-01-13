@@ -134,7 +134,7 @@ class Vme(object):
 
 def vmod12e16_test(d, channel, ampli):
     """perform a conversion from a vmod12e16 given channel and
-    amplificatio factor (0, 1, 2, 3)
+    amplification factor (0, 1, 2, 3)
     """
     # print 'set device return code ', d.set_device(base_address=0x6200,
     #        address_modifier=0x29, data_width=2, length=0x200)
