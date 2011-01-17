@@ -111,6 +111,28 @@ class Vme(object):
         ret = lib.vmeio_raw_write(self.fd, byref(riob))
         return ret
 
+    def dma_read(self, offset, bytes=4, address_space=1):
+        """Perform a vme dma read operation at offset 'offset'
+
+        The semantics is entirely analogous to the raw (mapped)
+        counterpart
+        """
+        buffer = create_string_buffer(bytes)
+        riob = Riob(address_space, offset, bytes, cast(buffer, c_void_p))
+        ret = lib.vmeio_dma_read(self.fd, byref(riob))
+        return ret, buffer_to_int(buffer, bytes)
+
+    def dma_write(self, offset, value, bytes=4, address_space=1):
+        """Perform a vme dma write operation of datum 'value' at register 'offset'
+
+        The semantics is entirely analogous to the raw (mapped)
+        counterpart
+        """
+        buffer = int_to_buffer(value, bytes)
+        riob = Riob(address_space, offset, bytes, cast(buffer, c_void_p))
+        ret = lib.vmeio_dma_write(self.fd, byref(riob))
+        return ret
+
     def set_device(self, address_modifier, base_address, data_width, length):
         """Change default mapping at address space 1
 
