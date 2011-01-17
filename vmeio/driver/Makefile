@@ -9,7 +9,7 @@ KVER=2.6.24.7-rt27
 
 KERNELSRC=/acc/sys/$(CPU)/usr/src/kernels/$(KVER)
 
-all: libs modules
+all: libs modules doc
 
 libs: libvmeio.so
 
