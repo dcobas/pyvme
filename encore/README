@@ -1,0 +1,13 @@
+drvrencore 25th Jan 2011 BE/CO/HT Julian.Lewis@cern.ch
+
+To print this help text from drvrencore type
+drvrencore
+
+To run drvrencore to build the rf_vtu driver from Oracle
+drvrencore rf_vtu
+
+To run drvrencore to build the cvora briver from a regs file
+drvrencore cvora CVORA.regs
+
+So the command parameters for drvrencore are as follows
+drvrencore [<driver name>] [<regs file>]

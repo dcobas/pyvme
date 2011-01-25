@@ -1,0 +1,13 @@
+*.so
+*.ko
+*.o
+*.cmd
+*.mod.c
+,*
+*html*
+*doc*
+.nfs*
+*ppc4*
+*L865*
+.es*
+play

@@ -1,0 +1,20 @@
+To extract drivergen information from Oracle for a given
+named driver just type
+
+./makeregs.bat <name>
+
+where <name> is the name of the driver (usually must be upper case)
+the makeregs.bat builds the regs file
+
+<name>.regs
+
+this file can build a library when fed into genlib
+
+Example:
+
+./makeregs.bat CVORB
+
+more CVORB.regs
+
+
+Julian

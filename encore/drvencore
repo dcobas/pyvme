@@ -1,0 +1,78 @@
+#!/bin/sh
+
+encr=/acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers/encore
+dsrc=/acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers/vmeio
+ltar=`echo $1 | $encr/tolower`
+utar=`echo $1 | $encr/toupper`
+tnam=`echo $ltar"test"`
+
+drvr=`pwd`/$ltar/driver
+supt=`pwd`/$ltar/support
+test=`pwd`/$ltar/support_test
+regs=`pwd`/$ltar/awk/regs
+ulib=`pwd`/$ltar/awk/lib
+
+if [ $1 ]
+then
+   encr=/acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers/encore
+   dsrc=/acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers/vmeio
+   ltar=`echo $1 | $encr/tolower`
+   utar=`echo $1 | $encr/toupper`
+   tnam=`echo $ltar"test"`
+
+   drvr=`pwd`/$ltar/driver
+   supt=`pwd`/$ltar/support
+   test=`pwd`/$ltar/support_test
+   regs=`pwd`/$ltar/awk/regs
+   ulib=`pwd`/$ltar/awk/lib
+
+   echo
+   echo Building directory ./$ltar
+   mv -f ./$ltar ./$ltar.old
+   cp -R $dsrc ./$ltar
+
+   if [ $2 ]
+   then
+      echo
+      echo Copying register names from $2 to $regs/$utar.regs
+      rm -f $regs/$utar.regs
+      cp $2 $regs/$utar.regs
+   else
+      echo
+      echo Extracting Oracle register definitions
+      cd $regs; ./makeregs.bat $utar
+   fi
+
+   echo
+   echo Building user driver parameters file and Kbuild
+   rm -f $drvr/user_driver_parameters.h
+   cat $dsrc/driver/user_driver_parameters.h | sed 's/vmeio/'$ltar'/g' > $drvr/user_driver_parameters.h
+   rm -f $drvr/Kbuild
+   cat $dsrc/driver/Kbuild | sed 's/vmeio/'$ltar'/g' > $drvr/Kbuild
+   rm -f $drvr/vmeio.c
+   cp $dsrc/driver/vmeio.c $drvr/$ltar.c
+
+   echo
+   echo Compiling driver
+   cd $drvr; make clean; make
+
+   echo
+   echo Compiling support library
+   cd $supt; make clean; make
+
+   echo
+   echo Compiling user library
+   cp $regs/$utar.regs $ulib
+   cd $ulib; ./makelib.bat $ltar
+
+   echo
+   echo Building test program
+   cp $regs/$utar.regs $test
+   cd $test; make clean; make
+   cd $test; rm -f $tnam
+   cd $test; echo "vmeiotest.L865" $ltar > $tnam
+   cd $test; chmod +x $tnam
+else
+
+   cat $encr/README
+fi
