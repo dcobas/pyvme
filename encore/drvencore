@@ -14,18 +14,6 @@ ulib=`pwd`/$ltar/awk/lib
 
 if [ $1 ]
 then
-   encr=/acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers/encore
-   dsrc=/acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers/vmeio
-   ltar=`echo $1 | $encr/tolower`
-   utar=`echo $1 | $encr/toupper`
-   tnam=`echo $ltar"test"`
-
-   drvr=`pwd`/$ltar/driver
-   supt=`pwd`/$ltar/support
-   test=`pwd`/$ltar/support_test
-   regs=`pwd`/$ltar/awk/regs
-   ulib=`pwd`/$ltar/awk/lib
-
    echo
    echo Building directory ./$ltar
    mv -f ./$ltar ./$ltar.old
