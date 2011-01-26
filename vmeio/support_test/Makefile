@@ -2,8 +2,6 @@
 # Makefile to produce vmeio support library test program
 #================================================================
 
-CPU=L865
-
 include /acc/dsc/src/co/Make.auto
 
 COMPILE_TIME:=$(shell date +%s)

@@ -1,7 +1,9 @@
 #!/bin/sh
 
-encr=/acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers/encore
-dsrc=/acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers/vmeio
+root=/acc/src/dsc/drivers/cohtdrep/lewis/development-vmeio-drivers
+
+encr=$root/encore
+dsrc=$root/vmeio
 ltar=`echo $1 | $encr/tolower`
 utar=`echo $1 | $encr/toupper`
 tnam=`echo $ltar"test"`
@@ -12,19 +14,43 @@ test=`pwd`/$ltar/support_test
 regs=`pwd`/$ltar/awk/regs
 ulib=`pwd`/$ltar/awk/lib
 
+echo "drvrencore [<driver name>] [<cpu type> [<kernel version> [<registers file>]]]"
+echo "drvrencore " $1 " " $2 " " $3 " " $4
+echo
+sleep 1
+
 if [ $1 ]
 then
    echo
    echo Building directory ./$ltar
+   rm -rf ./$ltar.old
    mv -f ./$ltar ./$ltar.old
    cp -R $dsrc ./$ltar
 
    if [ $2 ]
    then
+      cpu=$2
+   else
+      cpu=L865
+   fi
+
+   if [ $3 ]
+   then
+      kver=$3
+   else
+      kver=2.6.24.7-rt27
+   fi
+
+   echo
+   echo "drvencore: Using CPU="$cpu " KVER="$kver
+   echo
+
+   if [ $4 ]
+   then
       echo
-      echo Copying register names from $2 to $regs/$utar.regs
+      echo Copying register names from $4 to $regs/$utar.regs
       rm -f $regs/$utar.regs
-      cp $2 $regs/$utar.regs
+      cp $4 $regs/$utar.regs
    else
       echo
       echo Extracting Oracle register definitions
@@ -42,23 +68,23 @@ then
 
    echo
    echo Compiling driver
-   cd $drvr; make clean; make
+   cd $drvr; make CPU=$cpu KVER=$kver clean; make CPU=$cpu KVER=$kver
 
    echo
    echo Compiling support library
-   cd $supt; make clean; make
+   cd $supt; make CPU=$cpu clean; make CPU=$cpu
 
    echo
    echo Compiling user library
    cp $regs/$utar.regs $ulib
-   cd $ulib; ./makelib.bat $ltar
+   cd $ulib; ./makelib.bat $ltar $cpu
 
    echo
    echo Building test program
    cp $regs/$utar.regs $test
-   cd $test; make clean; make
+   cd $test; make CPU=$cpu clean; make CPU=$cpu
    cd $test; rm -f $tnam
-   cd $test; echo "vmeiotest.L865" $ltar > $tnam
+   cd $test; echo "vmeiotest."$cpu $ltar > $tnam
    cd $test; chmod +x $tnam
 else
 

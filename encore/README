@@ -1,13 +1,30 @@
 drvrencore 25th Jan 2011 BE/CO/HT Julian.Lewis@cern.ch
 
-To print this help text from drvrencore type
-drvrencore
+No Parameters:
+   To print this help text from drvrencore type
+      drvrencore
 
-To run drvrencore to build the rf_vtu driver from Oracle
-drvrencore rf_vtu
+Parameter One: <driver name>
+   To run drvrencore to build the rf_vtu driver from Oracle
+      drvrencore rf_vtu
 
-To run drvrencore to build the cvora briver from a regs file
-drvrencore cvora CVORA.regs
+Parameter Two: <cpu type>
+   The default for CPU is set L865
+   it can be overridden
+      drvrencore rf_vtu L865_64
 
-So the command parameters for drvrencore are as follows
-drvrencore [<driver name>] [<regs file>]
+Parameter Three: <kernel version>
+   The default for the Kernel version is set 2.6.24.7-rt27
+   it can be overridden
+      drvrencore rf_vtu L865 2.6.24.7-rt27
+
+Parameter Four: <registers file>
+   To run drvrencore to build the cvora driver from a hand made regs
+   file specify the name of a local register file (It can have any name)
+      drvrencore cvora L865 2.6.24.7-rt27 CVORA.regs
+
+Thus the command parameters for drvrencore are as follows:
+
+   drvrencore [<driver name>] [<cpu type> [<kernel version> [<registers file>]]]
+
+Julian
