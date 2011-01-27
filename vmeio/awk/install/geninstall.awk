@@ -82,12 +82,12 @@ END {
    }
 
    if ((lvl[0] != 0) && (vec[0] != 0)) {
-      printf " lvl="
+      printf " lvls="
       for (i=0; i<lun; i++) {
 	 printf lvl[i]
 	 if (i < lun -2) printf ","
       }
-      printf " vec="
+      printf " vecs="
       for (i=0; i<lun; i++) {
 	 printf "0x%X",vec[i]
 	 if (i < lun -2) printf ","
