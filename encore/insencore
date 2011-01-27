@@ -11,10 +11,10 @@
 #the real $dest, ie /tmp/cpu/kver etc. This script will not attempt to
 #create generic directories that should be already present.
 
-#srce=/acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers
-srce=/acc/src/dsc/drivers/cohtdrep/lewis/development-vmeio-drivers
-#dest=/acc/dsc
-dest=/tmp
+srce=/acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers
+#srce=/acc/src/dsc/drivers/cohtdrep/lewis/development-vmeio-drivers
+dest=/acc/dsc
+#dest=/tmp
 libd=/ps/local
 #libd=/tmp
 

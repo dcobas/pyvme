@@ -6,7 +6,8 @@
 #The variable $srce should be set to point to the
 #vmeio-drivers sources wherever we decide that should be,
 
-srce=/acc/src/dsc/drivers/cohtdrep/lewis/development-vmeio-drivers
+#srce=/acc/src/dsc/drivers/cohtdrep/lewis/development-vmeio-drivers
+srce=/acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers
 
 encr=$srce/encore
 dsrc=$srce/vmeio
