@@ -1,9 +1,15 @@
 #!/bin/sh
 
-root=/acc/src/dsc/drivers/cohtdrep/lewis/development-vmeio-drivers
+# BE/CO/HT Julian Lewis Thu 27th/Jan/2011 julian.lewis@cern.ch
+# insencore driver, test and library installer.
+#
+#The variable $srce should be set to point to the
+#vmeio-drivers sources wherever we decide that should be,
 
-encr=$root/encore
-dsrc=$root/vmeio
+srce=/acc/src/dsc/drivers/cohtdrep/lewis/development-vmeio-drivers
+
+encr=$srce/encore
+dsrc=$srce/vmeio
 ltar=`echo $1 | $encr/tolower`
 utar=`echo $1 | $encr/toupper`
 tnam=`echo $ltar"test"`
