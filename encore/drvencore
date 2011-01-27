@@ -14,8 +14,8 @@ test=`pwd`/$ltar/support_test
 regs=`pwd`/$ltar/awk/regs
 ulib=`pwd`/$ltar/awk/lib
 
-echo "drvrencore [<driver name>] [<cpu type> [<kernel version> [<registers file>]]]"
-echo "drvrencore " $1 " " $2 " " $3 " " $4
+echo "drvencore [<driver name>] [<cpu type> [<kernel version> [<registers file>]]]"
+echo "drvencore " $1 " " $2 " " $3 " " $4
 echo
 sleep 1
 
