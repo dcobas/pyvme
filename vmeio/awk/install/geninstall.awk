@@ -73,7 +73,7 @@ END {
       printf " vme2="
       for (i=0; i<lun; i++) {
 	 printf "0x" vme2[i]
-	 if (i < lun -2) printf ","
+	 if (i < lun -1) printf ","
       }
 
       printf " win2=0x" win2[0]
