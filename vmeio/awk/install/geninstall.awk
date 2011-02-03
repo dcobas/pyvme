@@ -85,12 +85,12 @@ END {
       printf " lvls="
       for (i=0; i<lun; i++) {
 	 printf lvl[i]
-	 if (i < lun -2) printf ","
+	 if (i < lun -1) printf ","
       }
       printf " vecs="
       for (i=0; i<lun; i++) {
 	 printf "0x%X",vec[i]
-	 if (i < lun -2) printf ","
+	 if (i < lun -1) printf ","
       }
    }
 
