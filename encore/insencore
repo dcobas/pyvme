@@ -33,6 +33,7 @@ regs=`pwd`/$ltar/awk/regs
 ulib=`pwd`/$ltar/awk/lib/$ltar
 incl=`pwd`/$ltar/include
 inst=`pwd`/$ltar/awk/install
+sysg=`pwd`/$ltar/awk/sysgo
 
 echo "insencore [<driver name>] [<cpu type> [<kernel version>] [<lab/oper/operlhc>]]]"
 echo "insencore " $1 " " $2 " " $3 " " $4
@@ -83,9 +84,10 @@ then
 	 mkdir $place/$ltar
 	 chmod g+w $place/$ltar
       fi
-      echo "insencore: Installing: driver and installer in " $place/$ltar
+      echo "insencore: Installing: driver, sysgo and installer in " $place/$ltar
       cd $drvr; dsc_install $ltar.ko $place/$ltar
       cd $inst; dsc_install doinstall.bat geninstall.awk $place/$ltar
+      cd $sysg; dsc_install dosysgo.bat callsysgo.awk sysgo $place/$ltar
 
       place=$dest/$cmpx/$cpu
       if [ -d $place/$ltar ]
