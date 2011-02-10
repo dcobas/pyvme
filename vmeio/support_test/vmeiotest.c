@@ -64,14 +64,14 @@ char tmpb[CMD_BUF_SIZE];
       strcat(dev_name,"vmeio");
 
    if ((vmeio[lun] = OPEN_NAME(lun,dev_name)) == NULL) {
-      printf("Can't open support library\n");
+      printf("Warning: Can't open support library\n");
       perror(DRV_NAME);
-   } else {
-      memlen = 1024;
-      mem = malloc(memlen);
-      get_window_parameters(lun);
-      read_regs(dev_name);
    }
+
+   memlen = 1024;
+   mem = malloc(memlen);
+   get_window_parameters(lun);
+   read_regs(dev_name);
 
    while (True) {
 

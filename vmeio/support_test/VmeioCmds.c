@@ -129,13 +129,30 @@ struct regdesc *reg;
 
 /* ============================= */
 
-struct regdesc *get_reg(struct regdesc *start, int offset) {
+struct regdesc *get_reg_by_offset(struct regdesc *start, int offset) {
 
 struct regdesc *reg;
 
    reg = start;
    while (reg) {
       if ((reg->offset == offset)
+      &&  (reg->window == win)) {
+	 return reg;
+      }
+      reg = reg->next;
+   }
+   return NULL;
+}
+
+/* ============================= */
+
+struct regdesc *get_reg_by_name(struct regdesc *start, char *name) {
+
+struct regdesc *reg;
+
+   reg = start;
+   while (reg) {
+      if ((strcmp(reg->name,name) == 0)
       &&  (reg->window == win)) {
 	 return reg;
       }
@@ -464,14 +481,25 @@ char atxt[64];
 
    bzero((void *) ntxt, 128);
 
-   reg = get_reg(regs,offset);
+   reg = get_reg_by_offset(regs,offset);
    while (reg) {
       if (reg->depth != 1) sprintf(atxt,"%s:%s:[0x%X]:",reg->name,reg->flags,reg->depth);
       else                 sprintf(atxt,"%s:%s:",reg->name,reg->flags);
       strcat(ntxt,atxt);
-      reg = get_reg(reg->next,offset);
+      reg = get_reg_by_offset(reg->next,offset);
    }
    return(ntxt);
+}
+
+/* ============================= */
+
+int get_offset(char *name) {
+
+struct regdesc *reg;
+
+   reg = get_reg_by_name(regs,name);
+   if (reg) return reg->offset;
+   return 0;
 }
 
 /* ============================= */
@@ -594,19 +622,24 @@ char *cp;
    if (at == Numeric) {
       reg = v->Number;
       cp = get_name(reg*dwd);
+   } else if (at == Alpha) {
+     cp = v->Text;
+     reg = get_offset(cp)/dwd;
+   } else goto rdrg;
 
+   arg++;
+   v = &(vals[arg]);
+   at = v->Type;
+   if (at == Numeric) {
       arg++;
-      v = &(vals[arg]);
-      at = v->Type;
-      if (at == Numeric) {
-	 arg++;
-	 reg_val = v->Number;
-	 if (WRITE_REG(vmeio[lun],reg,&reg_val) == 0) {
-	    printf("Can't write reg:%d %s\n",reg,cp);
-	    return arg;
-	 }
+      reg_val = v->Number;
+      if (WRITE_REG(vmeio[lun],reg,&reg_val) == 0) {
+	 printf("Can't write reg:%d %s\n",reg,cp);
+	 return arg;
       }
    }
+
+rdrg:
    cp = get_name(reg*dwd);
 
    if (READ_REG(vmeio[lun],reg,&reg_val) == 0) {
