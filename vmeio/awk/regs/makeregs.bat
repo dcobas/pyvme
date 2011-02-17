@@ -43,3 +43,7 @@ QUERY
 	printf("$ %-16s\t%2s\t0x%08X\t%d\t1\t%s\n",
 		$1, type[$2], $3 + $8, to_size[$4], $5);
 }' | /bin/sed 's/modname/'$1'/g' > $1.regs
+if (( $# > 1 )); then
+   mv $1.regs /tmp
+   cat /tmp/$1.regs | ./splitwins.bat $2 > $1.regs
+fi
