@@ -47,7 +47,7 @@ BEGIN {
 	 print("   riob.offset =" $4 " + (offset * "$5");");
 	 print("   riob.bsize  =" $5 ";");
 	 print("   riob.buffer =" tolower($2) ";");
-	 print("   return DMA(handle,&riob," set ");");
+	 print("   return RAW(handle,&riob," set ");");
 	 print("}");
 	 print("");
 	 set = 0;
