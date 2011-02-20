@@ -36,5 +36,4 @@ QUERY
 {
 	printf("$ %-16s\t%2s\t0x%08X\t%d\t1\t%s\t0x%08X\n",
 		$1, type[$2], $3 + $8, to_size[$4], $5, $8);
-	    print $2
 }'
