@@ -28,3 +28,4 @@ vmeio_support.$(CPU).so: vmeio_support.$(CPU).o
 clean:
 	rm -f vmeio_support.$(CPU).o
 	rm -f vmeio_support.$(CPU).a
+	rm -f vmeio_support.$(CPU).so

@@ -84,8 +84,6 @@ handle_t *h;
    return (void *) h;
 }
 
-
-
 /**
  * ============================================
  * @brief open a handle for a given lun
@@ -109,8 +107,10 @@ void CLOSE(void *handle) {
 handle_t *h;
 
    h = (handle_t *) handle;
-   close(h->file);
-   free(handle);
+   if (h) {
+      close(h->file);
+      free(handle);
+   }
 }
 
 /**
@@ -127,6 +127,7 @@ handle_t *h;
 long vd;
 
    h = (handle_t *) handle;
+   if (!h) return 0;
    if (ioctl(h->file,VMEIO_GET_VERSION,&vd) <0) return 0;
    ver->driver  = vd;
    ver->library = COMPILE_TIME;
@@ -147,6 +148,7 @@ handle_t *h;
 long tmo;
 
    h = (handle_t *) handle;
+   if (!h) return 0;
    tmo = *timeout;
    if (ioctl(h->file,VMEIO_SET_TIMEOUT,&tmo) <0) return 0;
    return 1;
@@ -166,6 +168,7 @@ handle_t *h;
 long lvl;
 
    h = (handle_t *) handle;
+   if (!h) return 0;
    lvl = *level;
    if (ioctl(h->file,VMEIO_SET_DEBUG,&lvl) <0) return 0;
    return 1;
@@ -185,6 +188,7 @@ handle_t *h;
 long tmo;
 
    h = (handle_t *) handle;
+   if (!h) return 0;
    if (ioctl(h->file,VMEIO_GET_TIMEOUT,&tmo) <0) return 0;
    *timeout = (int) tmo;
    return 1;
@@ -204,6 +208,7 @@ handle_t *h;
 int cc;
 
    h = (handle_t *) handle;
+   if (!h) return 0;
    cc = write(h->file,mask,sizeof(int));
    if (cc < sizeof(int)) return 0;
    return 1;
@@ -223,6 +228,7 @@ handle_t *h;
 long lvl;
 
    h = (handle_t *) handle;
+   if (!h) return 0;
    if (ioctl(h->file,VMEIO_GET_DEBUG,&lvl) <0) return 0;
    *level = (int) lvl;
    return 1;
@@ -241,6 +247,7 @@ int GET_WINDOW(void *handle, struct vmeio_get_window_s *win) {
 handle_t *h;
 
    h = (handle_t *) handle;
+   if (!h) return 0;
    if (ioctl(h->file,VMEIO_GET_DEVICE,win) <0) return 0;
    return 1;
 }
@@ -260,6 +267,7 @@ handle_t *h;
 struct vmeio_riob_s cb;
 
    h = (handle_t *) handle;
+   if (!h) return 0;
 
    cb.winum  = buf->winum;
    cb.offset = buf->offset + h->offset;  /* Block offset */
@@ -283,6 +291,7 @@ static void swap_buf(handle_t *h, struct vmeio_riob_s *buf) {
 int i, dwd;
 char *cp, *bp, c;
 
+   if (!h) return;
    if (h->winum == 2) dwd = h->window.dwd2;
    else               dwd = h->window.dwd1;
 
@@ -332,6 +341,7 @@ handle_t *h;
 struct vmeio_riob_s cb;
 
    h = (handle_t *) handle;
+   if (!h) return 0;
 
    cb.winum  = buf->winum;
    cb.offset = buf->offset + h->offset;  /* Block offset */
@@ -362,6 +372,8 @@ handle_t *h;
 int cc;
 
    h = (handle_t *) handle;
+   if (!h) return 0;
+
    cc = read(h->file,event,sizeof(struct vmeio_read_buf_s));
    if (cc == -ETIME) {
       event->logical_unit = h->window.lun;
@@ -391,6 +403,8 @@ int SET_PARAMS(void *handle, int winum, int dmaflag, int dmaswap) {
 handle_t *h;
 
    h = (handle_t *) handle;
+   if (!h) return 0;
+
    h->winum   = winum;
    h->dmaflag = dmaflag;
    h->dmaswap = dmaswap;
@@ -417,6 +431,7 @@ long value = 0;
 int dwd;
 
    h = (handle_t *) handle;
+   if (!h) return 0;
 
    if (h->winum == 2) dwd = h->window.dwd2;
    else               dwd = h->window.dwd1;
@@ -452,6 +467,7 @@ long value = 0;
 int dwd;
 
    h = (handle_t *) handle;
+   if (!h) return 0;
 
    value = *reg_val;
 
@@ -489,6 +505,8 @@ int SET_OFFSET(void *handle, int *offset) {
 handle_t *h;
 
    h = (handle_t *) handle;
+   if (!h) return 0;
+
    h->offset = *offset;
    return 1;
 }
@@ -505,6 +523,7 @@ int GET_OFFSET(void *handle, int *offset) {
 handle_t *h;
 
    h = (handle_t *) handle;
+   if (!h) return 0;
    *offset = h->offset;
    return 1;
 }

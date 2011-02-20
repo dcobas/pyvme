@@ -30,7 +30,7 @@ BEGIN {
 	 } else {
 	    printf("%s","int GET_");
 	 }
-	 if ($7 == "1") {
+	 if ($7 <= 1) {
 	    if ($5 == "8") print $2 "(void *handle, long *" tolower($2) ") {"
 	    if ($5 == "4") print $2 "(void *handle, int *" tolower($2) ") {"
 	    if ($5 == "2") print $2 "(void *handle, short *" tolower($2) ") {"
@@ -44,10 +44,10 @@ BEGIN {
 	 }
 	 print("   struct vmeio_riob_s riob;");
 	 print("   riob.winum  =" $6 ";");
-	 print("   riob.offset =" $4 " + offset;");
+	 print("   riob.offset =" $4 " + (offset * "$5");");
 	 print("   riob.bsize  =" $5 ";");
 	 print("   riob.buffer =" tolower($2) ";");
-	 print("   return DMA(handle,&riob," set ");");
+	 print("   return RAW(handle,&riob," set ");");
 	 print("}");
 	 print("");
 	 set = 0;

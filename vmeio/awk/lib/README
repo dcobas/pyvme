@@ -1,8 +1,9 @@
 To generate a library type
 
-./makelib.bat <NAME>
+./makelib.bat [<NAME>] [<CPU>]
 
 where <NAME> is the name of your driver in uppercase.
+and <CPU> is the optional CPU (Default is L865)
 
 The file <NAME>.regs should exist.
 If the driver is described in Oracle in the drivergen tables

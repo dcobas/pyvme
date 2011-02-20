@@ -33,7 +33,7 @@ BEGIN {
 	    print "#define GET_" $2, "DRV_SYMB(_get_" tolower($2) ")"
 	    printf("%s","int GET_");
 	 }
-	 if ($7 == "1") {
+	 if ($7 <= 1) {
 	    if ($5 == "8") print $2 "(void *handle, long *" tolower($2) ");"
 	    if ($5 == "4") print $2 "(void *handle, int *" tolower($2) ");"
 	    if ($5 == "2") print $2 "(void *handle, short *" tolower($2) ");"

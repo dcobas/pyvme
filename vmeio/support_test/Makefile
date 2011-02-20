@@ -2,11 +2,9 @@
 # Makefile to produce vmeio support library test program
 #================================================================
 
-CPU=L865
-
 include /acc/dsc/src/co/Make.auto
 
-COMPILE_TIME:=$(shell $(PWD)/gettime)
+COMPILE_TIME:=$(shell date +%s)
 
 CFLAGS = -g -Wall -I. -I../include -I../driver -DCOMPILE_TIME=$(COMPILE_TIME)
 
@@ -25,3 +23,6 @@ all: $(ALL)
 vmeiotest.$(CPU).o: $(SRCS) $(HDRS)
 
 vmeiotest.$(CPU): vmeiotest.$(CPU).o
+
+clean:
+	rm -f *.o *.$(CPU)

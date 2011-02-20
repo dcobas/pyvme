@@ -73,7 +73,7 @@ END {
       printf " vme2="
       for (i=0; i<lun; i++) {
 	 printf "0x" vme2[i]
-	 if (i < lun -2) printf ","
+	 if (i < lun -1) printf ","
       }
 
       printf " win2=0x" win2[0]
@@ -82,15 +82,15 @@ END {
    }
 
    if ((lvl[0] != 0) && (vec[0] != 0)) {
-      printf " lvl="
+      printf " lvls="
       for (i=0; i<lun; i++) {
 	 printf lvl[i]
-	 if (i < lun -2) printf ","
+	 if (i < lun -1) printf ","
       }
-      printf " vec="
+      printf " vecs="
       for (i=0; i<lun; i++) {
 	 printf "0x%X",vec[i]
-	 if (i < lun -2) printf ","
+	 if (i < lun -1) printf ","
       }
    }
 

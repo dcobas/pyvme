@@ -1,0 +1,99 @@
+#!/bin/sh
+
+# BE/CO/HT Julian Lewis Thu 27th/Jan/2011 julian.lewis@cern.ch
+# insencore driver, test and library installer.
+#
+#The variable $srce should be set to point to the
+#vmeio-drivers sources wherever we decide that should be,
+
+#srce=/acc/src/dsc/drivers/cohtdrep/lewis/development-vmeio-drivers
+srce=/acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers
+
+encr=$srce/encore
+dsrc=$srce/vmeio
+ltar=`echo $1 | $encr/tolower`
+utar=`echo $1 | $encr/toupper`
+tnam=`echo $ltar"test"`
+
+drvr=`pwd`/$ltar/driver
+supt=`pwd`/$ltar/support
+test=`pwd`/$ltar/support_test
+regs=`pwd`/$ltar/awk/regs
+ulib=`pwd`/$ltar/awk/lib
+
+echo "drvencore [<driver name>] [<cpu type> [<kernel version> [<registers file>]]]"
+echo "drvencore " $1 " " $2 " " $3 " " $4
+echo
+sleep 1
+
+if [ $1 ]
+then
+   echo
+   echo Building directory ./$ltar
+   rm -rf ./$ltar.old
+   mv -f ./$ltar ./$ltar.old
+   cp -R $dsrc ./$ltar
+
+   if [ $2 ]
+   then
+      cpu=$2
+   else
+      cpu=L865
+   fi
+
+   if [ $3 ]
+   then
+      kver=$3
+   else
+      kver=2.6.24.7-rt27
+   fi
+
+   echo
+   echo "drvencore: Using CPU="$cpu " KVER="$kver
+   echo
+
+   if [ $4 ]
+   then
+      echo
+      echo Copying register names from $4 to $regs/$utar.regs
+      rm -f $regs/$utar.regs
+      cp $4 $regs/$utar.regs
+   else
+      echo
+      echo Extracting Oracle register definitions
+      cd $regs; ./makeregs.bat $utar
+   fi
+
+   echo
+   echo Building user driver parameters file and Kbuild
+   rm -f $drvr/user_driver_parameters.h
+   cat $dsrc/driver/user_driver_parameters.h | sed 's/vmeio/'$ltar'/g' > $drvr/user_driver_parameters.h
+   rm -f $drvr/Kbuild
+   cat $dsrc/driver/Kbuild | sed 's/vmeio/'$ltar'/g' > $drvr/Kbuild
+   rm -f $drvr/vmeio.c
+   cp $dsrc/driver/vmeio.c $drvr/$ltar.c
+
+   echo
+   echo Compiling driver
+   cd $drvr; make CPU=$cpu KVER=$kver clean; make CPU=$cpu KVER=$kver
+
+   echo
+   echo Compiling support library
+   cd $supt; make CPU=$cpu clean; make CPU=$cpu
+
+   echo
+   echo Compiling user library
+   cp $regs/$utar.regs $ulib
+   cd $ulib; ./makelib.bat $ltar $cpu
+
+   echo
+   echo Building test program
+   cp $regs/$utar.regs $test
+   cd $test; make CPU=$cpu clean; make CPU=$cpu
+   cd $test; rm -f $tnam
+   cd $test; echo "vmeiotest."$cpu $ltar > $tnam
+   cd $test; chmod +x $tnam
+else
+
+   cat $encr/README
+fi
