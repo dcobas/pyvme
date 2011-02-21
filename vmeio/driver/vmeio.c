@@ -73,20 +73,20 @@ static unsigned int vecs_num;
 static unsigned int vme1_num;
 static unsigned int vme2_num;
 
-module_param_array(luns, long, &luns_num, 0444);	/* Vector */
-module_param_array(vecs, long, &vecs_num, 0444);	/* Vector */
-module_param_array(vme1, long, &vme1_num, 0444);	/* Vector */
-module_param_array(vme2, long, &vme2_num, 0444);	/* Vector */
+module_param_array(luns, long, &luns_num, S_IRUGO);	/* Vector */
+module_param_array(vecs, long, &vecs_num, S_IRUGO);	/* Vector */
+module_param_array(vme1, long, &vme1_num, S_IRUGO);	/* Vector */
+module_param_array(vme2, long, &vme2_num, S_IRUGO);	/* Vector */
 
-module_param(lvls, long, 0444);	/* Vector */
-module_param(amd1, long, 0444);
-module_param(amd2, long, 0444);
-module_param(dwd1, long, 0444);
-module_param(dwd2, long, 0444);
-module_param(win1, long, 0444);
-module_param(win2, long, 0444);
-module_param(nmap, long, 0444);
-module_param(isrc, long, 0444);
+module_param(lvls, long, S_IRUGO);	/* Vector */
+module_param(amd1, long, S_IRUGO);
+module_param(amd2, long, S_IRUGO);
+module_param(dwd1, long, S_IRUGO);
+module_param(dwd2, long, S_IRUGO);
+module_param(win1, long, S_IRUGO);
+module_param(win2, long, S_IRUGO);
+module_param(nmap, long, S_IRUGO);
+module_param(isrc, long, S_IRUGO);
 
 MODULE_PARM_DESC(luns, "Logical unit numbers");
 MODULE_PARM_DESC(lvls, "Interrupt levels");
