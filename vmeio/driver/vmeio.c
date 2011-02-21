@@ -32,7 +32,8 @@
  */
 
 static int vmeio_major = 0;
-static char *vmeio_major_name = DRIVER_NAME;
+
+#define PFX DRIVER_NAME ": "
 
 MODULE_AUTHOR("Julian Lewis BE/CO/HT CERN");
 MODULE_LICENSE("GPL");
@@ -161,7 +162,7 @@ struct file_operations vmeio_fops;
 int check_minor(long num)
 {
 	if (num < 0 || num >= DRV_MAX_DEVICES) {
-		printk("%s:minor:%d ", vmeio_major_name, (int) num);
+		printk(PFX "minor:%d ", (int) num);
 		printk("BAD not in [0..%d]\n", DRV_MAX_DEVICES - 1);
 		return 0;
 	}
@@ -208,14 +209,11 @@ static void CheckBusError(char *dw, char *dir, void *x)
 {
 	if (bus_error_count > last_bus_error &&
 	    bus_error_count <= BUS_ERR_PRINT_THRESHOLD) {
-		printk("%s:BUS_ERROR:%s:%s-Address:0x%p\n",
-			       vmeio_major_name, dw, dir, x);
+		printk(PFX "BUS_ERROR:%s:%s-Address:0x%p\n", dw, dir, x);
 		if (isr_bus_error)
-			printk("%s:BUS_ERROR:In ISR occured\n",
-				       vmeio_major_name);
+			printk(PFX "BUS_ERROR:In ISR occured\n");
 		if (bus_error_count == BUS_ERR_PRINT_THRESHOLD)
-			printk("%s:BUS_ERROR:PrintSuppressed\n",
-				       vmeio_major_name);
+			printk(PFX "BUS_ERROR:PrintSuppressed\n");
 		isr_bus_error = 0;
 		last_bus_error = bus_error_count;
 	}
@@ -375,10 +373,9 @@ void *map_window(int vme, int amd, int dwd, int win) {
 	} else {
 		msg = "OK:Mapped";
 	}
-	printk("%s:%s:Address:0x%X Window:0x%X"
+	printk(PFX "%s:Address:0x%X Window:0x%X"
 			":AddrMod:0x%X DWidth:0x%X:VirtAddr:0x%lX\n",
-			vmeio_major_name, msg,
-			vme, win, amd, dwd, vmeaddr);
+			msg, vme, win, amd, dwd, vmeaddr);
 	return (void *)vmeaddr;
 }
 
@@ -393,7 +390,7 @@ struct vme_berr_handler *set_berr_handler(int vme, int win, int amd) {
 	berr.am      = amd;
 	handler      = vme_register_berr_handler(&berr, win, BusErrorHandler);
 
-	printk("%s:BusErrorHandler:", vmeio_major_name);
+	printk(PFX "BusErrorHandler:");
 
 	if (IS_ERR(handler)) {
 	   printk("ERROR:NotRegistered");
@@ -440,8 +437,8 @@ void register_isr(struct vmeio_device *dev, unsigned vector, unsigned level)
 
 	err = vme_intset(vector, (int (*)(void *)) vmeio_irq, dev, 0);
 	dev->isrfl = !(err < 0);
-	printk("%s:ISR:Level:0x%X Vector:0x%X:%s\n",
-		vmeio_major_name, level, vector,
+	printk(PFX "ISR:Level:0x%X Vector:0x%X:%s\n",
+		level, vector,
 		(err < 0) ? "ERROR:NotRegistered" : "OK:Registered");
 }
 
@@ -462,27 +459,23 @@ int vmeio_install(void)
 	int i, cc;
 
 	if (luns_num <= 0 || luns_num > DRV_MAX_DEVICES) {
-		printk("%s:Fatal:No logical units defined.\n",
-		       vmeio_major_name);
+		printk(PFX "Fatal:No logical units defined.\n");
 		return -EACCES;
 	}
 
 	/* Vector parameters must all be the same size or zero */
 
 	if (vecs_num != luns_num && vecs_num != 0) {
-		printk("%s:Fatal:Missing interrupt vector.\n",
-		       vmeio_major_name);
+		printk(PFX "Fatal:Missing interrupt vector.\n");
 		return -EACCES;
 	}
 
 	if (vme1_num != luns_num && vme1_num != 0) {
-		printk("%s:Fatal:Missing first base address.\n",
-		       vmeio_major_name);
+		printk(PFX "Fatal:Missing first base address.\n");
 		return -EACCES;
 	}
 	if (vme2_num != luns_num && vme2_num != 0) {
-		printk("%s:Fatal:Missing second base address.\n",
-		       vmeio_major_name);
+		printk(PFX "Fatal:Missing second base address.\n");
 		return -EACCES;
 	}
 
@@ -520,10 +513,9 @@ int vmeio_install(void)
 	}
 
 	/* Register driver */
-	cc = register_chrdev(vmeio_major, vmeio_major_name, &vmeio_fops);
+	cc = register_chrdev(vmeio_major, DRIVER_NAME, &vmeio_fops);
 	if (cc < 0) {
-		printk("%s:Fatal:Error from register_chrdev [%d]\n",
-		       vmeio_major_name, cc);
+		printk(PFX "Fatal:Error from register_chrdev [%d]\n", cc);
 		return cc;
 	}
 	if (vmeio_major == 0)
@@ -541,12 +533,11 @@ int vmeio_install(void)
 		dev->icnt = 0;
 
 		if (dev->nmap != 0) {
-			printk("%s:Logical unit:%d is not mapped: DMA only\n",
-			     vmeio_major_name, dev->lun);
+			printk(PFX PFX "Logical unit:%d is not mapped: DMA only\n", dev->lun);
 			continue;
 		}
 
-		printk("%s:Mapping:Logical unit:%d\n", vmeio_major_name, dev->lun);
+		printk(PFX "Mapping:Logical unit:%d\n", dev->lun);
 
 		map0->vaddr = map_window(map0->base_address, map0->address_modifier,
 						map0->data_width, map0->window_size);
@@ -597,7 +588,7 @@ void vmeio_uninstall(void)
 	for (i = 0; i < luns_num; i++) {
 		unregister_module(&devices[i]);
 	}
-	unregister_chrdev(vmeio_major, vmeio_major_name);
+	unregister_chrdev(vmeio_major, DRIVER_NAME);
 }
 
 /*
@@ -658,18 +649,16 @@ ssize_t vmeio_read(struct file * filp, char *buf, size_t count,
 	dev = &devices[minor];
 
 	if (dev->debug) {
-		printk("%s:read:count:%d minor:%d\n", vmeio_major_name,
+		printk(PFX "read:count:%d minor:%d\n", 
 		       count, (int) minor);
 		if (dev->debug > 1) {
-			printk("%s:read:timout:%d\n", vmeio_major_name,
-			       dev->timeout);
+			printk(PFX "read:timout:%d\n", dev->timeout);
 		}
 	}
 
 	if (count < sizeof(rbuf)) {
 		if (dev->debug) {
-			printk("%s:read:Access error buffer too small\n",
-			       vmeio_major_name);
+			printk(PFX "read:Access error buffer too small\n");
 		}
 		return -EACCES;
 	}
@@ -685,13 +674,11 @@ ssize_t vmeio_read(struct file * filp, char *buf, size_t count,
 	}
 
 	if (dev->debug > 2) {
-		printk("%s:wait_event:returned:%d\n", vmeio_major_name,
-		       cc);
+		printk(PFX "wait_event:returned:%d\n", cc);
 	}
 
 	if (cc == -ERESTARTSYS) {
-		printk("%s:vmeio_read:interrupted by signal\n",
-		       vmeio_major_name);
+		printk(PFX "vmeio_read:interrupted by signal\n");
 		return cc;
 	}
 	if (cc == 0 && dev->timeout)
@@ -705,7 +692,7 @@ ssize_t vmeio_read(struct file * filp, char *buf, size_t count,
 
 	cc = copy_to_user(buf, &rbuf, sizeof(rbuf));
 	if (cc != 0) {
-		printk("%s:Can't copy to user space:cc=%d\n", vmeio_major_name, cc);
+		printk(PFX "Can't copy to user space:cc=%d\n", cc);
 		return -EACCES;
 	}
 	return sizeof(struct vmeio_read_buf_s);
@@ -735,15 +722,14 @@ ssize_t vmeio_write(struct file * filp, const char *buf, size_t count,
 	if (count >= sizeof(int)) {
 		cc = copy_from_user(&mask, buf, sizeof(int));
 		if (cc != 0) {
-			printk("%s:write:Error:%d could not copy from user\n",
-					     vmeio_major_name, cc);
+			printk(PFX "write:Error:%d could not copy from user\n", cc);
 			return -EACCES;
 		}
 	}
 
 	if (dev->debug) {
-		printk("%s:write:count:%d minor:%d mask:0x%X\n",
-		       vmeio_major_name, count, (int) minor, mask);
+		printk(PFX "write:count:%d minor:%d mask:0x%X\n",
+		       count, (int) minor, mask);
 	}
 
 	dev->isr_source_mask = mask;
@@ -791,7 +777,7 @@ static void debug_ioctl(int ionr, int iodr, int iosz, void *arg, long num,
 	if (dlevel <= 0)
 		return;
 
-	printk("%s:debug_ioctl:ionr:%d", vmeio_major_name, ionr);
+	printk(PFX "debug_ioctl:ionr:%d", ionr);
 	if (ionr <= vmeioFIRST || ionr >= vmeioLAST) {
 		printk(" BAD:");
 	} else {
@@ -940,8 +926,7 @@ static int raw_dma(struct vmeio_device *dev,
 		return cc;
 
 	if (!(dma_desc.status & TSI148_LCSR_DSTA_DON)) {
-		printk("%s:DMA:NotDone:Status:0x%X\n",
-		       vmeio_major_name, dma_desc.status);
+		printk(PFX "DMA:NotDone:Status:0x%X\n", dma_desc.status);
 		return -EIO;
 	}
 
