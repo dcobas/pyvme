@@ -1,0 +1,54 @@
+The module parameters are vectors that must all be the same length,
+or simply not used (length = 0). For each lun, the driver may
+have a level, vector, and at least one VME base address to
+create the address map. Each window size and address modifier
+is normally the same for each lun and is specified once or not
+at all.
+
+dname, In order to avoid recompiling the driver it is possible
+       to define its name via this parameter rather than in
+       the users parameter file. This means the same kernel
+       object can be used multiple times.
+
+luns, Logical unit numbers (not optional)
+lvls, Interrupt levels (either not specified or one for each lun)
+vecs, Interrupt vectors (same as lvls)
+vme1, First VME base address (not optional)
+vme2, Second VME base address (either not specified or one for each lun)
+
+These parameters would normally be specified once per lun.
+In this case the driver will use the first value for all luns.
+There is no restriction however in the driver from specifying
+them individually for each lun should that be usefull. It may
+be interesting for example to map one module and use only DMA
+access for all the others.
+
+amd1, First address modifier (not optional, at least one specified)
+amd2, Second address modifier (optional)
+dwd1, First data width (not optional, at least one specified)
+dwd2, Second data width (optional)
+win1, First window size (not optional, at least one specified)
+win2, Second window size (optional)
+nmap, No map window flag, 1=DMA only (defaults to zero)
+isrc, Location of interrupt source reg in vme1 (optional)
+
+Installation via insmod parameters example
+
+Example: cp vmeio.ko mytest.ko
+         insmod mytest.ko dname="mytest"
+                          luns= 136,   99,    46
+                          vme1= 0x100, 0x200, 0x300
+                          amd1= 0x29 win1=0x10 dwd1=2
+
+Example: insmod ctrv.ko luns= 1,         2,
+                        vme1= 0xC100000, 0xC200000
+                        vme2= 0x100,     0x200
+                        lvls= 2,         2
+                        vecs= 0xC8,      0xC9
+                        amd1= 0x39
+                        amd2= 0x29
+                        win1= 0x10000
+                        win2= 0x100
+                        dwd1= 4
+                        dwd2= 2
+                        isrc= 0
