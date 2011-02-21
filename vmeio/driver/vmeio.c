@@ -112,8 +112,6 @@ struct vmeio_map {
 	unsigned long	data_width;
 	unsigned long	window_size;
 	void		*vaddr;		/* NULL if not mapped */
-	struct vme_berr_handler
-			*bus_error_handler;	/* NULL if inexistent */
 };
 
 /*
@@ -171,158 +169,6 @@ int check_minor(long num)
 
 /*
  * =========================================================
- * VMEIO with bus error handling
- */
-
-#define CLEAR_BUS_ERROR ((int) 1)
-#define BUS_ERR_PRINT_THRESHOLD 10
-
-static int bus_error_count = 0;	/* For all modules */
-static int isr_bus_error = 0;	/* Bus error in an ISR */
-static int last_bus_error = 0;	/* Last printed bus error */
-
-/* ==================== */
-
-static void BusErrorHandler(struct vme_bus_error *error)
-{
-	bus_error_count++;
-}
-
-/* ==================== */
-
-static int GetClrBusErrCnt(void)
-{
-	int res;
-
-	res = bus_error_count;
-
-	bus_error_count = 0;
-	last_bus_error = 0;
-	isr_bus_error = 0;
-
-	return res;
-}
-
-/* ==================== */
-
-static void CheckBusError(char *dw, char *dir, void *x)
-{
-	if (bus_error_count > last_bus_error &&
-	    bus_error_count <= BUS_ERR_PRINT_THRESHOLD) {
-		printk(PFX "BUS_ERROR:%s:%s-Address:0x%p\n", dw, dir, x);
-		if (isr_bus_error)
-			printk(PFX "BUS_ERROR:In ISR occured\n");
-		if (bus_error_count == BUS_ERR_PRINT_THRESHOLD)
-			printk(PFX "BUS_ERROR:PrintSuppressed\n");
-		isr_bus_error = 0;
-		last_bus_error = bus_error_count;
-	}
-}
-
-/* ==================== */
-/* Used in ISR only     */
-
-static char IHRd8(void *x)
-{
-	char res;
-
-	isr_bus_error = 0;
-	res = ioread8(x);
-	if (bus_error_count > last_bus_error)
-		isr_bus_error = 1;
-	return res;
-}
-
-/* ==================== */
-/* Used in ISR only     */
-
-static short IHRd16(void *x)
-{
-	short res;
-
-	isr_bus_error = 0;
-	res = ioread16be(x);
-	if (bus_error_count > last_bus_error)
-		isr_bus_error = 1;
-	return res;
-}
-
-/* ==================== */
-/* Used in ISR only     */
-
-static int IHRd32(void *x)
-{
-	int res;
-
-	isr_bus_error = 0;
-	res = ioread32be(x);
-	if (bus_error_count > last_bus_error)
-		isr_bus_error = 1;
-	return res;
-}
-
-/* ==================== */
-
-static int HRd32(void *x)
-{
-	int res;
-
-	res = ioread32be(x);
-	CheckBusError("D32", "READ", x);
-	return res;
-}
-
-/* ==================== */
-
-static void HWr32(int v, void *x)
-{
-	iowrite32be(v, x);
-	CheckBusError("D32", "WRITE", x);
-	return;
-}
-
-/* ==================== */
-
-static short HRd16(void *x)
-{
-	short res;
-
-	res = ioread16be(x);
-	CheckBusError("D16", "READ", x);
-	return res;
-}
-
-/* ==================== */
-
-static void HWr16(short v, void *x)
-{
-	iowrite16be(v, x);
-	CheckBusError("D16", "WRITE", x);
-	return;
-}
-
-/* ==================== */
-
-static char HRd8(void *x)
-{
-	char res;
-
-	res = ioread8(x);
-	CheckBusError("D8", "READ", x);
-	return res;
-}
-
-/* ==================== */
-
-static void HWr8(char v, void *x)
-{
-	iowrite8(v, x);
-	CheckBusError("D8", "WRITE", x);
-	return;
-}
-
-/*
- * =========================================================
  * Interrupt service routine
  * =========================================================
  */
@@ -335,11 +181,11 @@ static irqreturn_t vmeio_irq(void *arg)
 	if (dev->isr_source_address) {
 		unsigned long data_width = dev->maps[0].data_width;
 		if (data_width == 4)
-			data = IHRd32(dev->isr_source_address);
+			data = ioread16be(dev->isr_source_address);
 		else if (data_width == 2)
-			data = IHRd16(dev->isr_source_address);
+			data = ioread16be(dev->isr_source_address);
 		else
-			data = IHRd8(dev->isr_source_address);
+			data = ioread8(dev->isr_source_address);
 		dev->isr_source_mask = data;
 	}
 	dev->icnt++;
@@ -379,30 +225,6 @@ void *map_window(int vme, int amd, int dwd, int win) {
 	return (void *)vmeaddr;
 }
 
-struct vme_berr_handler *set_berr_handler(int vme, int win, int amd) {
-
-	struct vme_bus_error berr;
-	struct vme_berr_handler *handler;
-
-	if (!(vme && amd && win)) return NULL;
-
-	berr.address = (long) vme;
-	berr.am      = amd;
-	handler      = vme_register_berr_handler(&berr, win, BusErrorHandler);
-
-	printk(PFX "BusErrorHandler:");
-
-	if (IS_ERR(handler)) {
-	   printk("ERROR:NotRegistered");
-	   handler = NULL;
-	} else {
-	   printk("OK:Registered");
-	}
-	printk(":Address:0x%X Window:0x%X AddrMod:0x%X\n",vme,win,amd);
-	return handler;
-}
-
-
 static void vmeio_map_init(struct vmeio_map *map,
 		int vme, int win, int amd, int dwd)
 {
@@ -411,23 +233,18 @@ static void vmeio_map_init(struct vmeio_map *map,
 	map->address_modifier	= amd;
 	map->data_width		= dwd;
 	map->vaddr		= NULL;
-	map->bus_error_handler	= NULL;
 }
 
 static void vmeio_map_register(struct vmeio_map *map)
 {
 	map->vaddr = map_window(map->base_address, map->address_modifier,
 				map->data_width, map->window_size);
-	map->bus_error_handler = set_berr_handler(map->base_address,
-			map->window_size, map->address_modifier);
 }
 
 static void vmeio_map_unregister(struct vmeio_map *map)
 {
 	if (map->base_address)
 		return_controller(map->base_address, map->window_size);
-	if (map->bus_error_handler)
-		vme_unregister_berr_handler(map->bus_error_handler);
 }
 
 
@@ -495,14 +312,12 @@ int vmeio_install(void)
 		map0->data_width       = dwd1;
 		map0->window_size      = win1;
 		map0->vaddr            = NULL;
-		map0->bus_error_handler = NULL;
 
 		map1->base_address     = vme2[i];
 		map1->address_modifier = amd2;
 		map1->data_width       = dwd2;
 		map1->window_size      = win2;
 		map1->vaddr            = NULL;
-		map1->bus_error_handler = NULL;
 
 		dev->isrc = isrc;
 		dev->lvl  = lvls;
@@ -541,12 +356,8 @@ int vmeio_install(void)
 
 		map0->vaddr = map_window(map0->base_address, map0->address_modifier,
 						map0->data_width, map0->window_size);
-		map0->bus_error_handler = set_berr_handler(map0->base_address,
-					map0->window_size, map0->address_modifier);
 		map1->vaddr = map_window(map1->base_address, map1->address_modifier,
 						map1->data_width, map1->window_size);
-		map1->bus_error_handler = set_berr_handler(map1->base_address,
-					map1->window_size, map1->address_modifier);
 
 		if (dev->lvl && dev->vec) {
 			register_isr(dev, dev->vec, dev->lvl);
@@ -569,10 +380,6 @@ void unregister_module(struct vmeio_device *dev) {
 		return_controller((unsigned long)map0->base_address, map0->window_size);
 	if (map1->base_address)
 		return_controller((unsigned long)map1->base_address, map1->window_size);
-	if (map0->bus_error_handler)
-		vme_unregister_berr_handler(map0->bus_error_handler);
-	if (map1->bus_error_handler)
-		vme_unregister_berr_handler(map1->bus_error_handler);
 }
 
 /*
@@ -946,7 +753,6 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 	int dwidth = mapx->data_width;
 	int i, j, cc;
 	char *map, *iob;
-	int cnt;
 
 	if (dev->nmap)
 		return -ENODEV;
@@ -966,20 +772,14 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 		     riob->bsize);
 	}
 
-	cnt = GetClrBusErrCnt();
-
 	for (i = 0, j = riob->offset; i < riob->bsize; i += dwidth, j += dwidth) {
 		union vmeio_word *dst = (void *)&iob[i];
 		if (dwidth == 4)
-			dst->width4 = HRd32(&map[j]);
+			dst->width4 = ioread32be(&map[j]);
 		else if (dwidth == 2)
-			dst->width4 = HRd16(&map[j]);
+			dst->width4 = ioread16be(&map[j]);
 		else
-			dst->width1 = HRd8( &map[j]);
-		if (GetClrBusErrCnt()) {
-			kfree(iob);
-			return -EIO;
-		}
+			dst->width1 = ioread8(&map[j]);
 	}
 	cc = copy_to_user(riob->buffer, iob, riob->bsize);
 	kfree(iob);
@@ -994,7 +794,6 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 	int dwidth = mapx->data_width;
 	int i, j, cc;
 	char *map, *iob;
-	int cnt;
 
 	if (dev->nmap)
 		return -ENODEV;
@@ -1021,19 +820,14 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 		     riob->bsize);
 	}
 
-	cnt = GetClrBusErrCnt();
 	for (i = 0, j = riob->offset; i < riob->bsize; i += dwidth, j += dwidth) {
 		union vmeio_word *src = (void *)&iob[i];
 		if (dwidth == 4)
-			HWr32(src->width4, &map[j]);
+			iowrite32be(src->width4, &map[j]);
 		else if (dwidth == 2)
-			HWr16(src->width2, &map[j]);
+			iowrite16be(src->width2, &map[j]);
 		else
-			HWr8( src->width1, &map[j]);
-		if (GetClrBusErrCnt()) {
-			kfree(iob);
-			return -EIO;
-		}
+			iowrite8(src->width1, &map[j]);
 	}
 	kfree(iob);
 	return 0;
