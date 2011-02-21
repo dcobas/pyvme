@@ -32,7 +32,7 @@
  */
 
 static int vmeio_major = 0;
-static char *vmeio_major_name = DRV_NAME;
+static char *vmeio_major_name = DRIVER_NAME;
 
 MODULE_AUTHOR("Julian Lewis BE/CO/HT CERN");
 MODULE_LICENSE("GPL");
@@ -100,11 +100,6 @@ MODULE_PARM_DESC(win1, "First window size in bytes");
 MODULE_PARM_DESC(win2, "Second window size in bytes");
 MODULE_PARM_DESC(nmap, "No VME map flags, 1=DMA only");
 MODULE_PARM_DESC(isrc, "Location of interrupt source reg in vme1");
-
-static char dname[64] = { 0 };
-
-module_param_string(dname, dname, sizeof(dname), 0);
-MODULE_PARM_DESC(dname, "Driver name");
 
 /*
  * This structure describes all the relevant information about a mapped
@@ -544,9 +539,6 @@ int vmeio_install(void)
 		dev->debug = DEBUG;
 		dev->timeout = msecs_to_jiffies(TIMEOUT);
 		dev->icnt = 0;
-
-		if (strlen(dname))
-			vmeio_major_name = dname;
 
 		if (dev->nmap != 0) {
 			printk("%s:Logical unit:%d is not mapped: DMA only\n",
