@@ -14,8 +14,8 @@
  * This file defines the driver instance DRV_NAME and DRV_SYMB macros
  */
 
-#include <user_driver_parameters.h>
 #include <vmeio.h>
+#define DRV_SYMB(x) DRV_NAME##x
 
 /*
  * Define library entry points as a function of the driver name

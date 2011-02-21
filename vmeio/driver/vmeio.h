@@ -28,6 +28,17 @@
 #endif
 #endif
 
+/*
+ * driver name, used all over driver and library (bad!)
+ * the way this is set up now, DRIVER_NAME is defined at compile time
+ * via a -D flag and this propagates properly through vmeio.h
+ */
+#ifndef	DRIVER_NAME
+#define DRIVER_NAME	"vmeio"
+#endif
+#define DRV_NAME	DRIVER_NAME
+#define DRV_MAX_DEVICES	32
+
 /**
  * Connect and read buffer
  * The interrupt counter is the total number of interrupts

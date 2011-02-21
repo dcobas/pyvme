@@ -16,8 +16,6 @@
  * DRV_MAX_DEVICES:    is the number of modules you expect to handle
  */
 
-#include "user_driver_parameters.h"
-
 #include <asm/io.h>
 #include <asm/uaccess.h>
 #include <linux/fs.h>
