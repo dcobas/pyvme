@@ -48,7 +48,6 @@ MODULE_SUPPORTED_DEVICE("Any VME device");
  */
 
 static long luns[DRV_MAX_DEVICES];	/* Logical unit numbers */
-static long lvls[DRV_MAX_DEVICES];	/* Interrupt levels */
 static long vecs[DRV_MAX_DEVICES];	/* Interrupt vectors */
 static long vme1[DRV_MAX_DEVICES];	/* First VME base address */
 static long vme2[DRV_MAX_DEVICES];	/* Second VME base address */
@@ -56,50 +55,38 @@ static long vme2[DRV_MAX_DEVICES];	/* Second VME base address */
 /* Single value parameter handling */
 /* Usually the same for each lun.  */
 
-static long amd1[DRV_MAX_DEVICES];	/* First address modifier */
-static long amd2[DRV_MAX_DEVICES];	/* Second address modifier */
-static long dwd1[DRV_MAX_DEVICES];	/* First data width */
-static long dwd2[DRV_MAX_DEVICES];	/* Second data width */
-static long win1[DRV_MAX_DEVICES];	/* First window size */
-static long win2[DRV_MAX_DEVICES];	/* Second window size */
-static long nmap[DRV_MAX_DEVICES];	/* No map window flag, 1=DMA only */
-static long isrc[DRV_MAX_DEVICES];	/* Location of interrupt source reg in vme1 */
+static long lvls;	/* Interrupt levels */
+static long amd1;	/* First address modifier */
+static long amd2;	/* Second address modifier */
+static long dwd1;	/* First data width */
+static long dwd2;	/* Second data width */
+static long win1;	/* First window size */
+static long win2;	/* Second window size */
+static long nmap;	/* No map window flag, 1=DMA only */
+static long isrc;	/* Location of interrupt source reg in vme1 */
 
 /* These parameter counts must equal the number of luns */
 /* or be equal to zero if not used. */
 
 static unsigned int luns_num;
-static unsigned int lvls_num;
 static unsigned int vecs_num;
 static unsigned int vme1_num;
 static unsigned int vme2_num;
 
-/* These parameter counts are normally zero if not used or */
-/* one, they can however take any value between 0..luns */
-
-static unsigned int amd1_num;	/* Normally this value is = "1" */
-static unsigned int amd2_num;	/* Can be = "0" if not used */
-static unsigned int dwd1_num;	/* Normally this value is = "1" */
-static unsigned int dwd2_num;	/* Can be = "0" if not used */
-static unsigned int win1_num;	/* Normally this value is = "1" */
-static unsigned int win2_num;	/* Can be = "0" if not used */
-static unsigned int nmap_num;	/* Its quite possible this is > "1" */
-static unsigned int isrc_num;	/* Normally this value is = "1" */
-
 module_param_array(luns, long, &luns_num, 0444);	/* Vector */
-module_param_array(lvls, long, &lvls_num, 0444);	/* Vector */
 module_param_array(vecs, long, &vecs_num, 0444);	/* Vector */
 module_param_array(vme1, long, &vme1_num, 0444);	/* Vector */
 module_param_array(vme2, long, &vme2_num, 0444);	/* Vector */
 
-module_param_array(amd1, long, &amd1_num, 0444);
-module_param_array(amd2, long, &amd2_num, 0444);
-module_param_array(dwd1, long, &dwd1_num, 0444);
-module_param_array(dwd2, long, &dwd2_num, 0444);
-module_param_array(win1, long, &win1_num, 0444);
-module_param_array(win2, long, &win2_num, 0444);
-module_param_array(nmap, long, &nmap_num, 0444);
-module_param_array(isrc, long, &isrc_num, 0444);
+module_param(lvls, long, 0444);	/* Vector */
+module_param(amd1, long, 0444);
+module_param(amd2, long, 0444);
+module_param(dwd1, long, 0444);
+module_param(dwd2, long, 0444);
+module_param(win1, long, 0444);
+module_param(win2, long, 0444);
+module_param(nmap, long, 0444);
+module_param(isrc, long, 0444);
 
 MODULE_PARM_DESC(luns, "Logical unit numbers");
 MODULE_PARM_DESC(lvls, "Interrupt levels");
@@ -371,18 +358,6 @@ static irqreturn_t vmeio_irq(void *arg)
 
 /* ==================== */
 
-void set_remaining_null(long argarray[], unsigned int argnum)
-{
-	int i;
-
-	if (!argnum)
-		return;
-	for (i = argnum; i < luns_num; i++)
-		argarray[i] = argarray[0];
-}
-
-/* ==================== */
-
 void *map_window(int vme, int amd, int dwd, int win) {
 
 	unsigned long vmeaddr;
@@ -501,12 +476,6 @@ int vmeio_install(void)
 
 	/* Vector parameters must all be the same size or zero */
 
-	if (lvls_num != luns_num && lvls_num != 0) {
-		printk("%s:Fatal:Missing interrupt level.\n",
-		       vmeio_major_name);
-		return -EACCES;
-	}
-
 	if (vecs_num != luns_num && vecs_num != 0) {
 		printk("%s:Fatal:Missing interrupt vector.\n",
 		       vmeio_major_name);
@@ -524,18 +493,6 @@ int vmeio_install(void)
 		return -EACCES;
 	}
 
-	/* Default single parameters to the first specified */
-
-	set_remaining_null(amd1, amd1_num);
-	set_remaining_null(amd2, amd2_num);
-	set_remaining_null(dwd1, dwd1_num);
-	set_remaining_null(dwd2, dwd2_num);
-	set_remaining_null(win1, win1_num);
-	set_remaining_null(win2, win2_num);
-	set_remaining_null(nmap, nmap_num);
-	set_remaining_null(isrc, isrc_num);
-	set_remaining_null(amd2, amd2_num);
-
 	/* Build module contexts */
 
 	for (i = 0; i < luns_num; i++) {
@@ -548,23 +505,23 @@ int vmeio_install(void)
 		dev->lun = luns[i];
 
 		map0->base_address     = vme1[i];
-		map0->address_modifier = amd1[i];
-		map0->data_width       = dwd1[i];
-		map0->window_size      = win1[i];
+		map0->address_modifier = amd1;
+		map0->data_width       = dwd1;
+		map0->window_size      = win1;
 		map0->vaddr            = NULL;
 		map0->bus_error_handler = NULL;
 
 		map1->base_address     = vme2[i];
-		map1->address_modifier = amd2[i];
-		map1->data_width       = dwd2[i];
-		map1->window_size      = win2[i];
+		map1->address_modifier = amd2;
+		map1->data_width       = dwd2;
+		map1->window_size      = win2;
 		map1->vaddr            = NULL;
 		map1->bus_error_handler = NULL;
 
-		dev->isrc = isrc[i];
-		dev->lvl  = lvls[i];
+		dev->isrc = isrc;
+		dev->lvl  = lvls;
 		dev->vec  = vecs[i];
-		dev->nmap = nmap[i];
+		dev->nmap = nmap;
 
 		init_waitqueue_head(&dev->queue);
 	}
@@ -612,8 +569,8 @@ int vmeio_install(void)
 
 		if (dev->lvl && dev->vec) {
 			register_isr(dev, dev->vec, dev->lvl);
-			if (isrc_num)
-				register_int_source(dev, map0->vaddr, dev->isrc);
+			/* This will be eventually removed */
+			register_int_source(dev, map0->vaddr, dev->isrc);
 		}
 	}
 	return 0;
