@@ -8,6 +8,7 @@ CPU=L865
 KVER=2.6.24.7-rt27
 
 KERNELSRC=/acc/sys/$(CPU)/usr/src/kernels/$(KVER)
+DRIVER_NAME = "vmeio"
 
 all: libs modules
 
@@ -21,7 +22,7 @@ doc:
 
 modules: 
 	cp Module.symvers.vmebus Module.symvers
-	make -C $(KERNELSRC) M=`pwd` KVER=$(KVER) modules
+	make -C $(KERNELSRC) M=`pwd` KVER=$(KVER) 'DRIVER_NAME=$(DRIVER_NAME)' modules
 clean:
 	rm -f *.o *.a *.pyc *.so
 	rm -f pyvme.html
