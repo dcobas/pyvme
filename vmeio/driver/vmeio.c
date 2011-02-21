@@ -1180,6 +1180,7 @@ int vmeio_ioctl32(struct inode *inode, struct file *filp, unsigned int cmd,
 }
 
 struct file_operations vmeio_fops = {
+	.owner = THIS_MODULE,
 	.read = vmeio_read,
 	.write = vmeio_write,
 	.ioctl = vmeio_ioctl32,
