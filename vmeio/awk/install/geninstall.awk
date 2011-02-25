@@ -11,6 +11,13 @@ BEGIN {
    lowername = tolower(name)
    uppername = toupper(name)
 
+   /* xlate symbolic am and dw as seen in ccdb to numbers */
+   am["SH"] = "0x39"
+   am["ST"] = "0x29"
+   am["CR"] = "0x2F"
+   datawidth["DP16"] = "2"
+   datawidth["DP32"] = "4"
+
    format = "%Y %a %B-%e %H:%M:%S"
    print "#!/bin/sh"
    print "echo Generated automatically by geninstall.awk at:" strftime(format)
@@ -27,19 +34,11 @@ BEGIN {
 	 vme1[lun] = $11;
 	 vme2[lun] = $16;
 
-	 if ($9 == "ST") amd1[lun] = "0x39";
-	 if ($9 == "SH") amd1[lun] = "0x29";
-	 if ($9 == "CR") amd1[lun] = "0x2F";
+	 amd1[lun] = am[$9]
+	 amd2[lun] = am[$14]
 
-	 if ($14 == "ST") amd2[lun] = "0x39";
-	 if ($14 == "SH") amd2[lun] = "0x29";
-	 if ($14 == "CR") amd2[lun] = "0x2F";
-
-	 if ($10 == "DP16") dwd1[lun] = "2";
-	 if ($10 == "DP32") dwd1[lun] = "4";
-
-	 if ($15 == "DP16") dwd2[lun] = "2";
-	 if ($15 == "DP32") dwd2[lun] = "4";
+	dwd1[lun] = datawidth[$10]
+	dwd2[lun] = datawidth[$15]
 
 	 win1[lun] = $12;
 	 win2[lun] = $17;
