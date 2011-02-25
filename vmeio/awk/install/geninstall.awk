@@ -12,6 +12,7 @@ BEGIN {
    uppername = toupper(name)
 
    /* xlate symbolic am and dw as seen in ccdb to numbers */
+   am["EX"] = "0x9"
    am["SH"] = "0x39"
    am["ST"] = "0x29"
    am["CR"] = "0x2F"
