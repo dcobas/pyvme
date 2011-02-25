@@ -26,8 +26,7 @@ BEGIN {
    print ""
 }
 
-{
-   if ($1 == "#+#") {
+/^#+#/ {
       if ($6 == uppername) {
 
 	 luns[lun] = $7;
@@ -52,7 +51,6 @@ BEGIN {
 	 }
 	 lun++;
       }
-   }
 }
 
 END {
