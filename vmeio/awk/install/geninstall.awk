@@ -5,17 +5,23 @@ BEGIN {
    print ""
    lun = 0;
 
+   /* first argument is driver name */
+   name = ARGV[1]
+   delete ARGV[1]
+   lowername = tolower(name)
+   uppername = toupper(name)
+
    format = "%Y %a %B-%e %H:%M:%S"
    print "#!/bin/sh"
    print "echo Generated automatically by geninstall.awk at:" strftime(format)
-   print "echo Installing " toupper("NAME") " driver..."
+   print "echo Installing " uppername " driver..."
    print "echo 8 > /proc/sys/kernel/printk"
    print ""
 }
 
 {
    if ($1 == "#+#") {
-      if ($6 == toupper("NAME")) {
+      if ($6 == uppername) {
 
 	 luns[lun] = $7;
 	 vme1[lun] = $11;
@@ -51,7 +57,7 @@ BEGIN {
 }
 
 END {
-   printf "/sbin/insmod " tolower("NAME") ".ko dname=\"" tolower("NAME") "\""
+   printf "/sbin/insmod " lowername ".ko dname=\"" lowername "\""
 
    printf " luns="
    for (i=0; i<lun; i++) {
@@ -96,17 +102,17 @@ END {
 
    print ""
 
-   print "MAJOR=`cat /proc/devices | awk '{if ($2 == \"" tolower("NAME") "\") printf $1}'`"
-   print "echo Making nodes for ${MODULE} major device " tolower("NAME") " ${MAJOR}"
+   print "MAJOR=`cat /proc/devices | awk '{if ($2 == \"" lowername "\") printf $1}'`"
+   print "echo Making nodes for ${MODULE} major device " lowername " ${MAJOR}"
    print "if [ -z \"$MAJOR\" ]; then"
-   print "     echo \"driver " toupper("NAME") " not installed !\""
+   print "     echo \"driver " uppername " not installed !\""
    print "     exit 2"
    print "fi"
    print ""
 
-   print "rm -f /dev/" tolower("NAME") ".*"
+   print "rm -f /dev/" lowername ".*"
    for (i=0; i<lun; i++) {
-      print "/bin/mknod  -m 0666 /dev/" tolower("NAME") "." luns[i] " c ${MAJOR} " i
+      print "/bin/mknod  -m 0666 /dev/" lowername "." luns[i] " c ${MAJOR} " i
    }
    print ""
 }
