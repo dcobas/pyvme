@@ -2,7 +2,6 @@
 
 BEGIN {
 
-   print ""
    lun = 0;
 
    /* first argument is driver name */
