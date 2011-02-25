@@ -304,8 +304,8 @@ char *cp, *bp, c;
 	 cp = &bp[i];
 
 	 c = cp[1];
-	 cp[0] = cp[1];
-	 cp[1] = c;
+	 cp[1] = cp[0];
+	 cp[0] = c;
       }
       return;
    }
