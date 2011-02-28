@@ -35,96 +35,88 @@ incl=`pwd`/$ltar/include
 inst=`pwd`/$ltar/awk/install
 sysg=`pwd`/$ltar/awk/sysgo
 
-echo "insencore [<driver name>] [<cpu type> [<kernel version>] [<lab/oper/operlhc>]]]"
 echo "insencore $*"
-echo
 sleep 1
 
-if [ $1 ]
-then
-   echo
-   echo "Installing driver, library and test program from: " $wdir
-
-   if [ -d $wdir ]
-   then
-
-      cd $wdir
-
-      if [ $2 ]
-      then
-	 cpu=$2
-      else
-	 cpu=L865
-      fi
-
-      if [ $3 ]
-      then
-	 kver=$3
-      else
-	 kver=2.6.24.7-rt27
-      fi
-
-      if [ $4 ]
-      then
-	 cmpx=$4
-      else
-	 cmpx=lab
-      fi
-
-      echo
-      echo "insencore: Using CPU="$cpu " KVER="$kver " COMPLEX="$cmpx
-      echo
-
-      place=$dest/$cmpx/$cpu/$kver
-      if [ -d $place/$ltar ]
-      then
-	 echo "insencore: Using pre-existing driver target directory: " $place/$ltar
-      else
-	 echo "insencore: Creating driver target directory: " $place/$ltar
-	 mkdir $place/$ltar
-	 chmod g+w $place/$ltar
-      fi
-      echo "insencore: Installing: driver, sysgo and installer in " $place/$ltar
-      cd $drvr; dsc_install $ltar.ko $place/$ltar
-      cd $inst; dsc_install doinstall.bat geninstall.awk $place/$ltar
-      cd $sysg; dsc_install dosysgo.bat callsysgo.awk sysgo $place/$ltar
-
-      place=$dest/$cmpx/$cpu
-      if [ -d $place/$ltar ]
-      then
-	 echo "insencore: Using pre-existing program target directory: " $place/$ltar
-      else
-	 echo "insencore: Creating program target directory: " $place/$ltar
-	 mkdir $place/$ltar
-	 chmod g+w $place/$ltar
-      fi
-      echo "insencore: Installing: test program files in " $place/$ltar
-      cd $test; dsc_install vmeiotest.$cpu $tnam vmeiotest.config $place/$ltar
-
-      place=$libd/$cpu/drv
-      if [ -d $place/$ltar ]
-      then
-	 echo "insencore: Using pre-existing library target directory: " $place/$ltar
-      else
-	 echo "insencore: Creating library target directory: " $place/$ltar
-	 mkdir $place/$ltar
-	 chmod g+w $place/$ltar
-      fi
-      echo "insencore: Installing: libraries and include files in " $place/$ltar
-      cd $supt; dsc_install vmeio_support.$cpu.a $place/$ltar
-      cd $supt; dsc_install vmeio_support.h $place/$ltar
-      cd $ulib; dsc_install $lnam.$cpu.a $place/$ltar
-      cd $ulib; dsc_install $lnam.h $place/$ltar
-      cd $drvr; dsc_install user_driver_parameters.h $place/$ltar
-      cd $drvr; dsc_install vmeio.h $place/$ltar
-      cd $incl; dsc_install vmebus.h $place/$ltar
-
-   else
-
-      echo "No such directory" $wdir
-   fi
-
-else
-
-   cat $encr/README
+if [ $# -lt 1 ] ; then
+	echo "usage: $0 [<driver name>] [<cpu type> [<kernel version>] [<lab/oper/operlhc>]]]"
+   	cat $encr/README
+	exit 1
 fi
+
+echo
+echo "Installing driver, library and test program from: " $wdir
+
+if [ ! -d $wdir ] ; then
+	echo "No such directory $wdir"
+	exit 1
+fi
+
+cd $wdir
+
+if [ x"$2" != x"" ]; then
+	cpu=$2
+else
+	cpu=L865
+fi
+
+if [ x"$3" != x"" ]; then
+	kver=$3
+else
+	kver=2.6.24.7-rt27
+fi
+
+if [ x"$4" != x"" ] ; then
+	cmpx=$4
+else
+	cmpx=lab
+fi
+
+echo
+echo "insencore: Using CPU="$cpu " KVER="$kver " COMPLEX="$cmpx
+echo
+
+place=$dest/$cmpx/$cpu/$kver
+if [ -d $place/$ltar ]; then
+	echo "insencore: Using pre-existing driver target directory: " $place/$ltar
+else
+	echo "insencore: Creating driver target directory: " $place/$ltar
+	mkdir $place/$ltar
+	chmod g+w $place/$ltar
+fi
+
+echo "insencore: Installing: driver, sysgo and installer in " $place/$ltar
+cd $drvr; dsc_install $ltar.ko $place/$ltar
+cd $inst; dsc_install doinstall.bat geninstall.awk $place/$ltar
+cd $sysg; dsc_install dosysgo.bat callsysgo.awk sysgo $place/$ltar
+
+place=$dest/$cmpx/$cpu
+if [ -d $place/$ltar ]; then
+	echo "insencore: Using pre-existing program target directory: " $place/$ltar
+else
+	echo "insencore: Creating program target directory: " $place/$ltar
+	mkdir $place/$ltar
+	chmod g+w $place/$ltar
+fi
+
+echo "insencore: Installing: test program files in " $place/$ltar
+cd $test; dsc_install vmeiotest.$cpu $tnam vmeiotest.config $place/$ltar
+
+place=$libd/$cpu/drv
+if [ -d $place/$ltar ]; then
+	echo "insencore: Using pre-existing library target directory: " $place/$ltar
+else
+	echo "insencore: Creating library target directory: " $place/$ltar
+	mkdir $place/$ltar
+	chmod g+w $place/$ltar
+fi
+
+echo "insencore: Installing: libraries and include files in " $place/$ltar
+cd $supt; dsc_install vmeio_support.$cpu.a $place/$ltar
+cd $supt; dsc_install vmeio_support.h $place/$ltar
+cd $ulib; dsc_install $lnam.$cpu.a $place/$ltar
+cd $ulib; dsc_install $lnam.h $place/$ltar
+cd $drvr; dsc_install user_driver_parameters.h $place/$ltar
+cd $drvr; dsc_install vmeio.h $place/$ltar
+cd $incl; dsc_install vmebus.h $place/$ltar
+
