@@ -47,30 +47,29 @@ fi
 echo
 echo "Installing driver, library and test program from: " $wdir
 
-if [ ! -d $wdir ] ; then
-	echo "No such directory $wdir"
-	exit 1
-fi
+# default script parameters
+cpu=L865
+kver=2.6.24.7-rt27
+cmpx=lab
 
-cd $wdir
-
+# override by command-line settings
 if [ x"$2" != x"" ]; then
 	cpu=$2
-else
-	cpu=L865
 fi
 
 if [ x"$3" != x"" ]; then
 	kver=$3
-else
-	kver=2.6.24.7-rt27
 fi
 
 if [ x"$4" != x"" ] ; then
 	cmpx=$4
-else
-	cmpx=lab
 fi
+
+if [ ! -d $wdir ] ; then
+	echo "No such directory $wdir"
+	exit 1
+fi
+cd $wdir
 
 echo
 echo "insencore: Using CPU="$cpu " KVER="$kver " COMPLEX="$cmpx
