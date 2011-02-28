@@ -36,7 +36,7 @@ inst=`pwd`/$ltar/awk/install
 sysg=`pwd`/$ltar/awk/sysgo
 
 echo "insencore [<driver name>] [<cpu type> [<kernel version>] [<lab/oper/operlhc>]]]"
-echo "insencore $1 $2 $3 $4"
+echo "insencore $*"
 echo
 sleep 1
 
