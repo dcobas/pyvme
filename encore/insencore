@@ -15,7 +15,7 @@ SOURCE=/acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers
 #SOURCE=/acc/src/dsc/drivers/cohtdrep/lewis/development-vmeio-drivers
 DELIVERY_DRV=/acc/dsc
 #DELIVERY_DRV=/tmp
-DELIVERY_LIB=/ps/local
+DELIVERY_LIB=/acc/local
 #DELIVERY_LIB=/tmp
 
 ENCORESRC=$SOURCE/encore
