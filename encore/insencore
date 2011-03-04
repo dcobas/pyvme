@@ -20,8 +20,8 @@ DELIVERY_LIB=/acc/local
 
 ENCORESRC=$SOURCE/encore
 TARGET=`echo $1 | tr '[A-Z]' '[a-z]'`
-TESTNAME=`echo $TARGET"test"`
-LIBNAME=`echo "lib"$TARGET`
+TESTNAME="${TARGET}test"
+LIBNAME="lib$TARGET"
 
 WDIR=`pwd`/$TARGET
 DRIVER=$WDIR/driver
