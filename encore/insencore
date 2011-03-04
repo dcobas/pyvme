@@ -19,9 +19,7 @@ libd=/ps/local
 #libd=/tmp
 
 encr=$srce/encore
-dsrc=$srce/vmeio
 ltar=`echo $1 | tr '[A-Z]' '[a-z]'`
-utar=`echo $1 | tr '[A-Z]' '[a-z]'`
 tnam=`echo $ltar"test"`
 lnam=`echo "lib"$ltar`
 
