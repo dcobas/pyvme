@@ -108,11 +108,11 @@ else
 fi
 
 echo "insencore: Installing: libraries and include files in " $LIB_TARGET
-cd $SUPPORT; dsc_install vmeio_support.$CPU.a $LIB_TARGET
-cd $SUPPORT; dsc_install vmeio_support.h $LIB_TARGET
-cd $USERLIB; dsc_install $LIBNAME.$CPU.a $LIB_TARGET
-cd $USERLIB; dsc_install $LIBNAME.h $LIB_TARGET
-cd $DRIVER; dsc_install user_driver_parameters.h $LIB_TARGET
-cd $DRIVER; dsc_install vmeio.h $LIB_TARGET
-cd $INCLUDE; dsc_install vmebus.h $LIB_TARGET
+dsc_install $SUPPORT/vmeio_support.$CPU.a $LIB_TARGET
+dsc_install $SUPPORT/vmeio_support.h $LIB_TARGET
+dsc_install $USERLIB/$LIBNAME.$CPU.a $LIB_TARGET
+dsc_install $USERLIB/$LIBNAME.h $LIB_TARGET
+dsc_install $DRIVER/user_driver_parameters.h $LIB_TARGET
+dsc_install $DRIVER/vmeio.h $LIB_TARGET
+dsc_install $INCLUDE/vmebus.h $LIB_TARGET
 
