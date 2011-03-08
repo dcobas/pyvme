@@ -681,13 +681,9 @@ static int raw_dma(struct vmeio_device *dev,
 	int cc, winum;
 	unsigned int haddr;
 
-#ifdef __64BIT
-	bl = buf & 0xFFFFFFFF;
-	bu = buf >> 32;
-#else
 	bl = buf;
 	bu = 0;
-#endif
+
 	memset(&dma_desc, 0, sizeof(dma_desc));
 
 	dma_desc.dir = direction;
@@ -952,17 +948,6 @@ static DEFINE_MUTEX(driver_mutex);
 
 /* ===================================================== */
 
-long vmeio_ioctl64(struct file *filp, unsigned int cmd, unsigned long arg)
-{
-	int res;
-	mutex_lock(&driver_mutex);
-	res = vmeio_ioctl(filp->f_dentry->d_inode, filp, cmd, arg);
-	mutex_unlock(&driver_mutex);
-	return res;
-}
-
-/* ===================================================== */
-
 int vmeio_ioctl32(struct inode *inode, struct file *filp, unsigned int cmd,
 		  unsigned long arg)
 {
@@ -978,7 +963,6 @@ struct file_operations vmeio_fops = {
 	.read = vmeio_read,
 	.write = vmeio_write,
 	.ioctl = vmeio_ioctl32,
-	.compat_ioctl = vmeio_ioctl64,
 	.open = vmeio_open,
 	.release = vmeio_close,
 };

@@ -16,19 +16,6 @@
 #define TIMEOUT 1000
 
 /*
- * Determin if we are on a 64 bit kernel
- * BITS_PER_LONG is defined by types.h
- */
-
-#include <asm/types.h>
-
-#if BITS_PER_LONG == 64
-#ifndef __64BIT
-#define __64BIT
-#endif
-#endif
-
-/*
  * driver name, used all over driver and library (bad!)
  * the way this is set up now, DRIVER_NAME is defined at compile time
  * via a -D flag and this propagates properly through vmeio.h
@@ -88,22 +75,12 @@ struct vmeio_version_s {
 
 #define vmeioMAX_BUF 8192
 
-#ifdef __64BIT
 struct vmeio_riob_s {
    int winum;    /** Window number 1..2 */
    int offset;   /** Byte offset in map */
    int bsize;    /** The number of bytes to read */
    void *buffer; /** Pointer to data area */
 };
-#else
-struct vmeio_riob_s {
-   int winum;    /** Window number 1..2 */
-   int offset;   /** Byte offset in map */
-   int bsize;    /** The number of bytes to read */
-   void *buffer; /** Pointer to data area */
-   int  compat;  /** Pack out size to at least 64 bits */
-};
-#endif
 
 /*
  * Enumerate IOCTL functions
