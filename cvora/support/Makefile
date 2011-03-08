@@ -4,7 +4,7 @@
 
 CPU=L865
 
-include /ps/dsc/src/co/Make.auto
+include /acc/src/dsc/co/Make.auto
 
 COMPILE_TIME:=$(shell date +%s)
 
