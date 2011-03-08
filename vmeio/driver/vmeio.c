@@ -295,24 +295,13 @@ int vmeio_install(void)
 
 	for (i = 0; i < luns_num; i++) {
 		struct vmeio_device *dev = &devices[i];
-		struct vmeio_map *map0 = &dev->maps[0];
-		struct vmeio_map *map1 = &dev->maps[1];
 
 		memset(dev, 0, sizeof(*dev));
 
 		dev->lun = luns[i];
 
-		map0->base_address     = vme1[i];
-		map0->address_modifier = amd1;
-		map0->data_width       = dwd1;
-		map0->window_size      = win1;
-		map0->vaddr            = NULL;
-
-		map1->base_address     = vme2[i];
-		map1->address_modifier = amd2;
-		map1->data_width       = dwd2;
-		map1->window_size      = win2;
-		map1->vaddr            = NULL;
+		vmeio_map_init(&dev->maps[0], vme1[i], win1, amd1, dwd1);
+		vmeio_map_init(&dev->maps[1], vme2[i], win2, amd2, dwd2);
 
 		dev->isrc = isrc;
 		dev->lvl  = lvls;
@@ -335,8 +324,6 @@ int vmeio_install(void)
 
 	for (i = 0; i < luns_num; i++) {
 		struct vmeio_device *dev = &devices[i];
-		struct vmeio_map *map0 = &dev->maps[0];
-		struct vmeio_map *map1 = &dev->maps[1];
 
 		dev->debug = DEBUG;
 		dev->timeout = msecs_to_jiffies(TIMEOUT);
@@ -349,15 +336,13 @@ int vmeio_install(void)
 
 		printk(PFX "Mapping:Logical unit:%d\n", dev->lun);
 
-		map0->vaddr = map_window(map0->base_address, map0->address_modifier,
-						map0->data_width, map0->window_size);
-		map1->vaddr = map_window(map1->base_address, map1->address_modifier,
-						map1->data_width, map1->window_size);
+		vmeio_map_register(&dev->maps[0]);
+		vmeio_map_register(&dev->maps[1]);
 
 		if (dev->lvl && dev->vec) {
 			register_isr(dev, dev->vec, dev->lvl);
 			/* This will be eventually removed */
-			register_int_source(dev, map0->vaddr, dev->isrc);
+			register_int_source(dev, dev->maps[0].vaddr, dev->isrc);
 		}
 	}
 	return 0;
@@ -365,16 +350,12 @@ int vmeio_install(void)
 
 /* ==================== */
 
-void unregister_module(struct vmeio_device *dev) {
-	struct vmeio_map *map0 = &dev->maps[0];
-	struct vmeio_map *map1 = &dev->maps[1];
-
+void unregister_module(struct vmeio_device *dev)
+{
 	if (dev->vec)
 		vme_intclr(dev->vec, NULL);
-	if (map0->base_address)
-		return_controller((unsigned long)map0->base_address, map0->window_size);
-	if (map1->base_address)
-		return_controller((unsigned long)map1->base_address, map1->window_size);
+	vmeio_map_unregister(&dev->maps[0]);
+	vmeio_map_unregister(&dev->maps[1]);
 }
 
 /*
