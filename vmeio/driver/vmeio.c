@@ -259,10 +259,8 @@ void register_int_source(struct vmeio_device *dev, void *map, unsigned offset)
  * =====================================================
  */
 
-int vmeio_install(void)
+static int check_module_params(void)
 {
-	int i, cc;
-
 	if (luns_num <= 0 || luns_num > DRV_MAX_DEVICES) {
 		printk(PFX "Fatal:No logical units defined.\n");
 		return -EACCES;
@@ -283,6 +281,15 @@ int vmeio_install(void)
 		printk(PFX "Fatal:Missing second base address.\n");
 		return -EACCES;
 	}
+	return 0;
+}
+
+int vmeio_install(void)
+{
+	int i, cc;
+
+	if ((cc = check_module_params()) != 0)
+		return cc;
 
 	/* Build module contexts */
 
