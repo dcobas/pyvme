@@ -4,18 +4,6 @@
  * Julian Lewis BE/CO/HT Tue 19th October 2010
  */
 
-/*
- * These next two includes must be included in this order.
- * Driver configuration definitions.
- * It is supposed that this driver will be compiled under different names
- * and that nodes will be created in /dev for each named kernal module.
- * These definitions must be set up according to a particular useage.
- * DRV_NAME:           is used when printing messages
- * DRV_SYMB:           entry points symbol value
- * DRV_MODULE_VERSION: may change with new features and bug corrections
- * DRV_MAX_DEVICES:    is the number of modules you expect to handle
- */
-
 #include <asm/io.h>
 #include <asm/uaccess.h>
 #include <linux/fs.h>
