@@ -2,11 +2,11 @@
 # Makefile to produce acdxing library
 #================================================================
 
-include /ps/dsc/src/co/Make.auto
+include /acc/dsc/src/co/Make.auto
 
 COMPILE_TIME:=$(shell date +%s)
 
-CFLAGS= -DCOMPILE_TIME=$(COMPILE_TIME) -g -Wall -I. -I../include -I../driver -fPIC
+CFLAGS= -DCOMPILE_TIME=$(COMPILE_TIME) -g -Wall -fPIC
 
 SRCS=vmeio_support.c vmeio_support.h
 
