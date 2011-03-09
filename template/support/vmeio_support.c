@@ -86,10 +86,8 @@ struct __vsl_device *__vsl_open(int lun)
 
 void __vsl_close(struct __vsl_device *h)
 {
-	if (h) {
-		close(h->file);
-		free(h);
-	}
+	close(h->file);
+	free(h);
 }
 
 /**
