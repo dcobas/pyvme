@@ -120,21 +120,16 @@ typedef enum {
 
 #define MAGIC 'V'
 
-#define VIO(nr)      _IO(MAGIC,nr)
-#define VIOR(nr,sz)  _IOR(MAGIC,nr,sz)
-#define VIOW(nr,sz)  _IOW(MAGIC,nr,sz)
-#define VIOWR(nr,sz) _IOWR(MAGIC,nr,sz)
-
-#define VMEIO_GET_DEBUG     VIOR(vmeioGET_DEBUG,      int)
-#define VMEIO_SET_DEBUG     VIOW(vmeioSET_DEBUG,      int)
-#define VMEIO_GET_VERSION   VIOR(vmeioGET_VERSION,    int)
-#define VMEIO_GET_TIMEOUT   VIOR(vmeioGET_TIMEOUT,    int)
-#define VMEIO_SET_TIMEOUT   VIOW(vmeioSET_TIMEOUT,    int)
-#define VMEIO_GET_DEVICE    VIOR(vmeioGET_DEVICE,     struct vmeio_get_window_s)
-#define VMEIO_RAW_READ      VIOWR(vmeioRAW_READ,      struct vmeio_riob_s)
-#define VMEIO_RAW_WRITE     VIOWR(vmeioRAW_WRITE,     struct vmeio_riob_s)
-#define VMEIO_RAW_READ_DMA  VIOWR(vmeioRAW_READ_DMA,  struct vmeio_riob_s)
-#define VMEIO_RAW_WRITE_DMA VIOWR(vmeioRAW_WRITE_DMA, struct vmeio_riob_s)
-#define VMEIO_SET_DEVICE    VIOW(vmeioGET_DEVICE,     struct vmeio_get_window_s)
+#define  VMEIO_GET_DEBUG      _IOR(MAGIC,   vmeioGET_DEBUG,      int)
+#define  VMEIO_SET_DEBUG      _IOW(MAGIC,   vmeioSET_DEBUG,      int)
+#define  VMEIO_GET_VERSION    _IOR(MAGIC,   vmeioGET_VERSION,    int)
+#define  VMEIO_GET_TIMEOUT    _IOR(MAGIC,   vmeioGET_TIMEOUT,    int)
+#define  VMEIO_SET_TIMEOUT    _IOW(MAGIC,   vmeioSET_TIMEOUT,    int)
+#define  VMEIO_GET_DEVICE     _IOR(MAGIC,   vmeioGET_DEVICE,     struct  vmeio_get_window_s)
+#define  VMEIO_RAW_READ       _IOWR(MAGIC,  vmeioRAW_READ,       struct  vmeio_riob_s)
+#define  VMEIO_RAW_WRITE      _IOWR(MAGIC,  vmeioRAW_WRITE,      struct  vmeio_riob_s)
+#define  VMEIO_RAW_READ_DMA   _IOWR(MAGIC,  vmeioRAW_READ_DMA,   struct  vmeio_riob_s)
+#define  VMEIO_RAW_WRITE_DMA  _IOWR(MAGIC,  vmeioRAW_WRITE_DMA,  struct  vmeio_riob_s)
+#define  VMEIO_SET_DEVICE     _IOW(MAGIC,   vmeioGET_DEVICE,     struct  vmeio_get_window_s)
 
 #endif
