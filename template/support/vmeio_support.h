@@ -16,32 +16,31 @@
  * Define library entry points as a function of the driver name
  */
 
-#define DRIVER_NAME	"vmeio"
-#define DRV_SYMB(sym)	DRIVER_NAME##sym
+#define DRV_SYMB(dname, sym)	dname##_##sym
 
-#define OPEN         DRV_SYMB(_open)
-#define OPEN_NAME    DRV_SYMB(_open_name)
-#define CLOSE        DRV_SYMB(_close)
-#define GET_WINDOW   DRV_SYMB(_get_window)
-#define RAW          DRV_SYMB(_raw)
-#define DMA          DRV_SYMB(_dma)
-#define WAIT         DRV_SYMB(_wait)
-#define SET_PARAMS   DRV_SYMB(_set_params)
-#define READ_REG     DRV_SYMB(_read_reg)
-#define WRITE_REG    DRV_SYMB(_write_reg)
+#define OPEN         DRV_SYMB(support, open)
+#define OPEN_NAME    DRV_SYMB(support, open_name)
+#define CLOSE        DRV_SYMB(support, close)
+#define GET_WINDOW   DRV_SYMB(support, get_window)
+#define RAW          DRV_SYMB(support, raw)
+#define DMA          DRV_SYMB(support, dma)
+#define WAIT         DRV_SYMB(support, wait)
+#define SET_PARAMS   DRV_SYMB(support, set_params)
+#define READ_REG     DRV_SYMB(support, read_reg)
+#define WRITE_REG    DRV_SYMB(support, write_reg)
 
-#define SET_DEBUG    DRV_SYMB(_set_debug)
-#define GET_DEBUG    DRV_SYMB(_get_debug)
+#define SET_DEBUG    DRV_SYMB(support, set_debug)
+#define GET_DEBUG    DRV_SYMB(support, get_debug)
 
-#define DO_INTERRUPT DRV_SYMB(_do_interrupt)
+#define DO_INTERRUPT DRV_SYMB(support, do_interrupt)
 
-#define SET_TIMEOUT  DRV_SYMB(_set_timeout)
-#define GET_TIMEOUT  DRV_SYMB(_get_timeout)
+#define SET_TIMEOUT  DRV_SYMB(support, set_timeout)
+#define GET_TIMEOUT  DRV_SYMB(support, get_timeout)
 
-#define GET_VERSION  DRV_SYMB(_get_version)
+#define GET_VERSION  DRV_SYMB(support, get_version)
 
-#define SET_OFFSET   DRV_SYMB(_set_offset)
-#define GET_OFFSET   DRV_SYMB(_get_offset)
+#define SET_OFFSET   DRV_SYMB(support, set_offset)
+#define GET_OFFSET   DRV_SYMB(support, get_offset)
 
 /*
  * ============================================
