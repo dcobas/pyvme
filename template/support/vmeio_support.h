@@ -13,36 +13,6 @@
 #include "vmeio.h"
 
 /*
- * Define library entry points as a function of the driver name
- */
-
-#define DRV_SYMB(dname, sym)	dname##_##sym
-
-#define OPEN         DRV_SYMB(support, open)
-#define OPEN_NAME    DRV_SYMB(support, open_name)
-#define CLOSE        DRV_SYMB(support, close)
-#define GET_WINDOW   DRV_SYMB(support, get_window)
-#define RAW          DRV_SYMB(support, raw)
-#define DMA          DRV_SYMB(support, dma)
-#define WAIT         DRV_SYMB(support, wait)
-#define SET_PARAMS   DRV_SYMB(support, set_params)
-#define READ_REG     DRV_SYMB(support, read_reg)
-#define WRITE_REG    DRV_SYMB(support, write_reg)
-
-#define SET_DEBUG    DRV_SYMB(support, set_debug)
-#define GET_DEBUG    DRV_SYMB(support, get_debug)
-
-#define DO_INTERRUPT DRV_SYMB(support, do_interrupt)
-
-#define SET_TIMEOUT  DRV_SYMB(support, set_timeout)
-#define GET_TIMEOUT  DRV_SYMB(support, get_timeout)
-
-#define GET_VERSION  DRV_SYMB(support, get_version)
-
-#define SET_OFFSET   DRV_SYMB(support, set_offset)
-#define GET_OFFSET   DRV_SYMB(support, get_offset)
-
-/*
  * ============================================
  * Basic routines calling driver
  */
@@ -53,23 +23,23 @@
  * @return handle pointer or null if error
  */
 
-void *OPEN(int lun);
+void *__vsl_open(int lun);
 
 /**
  * @brief open a handle for a given lun
  * @param lun logical unit number
- * @param name of the node in /dev (used in test programs)
+ * @param name of the node in /dev __vsl_(used in test programs)
  * @return handle pointer or null if error
  */
 
-void *OPEN_NAME(int lun, char *name);
+void *__vsl_open_name(int lun, char *name);
 
 /**
  * @brief close a handle
  * @param handle returned from open
  */
 
-void CLOSE(void *handle);
+void __vsl_close(void *handle);
 
 /**
  * ============================================
@@ -79,7 +49,7 @@ void CLOSE(void *handle);
  * @return 1 = OK 0 = FAIL
  */
 
-int GET_VERSION(void *handle, struct vmeio_version_s *ver);
+int __vsl_get_version(void *handle, struct vmeio_version_s *ver);
 
 /**
  * ============================================
@@ -89,7 +59,7 @@ int GET_VERSION(void *handle, struct vmeio_version_s *ver);
  * @return 1 = OK 0 = FAIL
  */
 
-int SET_TIMEOUT(void *handle, int *timeout);
+int __vsl_set_timeout(void *handle, int *timeout);
 
 /**
  * @brief Set driver debug level
@@ -98,7 +68,7 @@ int SET_TIMEOUT(void *handle, int *timeout);
  * @return 1 = OK 0 = FAIL
  */
 
-int SET_DEBUG(void *handle, int *level);
+int __vsl_set_debug(void *handle, int *level);
 
 /**
  * @brief Get driver timeout in milliseconds
@@ -107,7 +77,7 @@ int SET_DEBUG(void *handle, int *level);
  * @return 1 = OK 0 = FAIL
  */
 
-int GET_TIMEOUT(void *handle, int *timeout);
+int __vsl_get_timeout(void *handle, int *timeout);
 
 /**
  * @brief Get driver debug level
@@ -116,7 +86,7 @@ int GET_TIMEOUT(void *handle, int *timeout);
  * @return 1 = OK 0 = FAIL
  */
 
-int GET_DEBUG(void *handle, int *level);
+int __vsl_get_debug(void *handle, int *level);
 
 /**
  * @brief make an interrupt now
@@ -125,7 +95,7 @@ int GET_DEBUG(void *handle, int *level);
  * @return 1 = OK 0 = FAIL
  */
 
-int DO_INTERRUPT(void *handle, int *mask);
+int __vsl_do_interrupt(void *handle, int *mask);
 
 /**
  * ============================================
@@ -135,7 +105,7 @@ int DO_INTERRUPT(void *handle, int *mask);
  * @return 1 = OK 0 = FAIL
  */
 
-int GET_WINDOW(void *handle, struct vmeio_get_window_s *win);
+int __vsl_get_window(void *handle, struct vmeio_get_window_s *win);
 
 /**
  * ============================================
@@ -146,7 +116,7 @@ int GET_WINDOW(void *handle, struct vmeio_get_window_s *win);
  * @return 1 = OK 0 = FAIL
  */
 
-int RAW(void *handle, struct vmeio_riob_s *buf, int flag);
+int __vsl_raw(void *handle, struct vmeio_riob_s *buf, int flag);
 
 /**
  * @brief Transfer data via DMA, WARNING byte swapping is your problem
@@ -156,7 +126,7 @@ int RAW(void *handle, struct vmeio_riob_s *buf, int flag);
  * @return 1 = OK 0 = FAIL
  */
 
-int DMA(void *handle, struct vmeio_riob_s *buf, int flag);
+int __vsl_dma(void *handle, struct vmeio_riob_s *buf, int flag);
 
 /**
  * ============================================
@@ -166,7 +136,7 @@ int DMA(void *handle, struct vmeio_riob_s *buf, int flag);
  * @return 1 = OK 0 = FAIL
  */
 
-int WAIT(void *handle, struct vmeio_read_buf_s *event);
+int __vsl_wait(void *handle, struct vmeio_read_buf_s *event);
 
 /*
  * ============================================
@@ -182,27 +152,27 @@ int WAIT(void *handle, struct vmeio_read_buf_s *event);
  * @return 1 = OK 0 = FAIL
  */
 
-int SET_PARAMS(void *handle, int winnum, int dmaflag, int dmaswap);
+int __vsl_set_params(void *handle, int winnum, int dmaflag, int dmaswap);
 
 /**
  * @brief read a register
  * @param handle returned from open
- * @param reg_num register number (not byte offset)
+ * @param reg_num register number __vsl_(not byte offset)
  * @param reg_val value read
  * @return 1 = OK 0 = FAIL
  */
 
-int READ_REG(void *handle, int reg_num, int *reg_val);
+int __vsl_read_reg(void *handle, int reg_num, int *reg_val);
 
 /**
  * @brief write a register
  * @param handle returned from open
- * @param reg_num register number (not byte offset)
+ * @param reg_num register number __vsl_(not byte offset)
  * @param reg_val value read
  * @return 1 = OK 0 = FAIL
  */
 
-int WRITE_REG(void *handle, int reg_num, int *reg_val);
+int __vsl_write_reg(void *handle, int reg_num, int *reg_val);
 
 /**
  * ============================================
@@ -212,7 +182,7 @@ int WRITE_REG(void *handle, int reg_num, int *reg_val);
  * @return 1 = OK 0 = FAIL
  */
 
-int SET_OFFSET(void *handle, int *offset);
+int __vsl_set_offset(void *handle, int *offset);
 
 /**
  * @brief Get global block offset
@@ -221,6 +191,6 @@ int SET_OFFSET(void *handle, int *offset);
  * @return 1 = OK 0 = FAIL
  */
 
-int GET_OFFSET(void *handle, int *offset);
+int __vsl_get_offset(void *handle, int *offset);
 
 #endif

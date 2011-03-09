@@ -46,7 +46,7 @@ struct __vsl_device {
  * @return handle pointer or null if error
  */
 
-void *OPEN_NAME(int lun, char *name)
+void *__vsl_open_name(int lun, char *name)
 {
 	char fname[32];
 	int fnum;
@@ -74,7 +74,7 @@ void *OPEN_NAME(int lun, char *name)
 	h->dmaflag = 0;
 	h->offset = 0;
 
-	GET_WINDOW((void *) h, &h->window);
+	__vsl_get_window((void *) h, &h->window);
 
 	return (void *) h;
 }
@@ -86,9 +86,9 @@ void *OPEN_NAME(int lun, char *name)
  * @return handle pointer or null if error
  */
 
-void *OPEN(int lun)
+void *__vsl_open(int lun)
 {
-	return OPEN_NAME(lun, DRV_NAME);
+	return __vsl_open_name(lun, DRV_NAME);
 }
 
 /**
@@ -97,7 +97,7 @@ void *OPEN(int lun)
  * @param handle returned from open
  */
 
-void CLOSE(void *handle)
+void __vsl_close(void *handle)
 {
 	struct __vsl_device *h;
 
@@ -116,7 +116,7 @@ void CLOSE(void *handle)
  * @return 1 = OK 0 = FAIL
  */
 
-int GET_VERSION(void *handle, struct vmeio_version_s *ver)
+int __vsl_get_version(void *handle, struct vmeio_version_s *ver)
 {
 	struct __vsl_device *h;
 	long vd;
@@ -137,7 +137,7 @@ int GET_VERSION(void *handle, struct vmeio_version_s *ver)
  * @return 1 = OK 0 = FAIL
  */
 
-int SET_TIMEOUT(void *handle, int *timeout)
+int __vsl_set_timeout(void *handle, int *timeout)
 {
 	struct __vsl_device *h;
 	long tmo;
@@ -157,7 +157,7 @@ int SET_TIMEOUT(void *handle, int *timeout)
  * @return 1 = OK 0 = FAIL
  */
 
-int SET_DEBUG(void *handle, int *level)
+int __vsl_set_debug(void *handle, int *level)
 {
 	struct __vsl_device *h;
 	long lvl;
@@ -177,7 +177,7 @@ int SET_DEBUG(void *handle, int *level)
  * @return 1 = OK 0 = FAIL
  */
 
-int GET_TIMEOUT(void *handle, int *timeout)
+int __vsl_get_timeout(void *handle, int *timeout)
 {
 	struct __vsl_device *h;
 	long tmo;
@@ -197,7 +197,7 @@ int GET_TIMEOUT(void *handle, int *timeout)
  * @return 1 = OK 0 = FAIL
  */
 
-int DO_INTERRUPT(void *handle, int *mask)
+int __vsl_do_interrupt(void *handle, int *mask)
 {
 	struct __vsl_device *h;
 	int cc;
@@ -217,7 +217,7 @@ int DO_INTERRUPT(void *handle, int *mask)
  * @return 1 = OK 0 = FAIL
  */
 
-int GET_DEBUG(void *handle, int *level)
+int __vsl_get_debug(void *handle, int *level)
 {
 	struct __vsl_device *h;
 	long lvl;
@@ -237,7 +237,7 @@ int GET_DEBUG(void *handle, int *level)
  * @return 1 = OK 0 = FAIL
  */
 
-int GET_WINDOW(void *handle, struct vmeio_get_window_s *win)
+int __vsl_get_window(void *handle, struct vmeio_get_window_s *win)
 {
 	struct __vsl_device *h;
 
@@ -256,7 +256,7 @@ int GET_WINDOW(void *handle, struct vmeio_get_window_s *win)
  * @return 1 = OK 0 = FAIL
  */
 
-int RAW(void *handle, struct vmeio_riob_s *buf, int flag)
+int __vsl_raw(void *handle, struct vmeio_riob_s *buf, int flag)
 {
 	struct __vsl_device *h;
 	struct vmeio_riob_s cb;
@@ -282,7 +282,7 @@ int RAW(void *handle, struct vmeio_riob_s *buf, int flag)
  * ============================================
  */
 
-static void swap_buf(struct __vsl_device * h, struct vmeio_riob_s *buf)
+static void __vsl_swap_buf(struct __vsl_device * h, struct vmeio_riob_s *buf)
 {
 	int i, dwd;
 	char *cp, *bp, c;
@@ -336,7 +336,7 @@ static void swap_buf(struct __vsl_device * h, struct vmeio_riob_s *buf)
  * @return 1 = OK 0 = FAIL
  */
 
-int DMA(void *handle, struct vmeio_riob_s *buf, int flag)
+int __vsl_dma(void *handle, struct vmeio_riob_s *buf, int flag)
 {
 	struct __vsl_device *h;
 	struct vmeio_riob_s cb;
@@ -350,14 +350,14 @@ int DMA(void *handle, struct vmeio_riob_s *buf, int flag)
 
 	if (flag) {
 		if (h->dmaswap)
-			swap_buf(h, buf);
+			__vsl_swap_buf(h, buf);
 		if (ioctl(h->file, VMEIO_RAW_WRITE_DMA, &cb) < 0)
 			return 0;
 	} else {
 		if (ioctl(h->file, VMEIO_RAW_READ_DMA, &cb) < 0)
 			return 0;
 		if (h->dmaswap)
-			swap_buf(h, buf);
+			__vsl_swap_buf(h, buf);
 	}
 	return 1;
 }
@@ -370,7 +370,7 @@ int DMA(void *handle, struct vmeio_riob_s *buf, int flag)
  * @return 1 = OK 0 = FAIL
  */
 
-int WAIT(void *handle, struct vmeio_read_buf_s *event)
+int __vsl_wait(void *handle, struct vmeio_read_buf_s *event)
 {
 	struct __vsl_device *h;
 	int cc;
@@ -402,7 +402,7 @@ int WAIT(void *handle, struct vmeio_read_buf_s *event)
  * @return 1 = OK 0 = FAIL
  */
 
-int SET_PARAMS(void *handle, int winum, int dmaflag, int dmaswap)
+int __vsl_set_params(void *handle, int winum, int dmaflag, int dmaswap)
 {
 	struct __vsl_device *h;
 
@@ -419,12 +419,12 @@ int SET_PARAMS(void *handle, int winum, int dmaflag, int dmaswap)
  * ============================================
  * @brief read a register
  * @param handle returned from open
- * @param reg_num register number (not byte offset)
+ * @param reg_num register number __vsl_(not byte offset)
  * @param reg_val value read
  * @return 1 = OK 0 = FAIL
  */
 
-int READ_REG(void *handle, int reg_num, int *reg_val)
+int __vsl_read_reg(void *handle, int reg_num, int *reg_val)
 {
 	struct __vsl_device *h;
 	struct vmeio_riob_s buf;
@@ -446,9 +446,9 @@ int READ_REG(void *handle, int reg_num, int *reg_val)
 	buf.buffer = &value;
 
 	if (h->dmaflag)
-		cc = DMA(handle, &buf, 0);
+		cc = __vsl_dma(handle, &buf, 0);
 	else
-		cc = RAW(handle, &buf, 0);
+		cc = __vsl_raw(handle, &buf, 0);
 
 	*reg_val = value;
 	return cc;
@@ -458,12 +458,12 @@ int READ_REG(void *handle, int reg_num, int *reg_val)
  * ============================================
  * @brief write a register
  * @param handle returned from open
- * @param reg_num register number (not byte offset)
+ * @param reg_num register number __vsl_(not byte offset)
  * @param reg_val value read
  * @return 1 = OK 0 = FAIL
  */
 
-int WRITE_REG(void *handle, int reg_num, int *reg_val)
+int __vsl_write_reg(void *handle, int reg_num, int *reg_val)
 {
 	struct __vsl_device *h;
 	struct vmeio_riob_s buf;
@@ -487,9 +487,9 @@ int WRITE_REG(void *handle, int reg_num, int *reg_val)
 	buf.buffer = &value;
 
 	if (h->dmaflag)
-		cc = DMA(handle, &buf, 1);
+		cc = __vsl_dma(handle, &buf, 1);
 	else
-		cc = RAW(handle, &buf, 1);
+		cc = __vsl_raw(handle, &buf, 1);
 
 	return cc;
 }
@@ -509,7 +509,7 @@ int WRITE_REG(void *handle, int reg_num, int *reg_val)
  * @return 1 = OK 0 = FAIL
  */
 
-int SET_OFFSET(void *handle, int *offset)
+int __vsl_set_offset(void *handle, int *offset)
 {
 	struct __vsl_device *h;
 
@@ -526,7 +526,7 @@ int SET_OFFSET(void *handle, int *offset)
  * @return 1 = OK 0 = FAIL
  */
 
-int GET_OFFSET(void *handle, int *offset)
+int __vsl_get_offset(void *handle, int *offset)
 {
 	struct __vsl_device *h;
 
