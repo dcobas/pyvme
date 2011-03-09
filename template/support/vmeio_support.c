@@ -68,18 +68,6 @@ struct __vsl_device *__vsl_open_name(int lun, char *name)
 
 /**
  * ============================================
- * @brief open a handle for a given lun
- * @param lun logical unit number
- * @return handle pointer or null if error
- */
-
-struct __vsl_device *__vsl_open(int lun)
-{
-	return __vsl_open_name(lun, DRV_NAME);
-}
-
-/**
- * ============================================
  * @brief close a handle
  * @param handle returned from open
  */

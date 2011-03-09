@@ -33,14 +33,6 @@ struct __vsl_device {
 /**
  * @brief open a handle for a given lun
  * @param lun logical unit number
- * @return handle pointer or null if error
- */
-
-struct __vsl_device *__vsl_open(int lun);
-
-/**
- * @brief open a handle for a given lun
- * @param lun logical unit number
  * @param name of the node in /dev __vsl_(used in test programs)
  * @return handle pointer or null if error
  */
