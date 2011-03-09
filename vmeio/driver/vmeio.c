@@ -169,7 +169,7 @@ static irqreturn_t vmeio_irq(void *arg)
 	if (dev->isr_source_address) {
 		unsigned long data_width = dev->maps[0].data_width;
 		if (data_width == 4)
-			data = ioread16be(dev->isr_source_address);
+			data = ioread32be(dev->isr_source_address);
 		else if (data_width == 2)
 			data = ioread16be(dev->isr_source_address);
 		else
