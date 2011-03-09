@@ -58,7 +58,7 @@ handle_t *h;
       return NULL;
    }
 
-   h = (handle_t *) malloc(sizeof(handle_t));
+   h = malloc(sizeof(handle_t));
    if (h == NULL) {
       fprintf(stderr,"Error:%s_open Can't allocate memory\n",DRV_NAME);
       close(fnum);
@@ -98,7 +98,7 @@ void CLOSE(void *handle) {
 
 handle_t *h;
 
-   h = (handle_t *) handle;
+   h = handle;
    if (h) {
       close(h->file);
       free(handle);
@@ -118,8 +118,7 @@ int GET_VERSION(void *handle, struct vmeio_version_s *ver) {
 handle_t *h;
 long vd;
 
-   h = (handle_t *) handle;
-   if (!h) return 0;
+   h = handle;
    if (ioctl(h->file,VMEIO_GET_VERSION,&vd) <0) return 0;
    ver->driver  = vd;
    ver->library = COMPILE_TIME;
@@ -139,8 +138,7 @@ int SET_TIMEOUT(void *handle, int *timeout) {
 handle_t *h;
 long tmo;
 
-   h = (handle_t *) handle;
-   if (!h) return 0;
+   h = handle;
    tmo = *timeout;
    if (ioctl(h->file,VMEIO_SET_TIMEOUT,&tmo) <0) return 0;
    return 1;
@@ -159,8 +157,7 @@ int SET_DEBUG(void *handle, int *level) {
 handle_t *h;
 long lvl;
 
-   h = (handle_t *) handle;
-   if (!h) return 0;
+   h = handle;
    lvl = *level;
    if (ioctl(h->file,VMEIO_SET_DEBUG,&lvl) <0) return 0;
    return 1;
@@ -179,8 +176,7 @@ int GET_TIMEOUT(void *handle, int *timeout) {
 handle_t *h;
 long tmo;
 
-   h = (handle_t *) handle;
-   if (!h) return 0;
+   h = handle;
    if (ioctl(h->file,VMEIO_GET_TIMEOUT,&tmo) <0) return 0;
    *timeout = (int) tmo;
    return 1;
@@ -199,8 +195,7 @@ int DO_INTERRUPT(void *handle, int *mask) {
 handle_t *h;
 int cc;
 
-   h = (handle_t *) handle;
-   if (!h) return 0;
+   h = handle;
    cc = write(h->file,mask,sizeof(int));
    if (cc < sizeof(int)) return 0;
    return 1;
@@ -219,8 +214,7 @@ int GET_DEBUG(void *handle, int *level) {
 handle_t *h;
 long lvl;
 
-   h = (handle_t *) handle;
-   if (!h) return 0;
+   h = handle;
    if (ioctl(h->file,VMEIO_GET_DEBUG,&lvl) <0) return 0;
    *level = (int) lvl;
    return 1;
@@ -238,8 +232,7 @@ int GET_WINDOW(void *handle, struct vmeio_get_window_s *win) {
 
 handle_t *h;
 
-   h = (handle_t *) handle;
-   if (!h) return 0;
+   h = handle;
    if (ioctl(h->file,VMEIO_GET_DEVICE,win) <0) return 0;
    return 1;
 }
@@ -258,8 +251,7 @@ int RAW(void *handle, struct vmeio_riob_s *buf, int flag) {
 handle_t *h;
 struct vmeio_riob_s cb;
 
-   h = (handle_t *) handle;
-   if (!h) return 0;
+   h = handle;
 
    cb.winum  = buf->winum;
    cb.offset = buf->offset + h->offset;  /* Block offset */
@@ -333,8 +325,7 @@ int DMA(void *handle, struct vmeio_riob_s *buf, int flag) {
 handle_t *h;
 struct vmeio_riob_s cb;
 
-   h = (handle_t *) handle;
-   if (!h) return 0;
+   h = handle;
 
    cb.winum  = buf->winum;
    cb.offset = buf->offset + h->offset;  /* Block offset */
@@ -364,8 +355,7 @@ int WAIT(void *handle, struct vmeio_read_buf_s *event) {
 handle_t *h;
 int cc;
 
-   h = (handle_t *) handle;
-   if (!h) return 0;
+   h = handle;
 
    cc = read(h->file,event,sizeof(struct vmeio_read_buf_s));
    if (cc == -ETIME) {
@@ -395,8 +385,7 @@ int SET_PARAMS(void *handle, int winum, int dmaflag, int dmaswap) {
 
 handle_t *h;
 
-   h = (handle_t *) handle;
-   if (!h) return 0;
+   h = handle;
 
    h->winum   = winum;
    h->dmaflag = dmaflag;
@@ -423,8 +412,7 @@ int cc;
 long value = 0;
 int dwd;
 
-   h = (handle_t *) handle;
-   if (!h) return 0;
+   h = handle;
 
    if (h->winum == 2) dwd = h->window.dwd2;
    else               dwd = h->window.dwd1;
@@ -459,8 +447,7 @@ int cc;
 long value = 0;
 int dwd;
 
-   h = (handle_t *) handle;
-   if (!h) return 0;
+   h = handle;
 
    value = *reg_val;
 
@@ -497,8 +484,7 @@ int SET_OFFSET(void *handle, int *offset) {
 
 handle_t *h;
 
-   h = (handle_t *) handle;
-   if (!h) return 0;
+   h = handle;
 
    h->offset = *offset;
    return 1;
@@ -515,8 +501,7 @@ int GET_OFFSET(void *handle, int *offset) {
 
 handle_t *h;
 
-   h = (handle_t *) handle;
-   if (!h) return 0;
+   h = handle;
    *offset = h->offset;
    return 1;
 }
