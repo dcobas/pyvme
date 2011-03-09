@@ -20,14 +20,14 @@
  * Internal handle structurs used only by the support library
  */
 
-typedef struct {
+struct __vsl_device {
 	int file;			/** File number */
 	int winum;			/** Window 1..2 */
 	int dmaflag;			/** Use DMA flag 0..1 */
 	int dmaswap;			/** Swap after DMA flag 0..1 */
 	int offset;			/** Block offset added to all addresses */
 	struct vmeio_get_window_s window;
-} handle_t;
+};
 
 /*
  * ============================================
@@ -50,7 +50,7 @@ void *OPEN_NAME(int lun, char *name)
 {
 	char fname[32];
 	int fnum;
-	handle_t *h;
+	struct __vsl_device *h;
 
 	sprintf(fname, "/dev/%s.%1d", name, lun);
 	if ((fnum = open(fname, O_RDWR, 0)) <= 0) {
@@ -60,14 +60,14 @@ void *OPEN_NAME(int lun, char *name)
 		return NULL;
 	}
 
-	h = malloc(sizeof(handle_t));
+	h = malloc(sizeof(struct __vsl_device));
 	if (h == NULL) {
 		fprintf(stderr, "Error:%s_open Can't allocate memory\n",
 			DRV_NAME);
 		close(fnum);
 		return NULL;
 	}
-	memset(h, 0, sizeof(handle_t));
+	memset(h, 0, sizeof(struct __vsl_device));
 
 	h->file = fnum;
 	h->winum = 1;
@@ -99,7 +99,7 @@ void *OPEN(int lun)
 
 void CLOSE(void *handle)
 {
-	handle_t *h;
+	struct __vsl_device *h;
 
 	h = handle;
 	if (h) {
@@ -118,7 +118,7 @@ void CLOSE(void *handle)
 
 int GET_VERSION(void *handle, struct vmeio_version_s *ver)
 {
-	handle_t *h;
+	struct __vsl_device *h;
 	long vd;
 
 	h = handle;
@@ -139,7 +139,7 @@ int GET_VERSION(void *handle, struct vmeio_version_s *ver)
 
 int SET_TIMEOUT(void *handle, int *timeout)
 {
-	handle_t *h;
+	struct __vsl_device *h;
 	long tmo;
 
 	h = handle;
@@ -159,7 +159,7 @@ int SET_TIMEOUT(void *handle, int *timeout)
 
 int SET_DEBUG(void *handle, int *level)
 {
-	handle_t *h;
+	struct __vsl_device *h;
 	long lvl;
 
 	h = handle;
@@ -179,7 +179,7 @@ int SET_DEBUG(void *handle, int *level)
 
 int GET_TIMEOUT(void *handle, int *timeout)
 {
-	handle_t *h;
+	struct __vsl_device *h;
 	long tmo;
 
 	h = handle;
@@ -199,7 +199,7 @@ int GET_TIMEOUT(void *handle, int *timeout)
 
 int DO_INTERRUPT(void *handle, int *mask)
 {
-	handle_t *h;
+	struct __vsl_device *h;
 	int cc;
 
 	h = handle;
@@ -219,7 +219,7 @@ int DO_INTERRUPT(void *handle, int *mask)
 
 int GET_DEBUG(void *handle, int *level)
 {
-	handle_t *h;
+	struct __vsl_device *h;
 	long lvl;
 
 	h = handle;
@@ -239,7 +239,7 @@ int GET_DEBUG(void *handle, int *level)
 
 int GET_WINDOW(void *handle, struct vmeio_get_window_s *win)
 {
-	handle_t *h;
+	struct __vsl_device *h;
 
 	h = handle;
 	if (ioctl(h->file, VMEIO_GET_DEVICE, win) < 0)
@@ -258,7 +258,7 @@ int GET_WINDOW(void *handle, struct vmeio_get_window_s *win)
 
 int RAW(void *handle, struct vmeio_riob_s *buf, int flag)
 {
-	handle_t *h;
+	struct __vsl_device *h;
 	struct vmeio_riob_s cb;
 
 	h = handle;
@@ -282,7 +282,7 @@ int RAW(void *handle, struct vmeio_riob_s *buf, int flag)
  * ============================================
  */
 
-static void swap_buf(handle_t * h, struct vmeio_riob_s *buf)
+static void swap_buf(struct __vsl_device * h, struct vmeio_riob_s *buf)
 {
 	int i, dwd;
 	char *cp, *bp, c;
@@ -338,7 +338,7 @@ static void swap_buf(handle_t * h, struct vmeio_riob_s *buf)
 
 int DMA(void *handle, struct vmeio_riob_s *buf, int flag)
 {
-	handle_t *h;
+	struct __vsl_device *h;
 	struct vmeio_riob_s cb;
 
 	h = handle;
@@ -372,7 +372,7 @@ int DMA(void *handle, struct vmeio_riob_s *buf, int flag)
 
 int WAIT(void *handle, struct vmeio_read_buf_s *event)
 {
-	handle_t *h;
+	struct __vsl_device *h;
 	int cc;
 
 	h = handle;
@@ -404,7 +404,7 @@ int WAIT(void *handle, struct vmeio_read_buf_s *event)
 
 int SET_PARAMS(void *handle, int winum, int dmaflag, int dmaswap)
 {
-	handle_t *h;
+	struct __vsl_device *h;
 
 	h = handle;
 
@@ -426,7 +426,7 @@ int SET_PARAMS(void *handle, int winum, int dmaflag, int dmaswap)
 
 int READ_REG(void *handle, int reg_num, int *reg_val)
 {
-	handle_t *h;
+	struct __vsl_device *h;
 	struct vmeio_riob_s buf;
 
 	int cc;
@@ -465,7 +465,7 @@ int READ_REG(void *handle, int reg_num, int *reg_val)
 
 int WRITE_REG(void *handle, int reg_num, int *reg_val)
 {
-	handle_t *h;
+	struct __vsl_device *h;
 	struct vmeio_riob_s buf;
 
 	int cc;
@@ -511,7 +511,7 @@ int WRITE_REG(void *handle, int reg_num, int *reg_val)
 
 int SET_OFFSET(void *handle, int *offset)
 {
-	handle_t *h;
+	struct __vsl_device *h;
 
 	h = handle;
 
@@ -528,7 +528,7 @@ int SET_OFFSET(void *handle, int *offset)
 
 int GET_OFFSET(void *handle, int *offset)
 {
-	handle_t *h;
+	struct __vsl_device *h;
 
 	h = handle;
 	*offset = h->offset;
