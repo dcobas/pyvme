@@ -21,13 +21,13 @@
  */
 
 typedef struct {
-   int                       file;      /** File number */
-   int                       winum;     /** Window 1..2 */
-   int                       dmaflag;   /** Use DMA flag 0..1 */
-   int                       dmaswap;   /** Swap after DMA flag 0..1 */
-   int                       offset;    /** Block offset added to all addresses */
-   struct vmeio_get_window_s window;
- } handle_t;
+	int file;			/** File number */
+	int winum;			/** Window 1..2 */
+	int dmaflag;			/** Use DMA flag 0..1 */
+	int dmaswap;			/** Swap after DMA flag 0..1 */
+	int offset;			/** Block offset added to all addresses */
+	struct vmeio_get_window_s window;
+} handle_t;
 
 /*
  * ============================================
@@ -46,34 +46,37 @@ typedef struct {
  * @return handle pointer or null if error
  */
 
-void *OPEN_NAME(int lun, char *name) {
+void *OPEN_NAME(int lun, char *name)
+{
+	char fname[32];
+	int fnum;
+	handle_t *h;
 
-char fname[32];
-int fnum;
-handle_t *h;
+	sprintf(fname, "/dev/%s.%1d", name, lun);
+	if ((fnum = open(fname, O_RDWR, 0)) <= 0) {
+		fprintf(stderr,
+			"Error:%s_open Can't open:%s for read/write\n",
+			DRV_NAME, fname);
+		return NULL;
+	}
 
-   sprintf(fname,"/dev/%s.%1d",name,lun);
-   if ((fnum = open(fname,O_RDWR,0)) <= 0) {
-      fprintf(stderr,"Error:%s_open Can't open:%s for read/write\n",DRV_NAME,fname);
-      return NULL;
-   }
+	h = malloc(sizeof(handle_t));
+	if (h == NULL) {
+		fprintf(stderr, "Error:%s_open Can't allocate memory\n",
+			DRV_NAME);
+		close(fnum);
+		return NULL;
+	}
+	memset(h, 0, sizeof(handle_t));
 
-   h = malloc(sizeof(handle_t));
-   if (h == NULL) {
-      fprintf(stderr,"Error:%s_open Can't allocate memory\n",DRV_NAME);
-      close(fnum);
-      return NULL;
-   }
-   memset(h, 0, sizeof(handle_t));
+	h->file = fnum;
+	h->winum = 1;
+	h->dmaflag = 0;
+	h->offset = 0;
 
-   h->file = fnum;
-   h->winum = 1;
-   h->dmaflag = 0;
-   h->offset = 0;
+	GET_WINDOW((void *) h, &h->window);
 
-   GET_WINDOW((void *) h, &h->window);
-
-   return (void *) h;
+	return (void *) h;
 }
 
 /**
@@ -83,9 +86,9 @@ handle_t *h;
  * @return handle pointer or null if error
  */
 
-void *OPEN(int lun) {
-
-   return OPEN_NAME(lun,DRV_NAME);
+void *OPEN(int lun)
+{
+	return OPEN_NAME(lun, DRV_NAME);
 }
 
 /**
@@ -94,15 +97,15 @@ void *OPEN(int lun) {
  * @param handle returned from open
  */
 
-void CLOSE(void *handle) {
+void CLOSE(void *handle)
+{
+	handle_t *h;
 
-handle_t *h;
-
-   h = handle;
-   if (h) {
-      close(h->file);
-      free(handle);
-   }
+	h = handle;
+	if (h) {
+		close(h->file);
+		free(handle);
+	}
 }
 
 /**
@@ -113,16 +116,17 @@ handle_t *h;
  * @return 1 = OK 0 = FAIL
  */
 
-int GET_VERSION(void *handle, struct vmeio_version_s *ver) {
+int GET_VERSION(void *handle, struct vmeio_version_s *ver)
+{
+	handle_t *h;
+	long vd;
 
-handle_t *h;
-long vd;
-
-   h = handle;
-   if (ioctl(h->file,VMEIO_GET_VERSION,&vd) <0) return 0;
-   ver->driver  = vd;
-   ver->library = COMPILE_TIME;
-   return 1;
+	h = handle;
+	if (ioctl(h->file, VMEIO_GET_VERSION, &vd) < 0)
+		return 0;
+	ver->driver = vd;
+	ver->library = COMPILE_TIME;
+	return 1;
 }
 
 /**
@@ -133,15 +137,16 @@ long vd;
  * @return 1 = OK 0 = FAIL
  */
 
-int SET_TIMEOUT(void *handle, int *timeout) {
+int SET_TIMEOUT(void *handle, int *timeout)
+{
+	handle_t *h;
+	long tmo;
 
-handle_t *h;
-long tmo;
-
-   h = handle;
-   tmo = *timeout;
-   if (ioctl(h->file,VMEIO_SET_TIMEOUT,&tmo) <0) return 0;
-   return 1;
+	h = handle;
+	tmo = *timeout;
+	if (ioctl(h->file, VMEIO_SET_TIMEOUT, &tmo) < 0)
+		return 0;
+	return 1;
 }
 
 /**
@@ -152,15 +157,16 @@ long tmo;
  * @return 1 = OK 0 = FAIL
  */
 
-int SET_DEBUG(void *handle, int *level) {
+int SET_DEBUG(void *handle, int *level)
+{
+	handle_t *h;
+	long lvl;
 
-handle_t *h;
-long lvl;
-
-   h = handle;
-   lvl = *level;
-   if (ioctl(h->file,VMEIO_SET_DEBUG,&lvl) <0) return 0;
-   return 1;
+	h = handle;
+	lvl = *level;
+	if (ioctl(h->file, VMEIO_SET_DEBUG, &lvl) < 0)
+		return 0;
+	return 1;
 }
 
 /**
@@ -171,15 +177,16 @@ long lvl;
  * @return 1 = OK 0 = FAIL
  */
 
-int GET_TIMEOUT(void *handle, int *timeout) {
+int GET_TIMEOUT(void *handle, int *timeout)
+{
+	handle_t *h;
+	long tmo;
 
-handle_t *h;
-long tmo;
-
-   h = handle;
-   if (ioctl(h->file,VMEIO_GET_TIMEOUT,&tmo) <0) return 0;
-   *timeout = (int) tmo;
-   return 1;
+	h = handle;
+	if (ioctl(h->file, VMEIO_GET_TIMEOUT, &tmo) < 0)
+		return 0;
+	*timeout = (int) tmo;
+	return 1;
 }
 
 /**
@@ -190,15 +197,16 @@ long tmo;
  * @return 1 = OK 0 = FAIL
  */
 
-int DO_INTERRUPT(void *handle, int *mask) {
+int DO_INTERRUPT(void *handle, int *mask)
+{
+	handle_t *h;
+	int cc;
 
-handle_t *h;
-int cc;
-
-   h = handle;
-   cc = write(h->file,mask,sizeof(int));
-   if (cc < sizeof(int)) return 0;
-   return 1;
+	h = handle;
+	cc = write(h->file, mask, sizeof(int));
+	if (cc < sizeof(int))
+		return 0;
+	return 1;
 }
 
 /**
@@ -209,15 +217,16 @@ int cc;
  * @return 1 = OK 0 = FAIL
  */
 
-int GET_DEBUG(void *handle, int *level) {
+int GET_DEBUG(void *handle, int *level)
+{
+	handle_t *h;
+	long lvl;
 
-handle_t *h;
-long lvl;
-
-   h = handle;
-   if (ioctl(h->file,VMEIO_GET_DEBUG,&lvl) <0) return 0;
-   *level = (int) lvl;
-   return 1;
+	h = handle;
+	if (ioctl(h->file, VMEIO_GET_DEBUG, &lvl) < 0)
+		return 0;
+	*level = (int) lvl;
+	return 1;
 }
 
 /**
@@ -228,13 +237,14 @@ long lvl;
  * @return 1 = OK 0 = FAIL
  */
 
-int GET_WINDOW(void *handle, struct vmeio_get_window_s *win) {
+int GET_WINDOW(void *handle, struct vmeio_get_window_s *win)
+{
+	handle_t *h;
 
-handle_t *h;
-
-   h = handle;
-   if (ioctl(h->file,VMEIO_GET_DEVICE,win) <0) return 0;
-   return 1;
+	h = handle;
+	if (ioctl(h->file, VMEIO_GET_DEVICE, win) < 0)
+		return 0;
+	return 1;
 }
 
 /**
@@ -246,69 +256,75 @@ handle_t *h;
  * @return 1 = OK 0 = FAIL
  */
 
-int RAW(void *handle, struct vmeio_riob_s *buf, int flag) {
+int RAW(void *handle, struct vmeio_riob_s *buf, int flag)
+{
+	handle_t *h;
+	struct vmeio_riob_s cb;
 
-handle_t *h;
-struct vmeio_riob_s cb;
+	h = handle;
 
-   h = handle;
+	cb.winum = buf->winum;
+	cb.offset = buf->offset + h->offset;	/* Block offset */
+	cb.bsize = buf->bsize;
+	cb.buffer = buf->buffer;
 
-   cb.winum  = buf->winum;
-   cb.offset = buf->offset + h->offset;  /* Block offset */
-   cb.bsize  = buf->bsize;
-   cb.buffer = buf->buffer;
-
-   if (flag) {
-      if (ioctl(h->file,VMEIO_RAW_WRITE,&cb) <0) return 0;
-   } else {
-      if (ioctl(h->file,VMEIO_RAW_READ,&cb) <0) return 0;
-   }
-   return 1;
+	if (flag) {
+		if (ioctl(h->file, VMEIO_RAW_WRITE, &cb) < 0)
+			return 0;
+	} else {
+		if (ioctl(h->file, VMEIO_RAW_READ, &cb) < 0)
+			return 0;
+	}
+	return 1;
 }
 
 /*
  * ============================================
  */
 
-static void swap_buf(handle_t *h, struct vmeio_riob_s *buf) {
+static void swap_buf(handle_t * h, struct vmeio_riob_s *buf)
+{
+	int i, dwd;
+	char *cp, *bp, c;
 
-int i, dwd;
-char *cp, *bp, c;
+	if (!h)
+		return;
 
-   if (!h) return;
+	if (h->winum == 2)
+		dwd = h->window.dwd2;
+	else
+		dwd = h->window.dwd1;
 
-   if (h->winum == 2) dwd = h->window.dwd2;
-   else               dwd = h->window.dwd1;
+	bp = buf->buffer;
 
-   bp = buf->buffer;
+	if (dwd == 1)
+		return;
 
-   if (dwd == 1) return;
+	if (dwd == 2) {
+		for (i = 0; i < buf->bsize; i += 2) {
+			cp = &bp[i];
 
-   if (dwd == 2) {
-      for (i=0; i<buf->bsize; i+=2) {
-	 cp = &bp[i];
+			c = cp[1];
+			cp[1] = cp[0];
+			cp[0] = c;
+		}
+		return;
+	}
 
-	 c = cp[1];
-	 cp[1] = cp[0];
-	 cp[0] = c;
-      }
-      return;
-   }
+	if (dwd == 4) {
+		for (i = 0; i < buf->bsize; i += 4) {
+			cp = &bp[i];
 
-   if (dwd == 4) {
-      for (i=0; i<buf->bsize; i+=4) {
-	 cp = &bp[i];
+			c = cp[3];
+			cp[3] = cp[0];
+			cp[0] = c;
 
-	 c = cp[3];
-	 cp[3] = cp[0];
-	 cp[0] = c;
-
-	 c = cp[2];
-	 cp[2] = cp[1];
-	 cp[1] = c;
-      }
-      return;
-   }
+			c = cp[2];
+			cp[2] = cp[1];
+			cp[1] = c;
+		}
+		return;
+	}
 }
 
 /**
@@ -320,26 +336,30 @@ char *cp, *bp, c;
  * @return 1 = OK 0 = FAIL
  */
 
-int DMA(void *handle, struct vmeio_riob_s *buf, int flag) {
+int DMA(void *handle, struct vmeio_riob_s *buf, int flag)
+{
+	handle_t *h;
+	struct vmeio_riob_s cb;
 
-handle_t *h;
-struct vmeio_riob_s cb;
+	h = handle;
 
-   h = handle;
+	cb.winum = buf->winum;
+	cb.offset = buf->offset + h->offset;	/* Block offset */
+	cb.bsize = buf->bsize;
+	cb.buffer = buf->buffer;
 
-   cb.winum  = buf->winum;
-   cb.offset = buf->offset + h->offset;  /* Block offset */
-   cb.bsize  = buf->bsize;
-   cb.buffer = buf->buffer;
-
-   if (flag) {
-      if (h->dmaswap) swap_buf(h,buf);
-      if (ioctl(h->file,VMEIO_RAW_WRITE_DMA,&cb) <0) return 0;
-   } else {
-      if (ioctl(h->file,VMEIO_RAW_READ_DMA,&cb) <0) return 0;
-      if (h->dmaswap) swap_buf(h,buf);
-   }
-   return 1;
+	if (flag) {
+		if (h->dmaswap)
+			swap_buf(h, buf);
+		if (ioctl(h->file, VMEIO_RAW_WRITE_DMA, &cb) < 0)
+			return 0;
+	} else {
+		if (ioctl(h->file, VMEIO_RAW_READ_DMA, &cb) < 0)
+			return 0;
+		if (h->dmaswap)
+			swap_buf(h, buf);
+	}
+	return 1;
 }
 
 /**
@@ -350,21 +370,22 @@ struct vmeio_riob_s cb;
  * @return 1 = OK 0 = FAIL
  */
 
-int WAIT(void *handle, struct vmeio_read_buf_s *event) {
+int WAIT(void *handle, struct vmeio_read_buf_s *event)
+{
+	handle_t *h;
+	int cc;
 
-handle_t *h;
-int cc;
+	h = handle;
 
-   h = handle;
-
-   cc = read(h->file,event,sizeof(struct vmeio_read_buf_s));
-   if (cc == -ETIME) {
-      event->logical_unit = h->window.lun;
-      event->interrupt_mask = 0;
-      return 1;
-   }
-   if (cc < 0) return 0;
-   return 1;
+	cc = read(h->file, event, sizeof(struct vmeio_read_buf_s));
+	if (cc == -ETIME) {
+		event->logical_unit = h->window.lun;
+		event->interrupt_mask = 0;
+		return 1;
+	}
+	if (cc < 0)
+		return 0;
+	return 1;
 }
 
 /*
@@ -381,17 +402,17 @@ int cc;
  * @return 1 = OK 0 = FAIL
  */
 
-int SET_PARAMS(void *handle, int winum, int dmaflag, int dmaswap) {
+int SET_PARAMS(void *handle, int winum, int dmaflag, int dmaswap)
+{
+	handle_t *h;
 
-handle_t *h;
+	h = handle;
 
-   h = handle;
-
-   h->winum   = winum;
-   h->dmaflag = dmaflag;
-   h->dmaswap = dmaswap;
-   h->offset  = 0;
-   return 1;
+	h->winum = winum;
+	h->dmaflag = dmaflag;
+	h->dmaswap = dmaswap;
+	h->offset = 0;
+	return 1;
 }
 
 /**
@@ -403,30 +424,34 @@ handle_t *h;
  * @return 1 = OK 0 = FAIL
  */
 
-int READ_REG(void *handle, int reg_num, int *reg_val) {
+int READ_REG(void *handle, int reg_num, int *reg_val)
+{
+	handle_t *h;
+	struct vmeio_riob_s buf;
 
-handle_t *h;
-struct vmeio_riob_s buf;
+	int cc;
+	long value = 0;
+	int dwd;
 
-int cc;
-long value = 0;
-int dwd;
+	h = handle;
 
-   h = handle;
+	if (h->winum == 2)
+		dwd = h->window.dwd2;
+	else
+		dwd = h->window.dwd1;
 
-   if (h->winum == 2) dwd = h->window.dwd2;
-   else               dwd = h->window.dwd1;
+	buf.winum = h->winum;
+	buf.offset = reg_num * dwd;
+	buf.bsize = dwd;
+	buf.buffer = &value;
 
-   buf.winum  = h->winum;
-   buf.offset = reg_num * dwd;
-   buf.bsize  = dwd;
-   buf.buffer = &value;
+	if (h->dmaflag)
+		cc = DMA(handle, &buf, 0);
+	else
+		cc = RAW(handle, &buf, 0);
 
-   if (h->dmaflag) cc = DMA(handle,&buf,0);
-   else            cc = RAW(handle,&buf,0);
-
-   *reg_val = value;
-   return cc;
+	*reg_val = value;
+	return cc;
 }
 
 /**
@@ -438,31 +463,35 @@ int dwd;
  * @return 1 = OK 0 = FAIL
  */
 
-int WRITE_REG(void *handle, int reg_num, int *reg_val) {
+int WRITE_REG(void *handle, int reg_num, int *reg_val)
+{
+	handle_t *h;
+	struct vmeio_riob_s buf;
 
-handle_t *h;
-struct vmeio_riob_s buf;
+	int cc;
+	long value = 0;
+	int dwd;
 
-int cc;
-long value = 0;
-int dwd;
+	h = handle;
 
-   h = handle;
+	value = *reg_val;
 
-   value = *reg_val;
+	if (h->winum == 2)
+		dwd = h->window.dwd2;
+	else
+		dwd = h->window.dwd1;
 
-   if (h->winum == 2) dwd = h->window.dwd2;
-   else               dwd = h->window.dwd1;
+	buf.winum = h->winum;
+	buf.offset = reg_num * dwd;
+	buf.bsize = dwd;
+	buf.buffer = &value;
 
-   buf.winum  = h->winum;
-   buf.offset = reg_num * dwd;
-   buf.bsize  = dwd;
-   buf.buffer = &value;
+	if (h->dmaflag)
+		cc = DMA(handle, &buf, 1);
+	else
+		cc = RAW(handle, &buf, 1);
 
-   if (h->dmaflag) cc = DMA(handle,&buf,1);
-   else            cc = RAW(handle,&buf,1);
-
-   return cc;
+	return cc;
 }
 
 /**
@@ -480,14 +509,14 @@ int dwd;
  * @return 1 = OK 0 = FAIL
  */
 
-int SET_OFFSET(void *handle, int *offset) {
+int SET_OFFSET(void *handle, int *offset)
+{
+	handle_t *h;
 
-handle_t *h;
+	h = handle;
 
-   h = handle;
-
-   h->offset = *offset;
-   return 1;
+	h->offset = *offset;
+	return 1;
 }
 
 /**
@@ -497,11 +526,11 @@ handle_t *h;
  * @return 1 = OK 0 = FAIL
  */
 
-int GET_OFFSET(void *handle, int *offset) {
+int GET_OFFSET(void *handle, int *offset)
+{
+	handle_t *h;
 
-handle_t *h;
-
-   h = handle;
-   *offset = h->offset;
-   return 1;
+	h = handle;
+	*offset = h->offset;
+	return 1;
 }
