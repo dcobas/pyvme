@@ -12,6 +12,19 @@
 
 #include "vmeio.h"
 
+/**
+ * Internal open file structure used only by the support library
+ */
+
+struct __vsl_device {
+	int file;			/** File number */
+	int winum;			/** Window 1..2 */
+	int dmaflag;			/** Use DMA flag 0..1 */
+	int dmaswap;			/** Swap after DMA flag 0..1 */
+	int offset;			/** Block offset added to all addresses */
+	struct vmeio_get_window_s window;
+};
+
 /*
  * ============================================
  * Basic routines calling driver
@@ -23,7 +36,7 @@
  * @return handle pointer or null if error
  */
 
-void *__vsl_open(int lun);
+struct __vsl_device *__vsl_open(int lun);
 
 /**
  * @brief open a handle for a given lun
@@ -32,14 +45,14 @@ void *__vsl_open(int lun);
  * @return handle pointer or null if error
  */
 
-void *__vsl_open_name(int lun, char *name);
+struct __vsl_device *__vsl_open_name(int lun, char *name);
 
 /**
  * @brief close a handle
  * @param handle returned from open
  */
 
-void __vsl_close(void *handle);
+void __vsl_close(struct __vsl_device *h);
 
 /**
  * ============================================
@@ -49,7 +62,7 @@ void __vsl_close(void *handle);
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_get_version(void *handle, struct vmeio_version_s *ver);
+int __vsl_get_version(struct __vsl_device *h, struct vmeio_version_s *ver);
 
 /**
  * ============================================
@@ -59,7 +72,7 @@ int __vsl_get_version(void *handle, struct vmeio_version_s *ver);
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_set_timeout(void *handle, int *timeout);
+int __vsl_set_timeout(struct __vsl_device *h, int *timeout);
 
 /**
  * @brief Set driver debug level
@@ -68,7 +81,7 @@ int __vsl_set_timeout(void *handle, int *timeout);
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_set_debug(void *handle, int *level);
+int __vsl_set_debug(struct __vsl_device *h, int *level);
 
 /**
  * @brief Get driver timeout in milliseconds
@@ -77,7 +90,7 @@ int __vsl_set_debug(void *handle, int *level);
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_get_timeout(void *handle, int *timeout);
+int __vsl_get_timeout(struct __vsl_device *h, int *timeout);
 
 /**
  * @brief Get driver debug level
@@ -86,7 +99,7 @@ int __vsl_get_timeout(void *handle, int *timeout);
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_get_debug(void *handle, int *level);
+int __vsl_get_debug(struct __vsl_device *h, int *level);
 
 /**
  * @brief make an interrupt now
@@ -95,7 +108,7 @@ int __vsl_get_debug(void *handle, int *level);
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_do_interrupt(void *handle, int *mask);
+int __vsl_do_interrupt(struct __vsl_device *h, int *mask);
 
 /**
  * ============================================
@@ -105,7 +118,7 @@ int __vsl_do_interrupt(void *handle, int *mask);
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_get_window(void *handle, struct vmeio_get_window_s *win);
+int __vsl_get_window(struct __vsl_device *h, struct vmeio_get_window_s *win);
 
 /**
  * ============================================
@@ -116,7 +129,7 @@ int __vsl_get_window(void *handle, struct vmeio_get_window_s *win);
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_raw(void *handle, struct vmeio_riob_s *buf, int flag);
+int __vsl_raw(struct __vsl_device *h, struct vmeio_riob_s *buf, int flag);
 
 /**
  * @brief Transfer data via DMA, WARNING byte swapping is your problem
@@ -126,7 +139,7 @@ int __vsl_raw(void *handle, struct vmeio_riob_s *buf, int flag);
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_dma(void *handle, struct vmeio_riob_s *buf, int flag);
+int __vsl_dma(struct __vsl_device *h, struct vmeio_riob_s *buf, int flag);
 
 /**
  * ============================================
@@ -136,7 +149,7 @@ int __vsl_dma(void *handle, struct vmeio_riob_s *buf, int flag);
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_wait(void *handle, struct vmeio_read_buf_s *event);
+int __vsl_wait(struct __vsl_device *h, struct vmeio_read_buf_s *event);
 
 /*
  * ============================================
@@ -152,7 +165,7 @@ int __vsl_wait(void *handle, struct vmeio_read_buf_s *event);
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_set_params(void *handle, int winnum, int dmaflag, int dmaswap);
+int __vsl_set_params(struct __vsl_device *h, int winnum, int dmaflag, int dmaswap);
 
 /**
  * @brief read a register
@@ -162,7 +175,7 @@ int __vsl_set_params(void *handle, int winnum, int dmaflag, int dmaswap);
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_read_reg(void *handle, int reg_num, int *reg_val);
+int __vsl_read_reg(struct __vsl_device *h, int reg_num, int *reg_val);
 
 /**
  * @brief write a register
@@ -172,7 +185,7 @@ int __vsl_read_reg(void *handle, int reg_num, int *reg_val);
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_write_reg(void *handle, int reg_num, int *reg_val);
+int __vsl_write_reg(struct __vsl_device *h, int reg_num, int *reg_val);
 
 /**
  * ============================================
@@ -182,7 +195,7 @@ int __vsl_write_reg(void *handle, int reg_num, int *reg_val);
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_set_offset(void *handle, int *offset);
+int __vsl_set_offset(struct __vsl_device *h, int *offset);
 
 /**
  * @brief Get global block offset
@@ -191,6 +204,7 @@ int __vsl_set_offset(void *handle, int *offset);
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_get_offset(void *handle, int *offset);
+int __vsl_get_offset(struct __vsl_device *h, int *offset);
 
 #endif
+
