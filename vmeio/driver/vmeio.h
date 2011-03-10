@@ -60,15 +60,6 @@ struct vmeio_get_window_s {
    int isrc;    /* Offset of isrc in vme1 to be read in the isr */
 };
 
-/**
- * Get compliation dates of the driver and library
- */
-
-struct vmeio_version_s {
-   int driver;  /* Driver  version (UTC compilation time) */
-   int library; /* Library version (UTC compilation time) */
-};
-
 /*
  * Parameter for raw IO
  */
