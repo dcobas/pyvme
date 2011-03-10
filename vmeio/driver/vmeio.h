@@ -73,6 +73,14 @@ struct vmeio_riob_s {
    void *buffer; /** Pointer to data area */
 };
 
+struct vmeio_dma_op {
+   int am;		/** address modifier, defines transfer mode */
+   int data_width;	/** transfer data width */
+   int address;		/** vme address of start transfer */
+   int byte_length;	/** transfer length in bytes */
+   void *buffer;	/** pointer to transfer to/from */
+};
+
 /*
  * Enumerate IOCTL functions
  */
@@ -98,6 +106,8 @@ typedef enum {
    vmeioRAW_WRITE_DMA, /** Raw write VME registers */
 
    vmeioSET_DEVICE,    /** Very dangerous IOCTL, not for users */
+   vmeioREAD_DMA,      /** Direct interface to DMA */
+   vmeioWRITE_DMA,     /** Direct interface to DMA */
 
    vmeioLAST           /** For range checking (LAST - FIRST) */
 
@@ -122,5 +132,7 @@ typedef enum {
 #define  VMEIO_RAW_READ_DMA   _IOWR(MAGIC,  vmeioRAW_READ_DMA,   struct  vmeio_riob_s)
 #define  VMEIO_RAW_WRITE_DMA  _IOWR(MAGIC,  vmeioRAW_WRITE_DMA,  struct  vmeio_riob_s)
 #define  VMEIO_SET_DEVICE     _IOW(MAGIC,   vmeioGET_DEVICE,     struct  vmeio_get_window_s)
+#define  VMEIO_READ_DMA       _IOW(MAGIC,   vmeioREAD_DMA,       struct	 vmeio_dma_op)
+#define  VMEIO_WRITE_DMA      _IOW(MAGIC,   vmeioWRITE_DMA,      struct  vmeio_dma_op)
 
 #endif

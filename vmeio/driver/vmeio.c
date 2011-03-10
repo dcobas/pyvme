@@ -712,6 +712,61 @@ static int raw_dma(struct vmeio_device *dev,
 	return 0;
 }
 
+static int raw_dma_the_right_way(unsigned am,
+		enum vme_data_width data_width,
+		unsigned int vme_address,
+		unsigned long length,
+		void *buffer,
+		enum vme_dma_dir direction)
+{
+	struct vme_dma dma_desc;
+	unsigned int bu, bl;
+	int cc;
+	unsigned int haddr;
+
+	bl = (unsigned int)buffer;
+	bu = 0;
+
+	memset(&dma_desc, 0, sizeof(dma_desc));
+
+	dma_desc.dir = direction;
+	dma_desc.novmeinc = 0;
+	dma_desc.length = length;
+
+	dma_desc.ctrl.pci_block_size = VME_DMA_BSIZE_4096;
+	dma_desc.ctrl.pci_backoff_time = VME_DMA_BACKOFF_0;
+	dma_desc.ctrl.vme_block_size = VME_DMA_BSIZE_4096;
+	dma_desc.ctrl.vme_backoff_time = VME_DMA_BACKOFF_0;
+
+	dma_desc.dst.data_width = data_width;
+	dma_desc.dst.am = am;
+	dma_desc.src.data_width = data_width;
+	dma_desc.src.am = am;
+
+	haddr = vme_address;
+
+	if (direction == VME_DMA_TO_DEVICE) {
+		dma_desc.src.addrl = bl;
+		dma_desc.src.addru = bu;
+		dma_desc.dst.addrl = haddr;
+	} else {
+		dma_desc.src.addrl = haddr;
+		dma_desc.dst.addrl = bl;
+		dma_desc.dst.addru = bu;
+	}
+
+	if ((cc = vme_do_dma(&dma_desc)) < 0)
+		return cc;
+
+	if (!(dma_desc.status & TSI148_LCSR_DSTA_DON)) {
+		printk(PFX "DMA:NotDone:Status:0x%X\n", dma_desc.status);
+		return -EIO;
+	}
+
+	return 0;
+}
+
+
 union vmeio_word {
 	int	width4;
 	short	width2;
