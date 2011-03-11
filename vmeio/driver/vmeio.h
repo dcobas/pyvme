@@ -79,6 +79,7 @@ struct vmeio_dma_op {
    int address;		/** vme address of start transfer */
    int byte_length;	/** transfer length in bytes */
    void *buffer;	/** pointer to transfer to/from */
+   enum vme_dma_dir direction;	/** from/to device */
 };
 
 /*

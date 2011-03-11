@@ -647,40 +647,35 @@ static void vmeio_set_device(struct vmeio_device *dev,
 	vmeio_map_register(map1);
 }
 
-static int raw_dma_the_right_way(unsigned am,
-		enum vme_data_width data_width,
-		unsigned int vme_address,
-		unsigned long length,
-		void *buffer,
-		enum vme_dma_dir direction)
+static int do_raw_dma(struct vmeio_dma_op *request)
 {
 	struct vme_dma dma_desc;
 	unsigned int bu, bl;
 	int cc;
 	unsigned int haddr;
 
-	bl = (unsigned int)buffer;
+	bl = (unsigned long)request->buffer;
 	bu = 0;
 
 	memset(&dma_desc, 0, sizeof(dma_desc));
 
-	dma_desc.dir = direction;
+	dma_desc.dir = request->direction;
 	dma_desc.novmeinc = 0;
-	dma_desc.length = length;
+	dma_desc.length = request->byte_length;
 
 	dma_desc.ctrl.pci_block_size = VME_DMA_BSIZE_4096;
 	dma_desc.ctrl.pci_backoff_time = VME_DMA_BACKOFF_0;
 	dma_desc.ctrl.vme_block_size = VME_DMA_BSIZE_4096;
 	dma_desc.ctrl.vme_backoff_time = VME_DMA_BACKOFF_0;
 
-	dma_desc.dst.data_width = data_width;
-	dma_desc.dst.am = am;
-	dma_desc.src.data_width = data_width;
-	dma_desc.src.am = am;
+	dma_desc.dst.data_width = request->data_width;
+	dma_desc.dst.am = request->am;
+	dma_desc.src.data_width = request->data_width;
+	dma_desc.src.am = request->am;
 
-	haddr = vme_address;
+	haddr = request->address;
 
-	if (direction == VME_DMA_TO_DEVICE) {
+	if (request->direction == VME_DMA_TO_DEVICE) {
 		dma_desc.src.addrl = bl;
 		dma_desc.src.addru = bu;
 		dma_desc.dst.addrl = haddr;
@@ -705,11 +700,16 @@ static int raw_dma(struct vmeio_device *dev,
 	struct vmeio_riob_s *riob, enum vme_dma_dir direction)
 {
 	struct vmeio_map *map = &dev->maps[riob->winum];
+	struct vmeio_dma_op req;
 
-	return raw_dma_the_right_way(map->address_modifier,
-		map->data_width * 8,
-		map->base_address + riob->offset,
-		riob->bsize, riob->buffer, direction);
+	req.am = map->address_modifier;
+	req.data_width = 8*map->data_width;
+	req.address = map->base_address + riob->offset;
+	req.byte_length = riob->bsize;
+	req.buffer = riob->buffer;
+	req.direction = direction;
+
+	return do_raw_dma(&req);
 }
 
 union vmeio_word {
