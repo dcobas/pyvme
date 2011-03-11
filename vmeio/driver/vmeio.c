@@ -891,6 +891,14 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 			goto out;
 		break;
 
+	case VMEIO_READ_DMA:   /** Raw read VME registers */
+	case VMEIO_WRITE_DMA:  /** Raw write VME registers */
+
+		cc = do_raw_dma(arb);
+		if (cc < 0)
+			goto out;
+		break;
+
 	case VMEIO_RAW_READ:	   /** Raw read VME registers */
 
 		cc = raw_read(dev, arb);
