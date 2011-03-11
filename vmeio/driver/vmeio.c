@@ -647,71 +647,6 @@ static void vmeio_set_device(struct vmeio_device *dev,
 	vmeio_map_register(map1);
 }
 
-static int raw_dma(struct vmeio_device *dev,
-	struct vmeio_riob_s *riob, enum vme_dma_dir direction)
-{
-	struct vme_dma dma_desc;
-	struct vmeio_map *map = &dev->maps[riob->winum];
-	unsigned int buf = (unsigned int)riob->buffer;
-	unsigned int bu, bl;
-	int cc, winum;
-	unsigned int haddr;
-
-	bl = buf;
-	bu = 0;
-
-	memset(&dma_desc, 0, sizeof(dma_desc));
-
-	dma_desc.dir = direction;
-	dma_desc.novmeinc = 0;
-	dma_desc.length = riob->bsize;
-
-	dma_desc.ctrl.pci_block_size = VME_DMA_BSIZE_4096;
-	dma_desc.ctrl.pci_backoff_time = VME_DMA_BACKOFF_0;
-	dma_desc.ctrl.vme_block_size = VME_DMA_BSIZE_4096;
-	dma_desc.ctrl.vme_backoff_time = VME_DMA_BACKOFF_0;
-
-	winum = riob->winum -1;
-	if (winum < 0) winum = 0;
-
-	map = &dev->maps[winum];
-
-	dma_desc.dst.data_width = map->data_width * 8;
-	dma_desc.dst.am = map->address_modifier;
-	dma_desc.src.data_width = map->data_width * 8;
-	dma_desc.src.am = map->address_modifier;
-
-	haddr = (unsigned int) map->base_address + riob->offset;
-
-	if (direction == VME_DMA_TO_DEVICE) {
-		dma_desc.src.addrl = bl;
-		dma_desc.src.addru = bu;
-		dma_desc.dst.addrl = haddr;
-	} else {
-		dma_desc.src.addrl = haddr;
-		dma_desc.dst.addrl = bl;
-		dma_desc.dst.addru = bu;
-	}
-
-	if (dev->debug > 1) {
-		char *msg = (direction == VME_DMA_FROM_DEVICE) ?
-			"DMA:READ:win:%d src:0x%p amd:0x%x dwd:%d len:%d dst:0x%08x%08x\n" :
-			"DMA:WRIT:win:%d dst:0x%p amd:0x%x dwd:%d len:%d src:0x%08x%08x\n";
-		printk(msg, riob->winum, haddr, map->address_modifier,
-		     map->data_width, riob->bsize, bu, bl);
-	}
-
-	if ((cc = vme_do_dma(&dma_desc)) < 0)
-		return cc;
-
-	if (!(dma_desc.status & TSI148_LCSR_DSTA_DON)) {
-		printk(PFX "DMA:NotDone:Status:0x%X\n", dma_desc.status);
-		return -EIO;
-	}
-
-	return 0;
-}
-
 static int raw_dma_the_right_way(unsigned am,
 		enum vme_data_width data_width,
 		unsigned int vme_address,
@@ -766,6 +701,16 @@ static int raw_dma_the_right_way(unsigned am,
 	return 0;
 }
 
+static int raw_dma(struct vmeio_device *dev,
+	struct vmeio_riob_s *riob, enum vme_dma_dir direction)
+{
+	struct vmeio_map *map = &dev->maps[riob->winum];
+
+	return raw_dma_the_right_way(map->address_modifier,
+		map->data_width * 8,
+		map->base_address + riob->offset,
+		riob->bsize, riob->buffer, direction);
+}
 
 union vmeio_word {
 	int	width4;
