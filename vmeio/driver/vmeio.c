@@ -90,17 +90,6 @@ module_param(isrc, long, S_IRUGO);
 MODULE_PARM_DESC(isrc, "Location of interrupt source reg in base_address1");
 
 /*
- * This structure describes all the relevant information about a mapping
- */
-struct vmeio_map {
-	unsigned long	base_address;
-	unsigned long	address_modifier;
-	unsigned long	data_width;
-	unsigned long	mapping_size;
-	void		*vaddr;		/* NULL if not mapped */
-};
-
-/*
  * vmeio device descriptor:
  *	maps[max_maps]		array of VME mappings
  *
@@ -120,7 +109,7 @@ struct vmeio_map {
 
 struct vmeio_device {
 	int			lun;
-	struct vmeio_map	maps[MAX_MAPS];
+	struct vme_mapping	maps[MAX_MAPS];
 
 	int			vector;
 	int			level;
@@ -180,73 +169,21 @@ static irqreturn_t vmeio_irq(void *arg)
 
 /* ==================== */
 
-void *find_mapping(int vme, int amd, int dwd, int size) {
-
-	unsigned long vmeaddr;
-	struct pdparam_master param;
-	char *msg;
-
-	if (!(vme && amd && size && dwd)) return NULL;
-
-	param.iack = 1;                 /* no iack */
-	param.rdpref = 0;               /* no VME read prefetch option */
-	param.wrpost = 0;               /* no VME write posting option */
-	param.swap = 1;                 /* VME auto swap option */
-	param.dum[0] = VME_PG_SHARED;   /* window is sharable */
-	param.dum[1] = 0;               /* XPC ADP-type */
-	param.dum[2] = 0;               /* window is sharable */
-
-	vmeaddr = find_controller(vme, size, amd, 0, dwd, &param);
-
-	if (vmeaddr == -1UL) {
-		msg = "ERROR:NotMapped";
-		vmeaddr = 0;
-	} else {
-		msg = "OK:Mapped";
-	}
-	printk(PFX "%s:Address:0x%X Size:0x%X"
-			":AddrMod:0x%X DWidth:0x%X:VirtAddr:0x%lX\n",
-			msg, vme, size, amd, dwd, vmeaddr);
-	return (void *)vmeaddr;
-}
-
-static void vmeio_map_init(struct vmeio_map *map,
-		int vme, int size, int amd, int dwd)
-{
-	map->base_address	= vme;
-	map->mapping_size	= size;
-	map->address_modifier	= amd;
-	map->data_width		= dwd;
-	map->vaddr		= NULL;
-}
-
-static void vmeio_map_register(struct vmeio_map *map)
-{
-	map->vaddr = find_mapping(map->base_address, map->address_modifier,
-				map->data_width, map->mapping_size);
-}
-
-static void vmeio_map_unregister(struct vmeio_map *map)
-{
-	if (map->base_address)
-		return_controller(map->base_address, map->mapping_size);
-}
-
-
-void register_isr(struct vmeio_device *dev, unsigned vector, unsigned level)
+int register_isr(struct vmeio_device *dev, unsigned vector, unsigned level)
 {
 	int err;
 
-	err = vme_intset(vector, (int (*)(void *)) vmeio_irq, dev, 0);
+	err = vme_request_irq(vector, (int (*)(void *)) vmeio_irq, dev, DRIVER_NAME);
 	dev->isrfl = !(err < 0);
 	printk(PFX "ISR:Level:0x%X Vector:0x%X:%s\n",
 		level, vector,
 		(err < 0) ? "ERROR:NotRegistered" : "OK:Registered");
+	return err;
 }
 
 void register_int_source(struct vmeio_device *dev, void *map, unsigned offset)
 {
-	dev->isr_source_address = dev->maps[0].vaddr + dev->isrc;
+	dev->isr_source_address = dev->maps[0].kernel_va + dev->isrc;
 	printk("SourceRegister:0x%p", dev->isr_source_address);
 }
 
@@ -281,6 +218,71 @@ static int check_module_params(void)
 	return 0;
 }
 
+static int map(struct vme_mapping *desc, 
+	int base_address, int data_width, int am, int size)
+{
+	desc->data_width = data_width;
+	desc->am = am;
+	desc->vme_addru = 0;
+	desc->vme_addrl = base_address;
+	desc->sizeu = 0;
+	desc->sizel = size;
+	desc->read_prefetch_enabled = 0;
+
+	return vme_find_mapping(desc, 1);
+}
+
+int install_device(struct vmeio_device *dev, unsigned i)
+{
+	int cc = 0;
+
+	memset(dev, 0, sizeof(*dev));
+
+	dev->lun = lun[i];
+	dev->debug = DEBUG;
+
+	/* configure mmapped I/O */
+	printk(PFX "Mapping:Logical unit:%d\n", dev->lun);
+	if (base_address1_num != 0) {
+		cc = map(&dev->maps[0], base_address1[i],
+			data_width1, am1, size1);
+		if (cc)
+			goto out_map1;
+	}
+
+	if (base_address2_num != 0) {
+		cc = map(&dev->maps[1], base_address2[i],
+			data_width2, am2, size2);
+		if (cc)
+			goto out_map2;
+	}
+
+	/* configure interrupt handling */
+	dev->vector  = vector[i];
+	dev->level  = level;
+	dev->isrc = isrc;
+	dev->timeout = msecs_to_jiffies(TIMEOUT);
+	dev->icnt = 0;
+	init_waitqueue_head(&dev->queue);
+	if (dev->level && dev->vector) {
+		cc = register_isr(dev, dev->vector, dev->level);
+		if (cc < 0)
+			goto out_isr;
+		/* This will be eventually removed */
+		register_int_source(dev, dev->maps[0].kernel_va, dev->isrc);
+	}
+
+	return 0;
+
+out_isr:
+	vme_release_mapping(&dev->maps[1], 1);
+out_map2:
+	vme_release_mapping(&dev->maps[0], 1);
+out_map1:
+	return -ENODEV;
+	
+}
+
 int vmeio_install(void)
 {
 	int i, cc;
@@ -288,23 +290,14 @@ int vmeio_install(void)
 	if ((cc = check_module_params()) != 0)
 		return cc;
 
-	/* Build module contexts */
-
 	for (i = 0; i < lun_num; i++) {
-		struct vmeio_device *dev = &devices[i];
-
-		memset(dev, 0, sizeof(*dev));
-
-		dev->lun = lun[i];
-
-		vmeio_map_init(&dev->maps[0], base_address1[i], size1, am1, data_width1);
-		vmeio_map_init(&dev->maps[1], base_address2[i], size2, am2, data_width2);
-
-		dev->isrc = isrc;
-		dev->level  = level;
-		dev->vector  = vector[i];
-
-		init_waitqueue_head(&dev->queue);
+		if (install_device(&devices[i], i) == 0)
+			continue;
+		/* error, bail out */
+		printk(KERN_ERR PFX 
+			"ERROR: lun %d not installed, quitting\n",
+			devices[i].lun);
+		return -1;
 	}
 
 	/* Register driver */
@@ -316,26 +309,6 @@ int vmeio_install(void)
 	if (vmeio_major == 0)
 		vmeio_major = cc;	/* dynamic */
 
-	/* Create VME mappings and register ISRs */
-
-	for (i = 0; i < lun_num; i++) {
-		struct vmeio_device *dev = &devices[i];
-
-		dev->debug = DEBUG;
-		dev->timeout = msecs_to_jiffies(TIMEOUT);
-		dev->icnt = 0;
-
-		printk(PFX "Mapping:Logical unit:%d\n", dev->lun);
-
-		vmeio_map_register(&dev->maps[0]);
-		vmeio_map_register(&dev->maps[1]);
-
-		if (dev->level && dev->vector) {
-			register_isr(dev, dev->vector, dev->level);
-			/* This will be eventually removed */
-			register_int_source(dev, dev->maps[0].vaddr, dev->isrc);
-		}
-	}
 	return 0;
 }
 
@@ -344,9 +317,11 @@ int vmeio_install(void)
 void unregister_module(struct vmeio_device *dev)
 {
 	if (dev->vector)
-		vme_intclr(dev->vector, NULL);
-	vmeio_map_unregister(&dev->maps[0]);
-	vmeio_map_unregister(&dev->maps[1]);
+		vme_free_irq(dev->vector);
+	if (dev->maps[0].kernel_va)
+		vme_release_mapping(&dev->maps[0], 1);
+	if (dev->maps[1].kernel_va)
+		vme_release_mapping(&dev->maps[1], 1);
 }
 
 /*
@@ -599,6 +574,7 @@ static void vmeio_get_timeout(struct vmeio_device *dev, int *timeout)
 	*timeout = jiffies_to_msecs(dev->timeout);
 }
 
+#if 0
 static void vmeio_get_device(struct vmeio_device *dev,
 		struct vmeio_get_mapping_s *mapping)
 {
@@ -634,6 +610,7 @@ static void vmeio_set_device(struct vmeio_device *dev,
 	vmeio_map_register(map0);
 	vmeio_map_register(map1);
 }
+#endif
 
 static int do_raw_dma(struct vmeio_dma_op *request)
 {
@@ -687,12 +664,12 @@ static int do_raw_dma(struct vmeio_dma_op *request)
 static int raw_dma(struct vmeio_device *dev,
 	struct vmeio_riob_s *riob, enum vme_dma_dir direction)
 {
-	struct vmeio_map *map = &dev->maps[riob->mapnum];
+	struct vme_mapping *map = &dev->maps[riob->mapnum];
 	struct vmeio_dma_op req;
 
-	req.am = map->address_modifier;
+	req.am = map->am;
 	req.data_width = 8*map->data_width;
-	req.address = map->base_address + riob->offset;
+	req.address = map->vme_addrl + riob->offset;
 	req.byte_length = riob->bsize;
 	req.buffer = riob->buffer;
 	req.direction = direction;
@@ -709,7 +686,7 @@ union vmeio_word {
 
 static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 {
-	struct vmeio_map *mapx = &dev->maps[riob->mapnum-1];
+	struct vme_mapping *mapx = &dev->maps[riob->mapnum-1];
 	int dwidth = mapx->data_width;
 	int i, j, cc;
 	char *map, *iob;
@@ -719,15 +696,14 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 	iob = kmalloc(riob->bsize, GFP_KERNEL);
 	if (!iob)
 		return -ENOMEM;
-	if ((map = mapx->vaddr) == NULL) {
+	if ((map = mapx->kernel_va) == NULL) {
 		kfree(iob);
 		return -ENODEV;
 	}
 	if (dev->debug > 1) {
-		printk("RAW:READ:win:%d map:0x%p offs:0x%X amd:0x%2lx dwd:%d len:%d\n",
-		     riob->mapnum, map, riob->offset,
-		     mapx->address_modifier, dwidth,
-		     riob->bsize);
+		printk("RAW:READ:win:%d map:0x%p offs:0x%X amd:0x%2x dwd:%d len:%d\n",
+		     riob->mapnum, mapx->kernel_va, riob->offset,
+		     mapx->am, dwidth, riob->bsize);
 	}
 
 	for (i = 0, j = riob->offset; i < riob->bsize; i += dwidth, j += dwidth) {
@@ -748,7 +724,7 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 
 static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 {
-	struct vmeio_map *mapx = &dev->maps[riob->mapnum-1];	
+	struct vme_mapping *mapx = &dev->maps[riob->mapnum-1];	
 	int dwidth = mapx->data_width;
 	int i, j, cc;
 	char *map, *iob;
@@ -758,7 +734,7 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 	iob = kmalloc(riob->bsize, GFP_KERNEL);
 	if (!iob)
 		return -ENOMEM;
-	if ((map = mapx->vaddr) == NULL) {
+	if ((map = mapx->kernel_va) == NULL) {
 		kfree(iob);
 		return -ENODEV;
 	}
@@ -770,10 +746,9 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 	}
 
 	if (dev->debug > 1) {
-		printk("RAW:WRITE:win:%d map:0x%p ofs:0x%X amd:0x%2lx dwd:%d len:%d\n",
-		     riob->mapnum, map, riob->offset,
-		     mapx->address_modifier, dwidth,
-		     riob->bsize);
+		printk("RAW:WRITE:win:%d map:0x%p ofs:0x%X amd:0x%2x dwd:%d len:%d\n",
+		     riob->mapnum, mapx->kernel_va, riob->offset,
+		     mapx->am, dwidth, riob->bsize);
 	}
 
 	for (i = 0, j = riob->offset; i < riob->bsize; i += dwidth, j += dwidth) {
@@ -850,6 +825,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		vmeio_get_timeout(dev, arb);
 		break;
 
+#if 0
 	case VMEIO_GET_DEVICE:	   /** Get the device described in struct vmeio_get_device_s */
 		vmeio_get_device(dev, arb);
 		break;
@@ -860,6 +836,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		if (dev->maps[0].vaddr == NULL && dev->maps[1].vaddr == NULL)
 			goto out;
 		break;
+#endif
 
 	case VMEIO_RAW_READ_DMA:   /** Raw read VME registers */
 
