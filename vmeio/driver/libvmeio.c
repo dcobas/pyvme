@@ -39,9 +39,9 @@ int vmeio_raw_write(int fd, struct vmeio_riob_s *riobp)
 int vmeio_set_device(int fd, struct vmeio_get_mapping_s *getmap)
 {
 	printf("setting device (%x, %x, %x, %x)\n", 
-		getmap->vme1,
-		getmap->amd1,
-		getmap->dwd1,
+		getmap->base_address1,
+		getmap->am1,
+		getmap->data_width1,
 		getmap->size1);
 	return ioctl(fd, VMEIO_SET_DEVICE, getmap);
 }

@@ -47,15 +47,15 @@ struct vmeio_read_buf_s {
 struct vmeio_get_mapping_s {
 
    int lun;     /* Logical unit number */
-   int lvl;     /* Interrupt level */
-   int vec;     /* Interrupt vector */
-   int vme1;    /* First VME base address */
-   int vme2;    /* Second VME base address or zero */
+   int level;     /* Interrupt level */
+   int vector;     /* Interrupt vector */
+   int base_address1;    /* First VME base address */
+   int base_address2;    /* Second VME base address or zero */
 
-   int amd1;    /* First address modifier */
-   int amd2;    /* Second address modifier or zero */
-   int dwd1;    /* First data width */
-   int dwd2;    /* Second data width or zero */
+   int am1;     /* First address modifier */
+   int am2;    /* Second address modifier or zero */
+   int data_width1;    /* First data width */
+   int data_width2;    /* Second data width or zero */
    int size1;   /* First map size */
    int size2;   /* Second map size or zero */
    int isrc;    /* Offset of isrc in vme1 to be read in the isr */

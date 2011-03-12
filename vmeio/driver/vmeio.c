@@ -34,58 +34,58 @@ MODULE_SUPPORTED_DEVICE("Any VME device");
  * Indexed by minor device number
  */
 
-static long luns[DRV_MAX_DEVICES];	/* Logical unit numbers */
-static long vecs[DRV_MAX_DEVICES];	/* Interrupt vectors */
-static long vme1[DRV_MAX_DEVICES];	/* First VME base address */
-static long vme2[DRV_MAX_DEVICES];	/* Second VME base address */
+static long lun[DRV_MAX_DEVICES];	/* Logical unit numbers */
+static long vector[DRV_MAX_DEVICES];	/* Interrupt vectors */
+static long base_address1[DRV_MAX_DEVICES];	/* First VME base address */
+static long base_address2[DRV_MAX_DEVICES];	/* Second VME base address */
 
 /* Single value parameter handling */
 /* Usually the same for each lun.  */
 
-static long lvls;	/* Interrupt levels */
-static long amd1;	/* First address modifier */
-static long amd2;	/* Second address modifier */
-static long dwd1;	/* First data width */
-static long dwd2;	/* Second data width */
-static long win1;	/* First mapping size */
-static long win2;	/* Second mapping size */
-static long isrc;	/* Location of interrupt source reg in vme1 */
+static long level;	/* Interrupt levels */
+static long am1;	/* First address modifier */
+static long am2;	/* Second address modifier */
+static long data_width1;	/* First data width */
+static long data_width2;	/* Second data width */
+static long size1;	/* First mapping size */
+static long size2;	/* Second mapping size */
+static long isrc;	/* Location of interrupt source reg in base_address1 */
 
 /* These parameter counts must equal the number of luns */
 /* or be equal to zero if not used. */
 
 static unsigned int luns_num;
-static unsigned int vecs_num;
-static unsigned int vme1_num;
-static unsigned int vme2_num;
+static unsigned int vectors_num;
+static unsigned int base_address1_num;
+static unsigned int base_address2_num;
 
-module_param_array(luns, long, &luns_num, S_IRUGO);	/* Vector */
-module_param_array(vecs, long, &vecs_num, S_IRUGO);	/* Vector */
-module_param_array(vme1, long, &vme1_num, S_IRUGO);	/* Vector */
-module_param_array(vme2, long, &vme2_num, S_IRUGO);	/* Vector */
+module_param_array(lun, long, &luns_num, S_IRUGO);	/* Vector */
+module_param_array(vector, long, &vectors_num, S_IRUGO);	/* Vector */
+module_param_array(base_address1, long, &base_address1_num, S_IRUGO);	/* Vector */
+module_param_array(base_address2, long, &base_address2_num, S_IRUGO);	/* Vector */
 
-module_param(lvls, long, S_IRUGO);	/* Vector */
-module_param(amd1, long, S_IRUGO);
-module_param(amd2, long, S_IRUGO);
-module_param(dwd1, long, S_IRUGO);
-module_param(dwd2, long, S_IRUGO);
-module_param(win1, long, S_IRUGO);
-module_param(win2, long, S_IRUGO);
+module_param(level, long, S_IRUGO);	/* Vector */
+module_param(am1, long, S_IRUGO);
+module_param(am2, long, S_IRUGO);
+module_param(data_width1, long, S_IRUGO);
+module_param(data_width2, long, S_IRUGO);
+module_param(size1, long, S_IRUGO);
+module_param(size2, long, S_IRUGO);
 module_param(isrc, long, S_IRUGO);
 
-MODULE_PARM_DESC(luns, "Logical unit numbers");
-MODULE_PARM_DESC(lvls, "Interrupt levels");
-MODULE_PARM_DESC(vecs, "Interrupt vectors");
-MODULE_PARM_DESC(vme1, "First map base addresses");
-MODULE_PARM_DESC(vme2, "Second map base addresses");
+MODULE_PARM_DESC(lun, "Logical unit numbers");
+MODULE_PARM_DESC(level, "Interrupt levels");
+MODULE_PARM_DESC(vector, "Interrupt vectors");
+MODULE_PARM_DESC(base_address1, "First map base addresses");
+MODULE_PARM_DESC(base_address2, "Second map base addresses");
 
-MODULE_PARM_DESC(amd1, "First VME address modifier");
-MODULE_PARM_DESC(amd2, "Second VME address modifier");
-MODULE_PARM_DESC(dwd1, "First data width 1,2,4,8 bytes");
-MODULE_PARM_DESC(dwd2, "Second data width 1,2,4,8 bytes");
-MODULE_PARM_DESC(win1, "First mapping size in bytes");
-MODULE_PARM_DESC(win2, "Second mapping size in bytes");
-MODULE_PARM_DESC(isrc, "Location of interrupt source reg in vme1");
+MODULE_PARM_DESC(am1, "First VME address modifier");
+MODULE_PARM_DESC(am2, "Second VME address modifier");
+MODULE_PARM_DESC(data_width1, "First data width 1,2,4,8 bytes");
+MODULE_PARM_DESC(data_width2, "Second data width 1,2,4,8 bytes");
+MODULE_PARM_DESC(size1, "First mapping size in bytes");
+MODULE_PARM_DESC(size2, "Second mapping size in bytes");
+MODULE_PARM_DESC(isrc, "Location of interrupt source reg in base_address1");
 
 /*
  * This structure describes all the relevant information about a mapping
@@ -120,8 +120,8 @@ struct vmeio_device {
 	int			lun;
 	struct vmeio_map	maps[MAX_MAPS];
 
-	int			vec;
-	int			lvl;
+	int			vector;
+	int			level;
 	unsigned		isrc;
 	int			isrfl;
 	void			*isr_source_address;
@@ -263,16 +263,16 @@ static int check_module_params(void)
 
 	/* Vector parameters must all be the same size or zero */
 
-	if (vecs_num != luns_num && vecs_num != 0) {
+	if (vectors_num != luns_num && vectors_num != 0) {
 		printk(PFX "Fatal:Missing interrupt vector.\n");
 		return -EACCES;
 	}
 
-	if (vme1_num != luns_num && vme1_num != 0) {
+	if (base_address1_num != luns_num && base_address1_num != 0) {
 		printk(PFX "Fatal:Missing first base address.\n");
 		return -EACCES;
 	}
-	if (vme2_num != luns_num && vme2_num != 0) {
+	if (base_address2_num != luns_num && base_address2_num != 0) {
 		printk(PFX "Fatal:Missing second base address.\n");
 		return -EACCES;
 	}
@@ -293,14 +293,14 @@ int vmeio_install(void)
 
 		memset(dev, 0, sizeof(*dev));
 
-		dev->lun = luns[i];
+		dev->lun = lun[i];
 
-		vmeio_map_init(&dev->maps[0], vme1[i], win1, amd1, dwd1);
-		vmeio_map_init(&dev->maps[1], vme2[i], win2, amd2, dwd2);
+		vmeio_map_init(&dev->maps[0], base_address1[i], size1, am1, data_width1);
+		vmeio_map_init(&dev->maps[1], base_address2[i], size2, am2, data_width2);
 
 		dev->isrc = isrc;
-		dev->lvl  = lvls;
-		dev->vec  = vecs[i];
+		dev->level  = level;
+		dev->vector  = vector[i];
 
 		init_waitqueue_head(&dev->queue);
 	}
@@ -328,8 +328,8 @@ int vmeio_install(void)
 		vmeio_map_register(&dev->maps[0]);
 		vmeio_map_register(&dev->maps[1]);
 
-		if (dev->lvl && dev->vec) {
-			register_isr(dev, dev->vec, dev->lvl);
+		if (dev->level && dev->vector) {
+			register_isr(dev, dev->vector, dev->level);
 			/* This will be eventually removed */
 			register_int_source(dev, dev->maps[0].vaddr, dev->isrc);
 		}
@@ -341,8 +341,8 @@ int vmeio_install(void)
 
 void unregister_module(struct vmeio_device *dev)
 {
-	if (dev->vec)
-		vme_intclr(dev->vec, NULL);
+	if (dev->vector)
+		vme_intclr(dev->vector, NULL);
 	vmeio_map_unregister(&dev->maps[0]);
 	vmeio_map_unregister(&dev->maps[1]);
 }
@@ -604,18 +604,18 @@ static void vmeio_get_device(struct vmeio_device *dev,
 	struct vmeio_map *map1 = &dev->maps[1];
 
 	mapping->lun	= dev->lun;
-	mapping->lvl	= dev->lvl;
-	mapping->vec	= dev->vec;
+	mapping->level	= dev->level;
+	mapping->vector	= dev->vector;
 	mapping->isrc	= dev->isrc;
 
-	mapping->amd1	= map0->address_modifier;
-	mapping->dwd1	= map0->data_width;
-	mapping->vme1	= map0->base_address;
+	mapping->am1	= map0->address_modifier;
+	mapping->data_width1	= map0->data_width;
+	mapping->base_address1	= map0->base_address;
 	mapping->size1	= map0->mapping_size;
 
-	mapping->amd2	= map1->address_modifier;
-	mapping->dwd2	= map1->data_width;
-	mapping->vme2	= map1->base_address;
+	mapping->am2	= map1->address_modifier;
+	mapping->data_width2	= map1->data_width;
+	mapping->base_address2	= map1->base_address;
 	mapping->size2	= map1->mapping_size;
 }
 
@@ -626,9 +626,9 @@ static void vmeio_set_device(struct vmeio_device *dev,
 	struct vmeio_map *map1 = &dev->maps[1];
 
 	vmeio_map_unregister(map0);
-	vmeio_map_init(map0, mapping->vme1, mapping->size1, mapping->amd1, mapping->dwd1);
+	vmeio_map_init(map0, mapping->base_address1, mapping->size1, mapping->am1, mapping->data_width1);
 	vmeio_map_unregister(map1);
-	vmeio_map_init(map1, mapping->vme2, mapping->size2, mapping->amd2, mapping->dwd2);
+	vmeio_map_init(map1, mapping->base_address2, mapping->size2, mapping->am2, mapping->data_width2);
 	vmeio_map_register(map0);
 	vmeio_map_register(map1);
 }
