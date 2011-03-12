@@ -34,57 +34,59 @@ MODULE_SUPPORTED_DEVICE("Any VME device");
  * Indexed by minor device number
  */
 
-static long lun[DRV_MAX_DEVICES];	/* Logical unit numbers */
-static long vector[DRV_MAX_DEVICES];	/* Interrupt vectors */
-static long base_address1[DRV_MAX_DEVICES];	/* First VME base address */
-static long base_address2[DRV_MAX_DEVICES];	/* Second VME base address */
+static unsigned int lun_num;
+static long lun[DRV_MAX_DEVICES];
+module_param_array(lun, long, &lun_num, S_IRUGO);
+MODULE_PARM_DESC(lun, "Logical unit numbers");
+
+static unsigned int base_address1_num;
+static long base_address1[DRV_MAX_DEVICES];
+module_param_array(base_address1, long, &base_address1_num, S_IRUGO);
+MODULE_PARM_DESC(base_address1, "First map base addresses");
+
+static unsigned int base_address2_num;
+static long base_address2[DRV_MAX_DEVICES];
+module_param_array(base_address2, long, &base_address2_num, S_IRUGO);
+MODULE_PARM_DESC(base_address2, "Second map base addresses");
+
+static unsigned int vector_num;
+static long vector[DRV_MAX_DEVICES];
+module_param_array(vector, long, &vector_num, S_IRUGO);
+MODULE_PARM_DESC(vector, "Interrupt vectors");
 
 /* Single value parameter handling */
 /* Usually the same for each lun.  */
 
-static long level;	/* Interrupt levels */
-static long am1;	/* First address modifier */
-static long am2;	/* Second address modifier */
-static long data_width1;	/* First data width */
-static long data_width2;	/* Second data width */
-static long size1;	/* First mapping size */
-static long size2;	/* Second mapping size */
-static long isrc;	/* Location of interrupt source reg in base_address1 */
-
-/* These parameter counts must equal the number of luns */
-/* or be equal to zero if not used. */
-
-static unsigned int luns_num;
-static unsigned int vectors_num;
-static unsigned int base_address1_num;
-static unsigned int base_address2_num;
-
-module_param_array(lun, long, &luns_num, S_IRUGO);	/* Vector */
-module_param_array(vector, long, &vectors_num, S_IRUGO);	/* Vector */
-module_param_array(base_address1, long, &base_address1_num, S_IRUGO);	/* Vector */
-module_param_array(base_address2, long, &base_address2_num, S_IRUGO);	/* Vector */
-
-module_param(level, long, S_IRUGO);	/* Vector */
-module_param(am1, long, S_IRUGO);
-module_param(am2, long, S_IRUGO);
-module_param(data_width1, long, S_IRUGO);
-module_param(data_width2, long, S_IRUGO);
-module_param(size1, long, S_IRUGO);
-module_param(size2, long, S_IRUGO);
-module_param(isrc, long, S_IRUGO);
-
-MODULE_PARM_DESC(lun, "Logical unit numbers");
+static long level;
+module_param(level, long, S_IRUGO);
 MODULE_PARM_DESC(level, "Interrupt levels");
-MODULE_PARM_DESC(vector, "Interrupt vectors");
-MODULE_PARM_DESC(base_address1, "First map base addresses");
-MODULE_PARM_DESC(base_address2, "Second map base addresses");
 
+static long am1;
+module_param(am1, long, S_IRUGO);
 MODULE_PARM_DESC(am1, "First VME address modifier");
+
+static long am2;
+module_param(am2, long, S_IRUGO);
 MODULE_PARM_DESC(am2, "Second VME address modifier");
+
+static long data_width1;
+module_param(data_width1, long, S_IRUGO);
 MODULE_PARM_DESC(data_width1, "First data width 1,2,4,8 bytes");
+
+static long data_width2;
+module_param(data_width2, long, S_IRUGO);
 MODULE_PARM_DESC(data_width2, "Second data width 1,2,4,8 bytes");
+
+static long size1;
+module_param(size1, long, S_IRUGO);
 MODULE_PARM_DESC(size1, "First mapping size in bytes");
+
+static long size2;
+module_param(size2, long, S_IRUGO);
 MODULE_PARM_DESC(size2, "Second mapping size in bytes");
+
+static long isrc;
+module_param(isrc, long, S_IRUGO);
 MODULE_PARM_DESC(isrc, "Location of interrupt source reg in base_address1");
 
 /*
@@ -256,23 +258,23 @@ void register_int_source(struct vmeio_device *dev, void *map, unsigned offset)
 
 static int check_module_params(void)
 {
-	if (luns_num <= 0 || luns_num > DRV_MAX_DEVICES) {
+	if (lun_num <= 0 || lun_num > DRV_MAX_DEVICES) {
 		printk(PFX "Fatal:No logical units defined.\n");
 		return -EACCES;
 	}
 
-	/* Vector parameters must all be the same size or zero */
+	/* Vector parameters must all be the same size */
 
-	if (vectors_num != luns_num && vectors_num != 0) {
+	if (vector_num != lun_num && vector_num != 0) {
 		printk(PFX "Fatal:Missing interrupt vector.\n");
 		return -EACCES;
 	}
 
-	if (base_address1_num != luns_num && base_address1_num != 0) {
+	if (base_address1_num != lun_num && base_address1_num != 0) {
 		printk(PFX "Fatal:Missing first base address.\n");
 		return -EACCES;
 	}
-	if (base_address2_num != luns_num && base_address2_num != 0) {
+	if (base_address2_num != lun_num && base_address2_num != 0) {
 		printk(PFX "Fatal:Missing second base address.\n");
 		return -EACCES;
 	}
@@ -288,7 +290,7 @@ int vmeio_install(void)
 
 	/* Build module contexts */
 
-	for (i = 0; i < luns_num; i++) {
+	for (i = 0; i < lun_num; i++) {
 		struct vmeio_device *dev = &devices[i];
 
 		memset(dev, 0, sizeof(*dev));
@@ -316,7 +318,7 @@ int vmeio_install(void)
 
 	/* Create VME mappings and register ISRs */
 
-	for (i = 0; i < luns_num; i++) {
+	for (i = 0; i < lun_num; i++) {
 		struct vmeio_device *dev = &devices[i];
 
 		dev->debug = DEBUG;
@@ -357,7 +359,7 @@ void vmeio_uninstall(void)
 {
 	int i;
 
-	for (i = 0; i < luns_num; i++) {
+	for (i = 0; i < lun_num; i++) {
 		unregister_module(&devices[i]);
 	}
 	unregister_chrdev(vmeio_major, DRIVER_NAME);
