@@ -9,6 +9,7 @@ KVER=2.6.24.7-rt27
 
 KERNELSRC=/acc/sys/$(CPU)/usr/src/kernels/$(KVER)
 DRIVER_NAME = "vmeio"
+CFLAGS += -I /acc/local/L865/include/
 
 all: libs modules
 
