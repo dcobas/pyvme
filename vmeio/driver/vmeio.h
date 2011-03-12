@@ -9,8 +9,10 @@
  * Basic driver API for raw VME IO
  */
 
-#ifndef VMEIO
-#define VMEIO
+#ifndef _VMEIO_H
+#define _VMEIO_H
+
+#include <vmebus.h>
 
 #define DEBUG 0
 #define TIMEOUT 1000
@@ -39,10 +41,10 @@ struct vmeio_read_buf_s {
 };
 
 /**
- * Parameter for get window
+ * Parameter for get mapping
  */
 
-struct vmeio_get_window_s {
+struct vmeio_get_mapping_s {
 
    int lun;     /* Logical unit number */
    int lvl;     /* Interrupt level */
@@ -54,9 +56,9 @@ struct vmeio_get_window_s {
    int amd2;    /* Second address modifier or zero */
    int dwd1;    /* First data width */
    int dwd2;    /* Second data width or zero */
-   int win1;    /* First window size */
-   int win2;    /* Second window size or zero */
-   int nmap;    /* No map window flag, 1=DMA only */
+   int size1;   /* First map size */
+   int size2;   /* Second map size or zero */
+   int nmap;    /* No map flag, 1=DMA only */
    int isrc;    /* Offset of isrc in vme1 to be read in the isr */
 };
 
@@ -67,7 +69,7 @@ struct vmeio_get_window_s {
 #define vmeioMAX_BUF 8192
 
 struct vmeio_riob_s {
-   int winum;    /** Window number 1..2 */
+   int mapnum;   /** Mapping number 1..2 */
    int offset;   /** Byte offset in map */
    int bsize;    /** The number of bytes to read */
    void *buffer; /** Pointer to data area */
@@ -100,7 +102,7 @@ typedef enum {
    vmeioSET_TIMEOUT,   /** Timeout in milliseconds */
    vmeioGET_TIMEOUT,
 
-   vmeioGET_DEVICE,    /** Get the window described in struct vmeio_get_window_s */
+   vmeioGET_DEVICE,    /** Get the mappings described in struct vmeio_get_mapping_s */
    vmeioRAW_READ,      /** Raw read VME registers */
    vmeioRAW_WRITE,     /** Raw write VME registers */
    vmeioRAW_READ_DMA,  /** Raw read VME registers */
@@ -127,12 +129,12 @@ typedef enum {
 #define  VMEIO_GET_VERSION    _IOR(MAGIC,   vmeioGET_VERSION,    int)
 #define  VMEIO_GET_TIMEOUT    _IOR(MAGIC,   vmeioGET_TIMEOUT,    int)
 #define  VMEIO_SET_TIMEOUT    _IOW(MAGIC,   vmeioSET_TIMEOUT,    int)
-#define  VMEIO_GET_DEVICE     _IOR(MAGIC,   vmeioGET_DEVICE,     struct  vmeio_get_window_s)
+#define  VMEIO_GET_DEVICE     _IOR(MAGIC,   vmeioGET_DEVICE,     struct  vmeio_get_mapping_s)
 #define  VMEIO_RAW_READ       _IOWR(MAGIC,  vmeioRAW_READ,       struct  vmeio_riob_s)
 #define  VMEIO_RAW_WRITE      _IOWR(MAGIC,  vmeioRAW_WRITE,      struct  vmeio_riob_s)
 #define  VMEIO_RAW_READ_DMA   _IOWR(MAGIC,  vmeioRAW_READ_DMA,   struct  vmeio_riob_s)
 #define  VMEIO_RAW_WRITE_DMA  _IOWR(MAGIC,  vmeioRAW_WRITE_DMA,  struct  vmeio_riob_s)
-#define  VMEIO_SET_DEVICE     _IOW(MAGIC,   vmeioGET_DEVICE,     struct  vmeio_get_window_s)
+#define  VMEIO_SET_DEVICE     _IOW(MAGIC,   vmeioGET_DEVICE,     struct  vmeio_get_mapping_s)
 #define  VMEIO_READ_DMA       _IOW(MAGIC,   vmeioREAD_DMA,       struct	 vmeio_dma_op)
 #define  VMEIO_WRITE_DMA      _IOW(MAGIC,   vmeioWRITE_DMA,      struct  vmeio_dma_op)
 

@@ -47,9 +47,9 @@ static long amd1;	/* First address modifier */
 static long amd2;	/* Second address modifier */
 static long dwd1;	/* First data width */
 static long dwd2;	/* Second data width */
-static long win1;	/* First window size */
-static long win2;	/* Second window size */
-static long nmap;	/* No map window flag, 1=DMA only */
+static long win1;	/* First mapping size */
+static long win2;	/* Second mapping size */
+static long nmap;	/* No map flag, 1=DMA only */
 static long isrc;	/* Location of interrupt source reg in vme1 */
 
 /* These parameter counts must equal the number of luns */
@@ -85,26 +85,25 @@ MODULE_PARM_DESC(amd1, "First VME address modifier");
 MODULE_PARM_DESC(amd2, "Second VME address modifier");
 MODULE_PARM_DESC(dwd1, "First data width 1,2,4,8 bytes");
 MODULE_PARM_DESC(dwd2, "Second data width 1,2,4,8 bytes");
-MODULE_PARM_DESC(win1, "First window size in bytes");
-MODULE_PARM_DESC(win2, "Second window size in bytes");
+MODULE_PARM_DESC(win1, "First mapping size in bytes");
+MODULE_PARM_DESC(win2, "Second mapping size in bytes");
 MODULE_PARM_DESC(nmap, "No VME map flags, 1=DMA only");
 MODULE_PARM_DESC(isrc, "Location of interrupt source reg in vme1");
 
 /*
- * This structure describes all the relevant information about a mapped
- * window
+ * This structure describes all the relevant information about a mapping
  */
 struct vmeio_map {
 	unsigned long	base_address;
 	unsigned long	address_modifier;
 	unsigned long	data_width;
-	unsigned long	window_size;
+	unsigned long	mapping_size;
 	void		*vaddr;		/* NULL if not mapped */
 };
 
 /*
  * vmeio device descriptor:
- *	maps[max_maps]		array of mapped VME windows
+ *	maps[max_maps]		array of VME mappings
  *
  *	isrfl			1 if interrupt handler installed
  *	isrc			offset of int source reg in map0
@@ -183,13 +182,13 @@ static irqreturn_t vmeio_irq(void *arg)
 
 /* ==================== */
 
-void *map_window(int vme, int amd, int dwd, int win) {
+void *find_mapping(int vme, int amd, int dwd, int size) {
 
 	unsigned long vmeaddr;
 	struct pdparam_master param;
 	char *msg;
 
-	if (!(vme && amd && win && dwd)) return NULL;
+	if (!(vme && amd && size && dwd)) return NULL;
 
 	param.iack = 1;                 /* no iack */
 	param.rdpref = 0;               /* no VME read prefetch option */
@@ -199,7 +198,7 @@ void *map_window(int vme, int amd, int dwd, int win) {
 	param.dum[1] = 0;               /* XPC ADP-type */
 	param.dum[2] = 0;               /* window is sharable */
 
-	vmeaddr = find_controller(vme, win, amd, 0, dwd, &param);
+	vmeaddr = find_controller(vme, size, amd, 0, dwd, &param);
 
 	if (vmeaddr == -1UL) {
 		msg = "ERROR:NotMapped";
@@ -207,17 +206,17 @@ void *map_window(int vme, int amd, int dwd, int win) {
 	} else {
 		msg = "OK:Mapped";
 	}
-	printk(PFX "%s:Address:0x%X Window:0x%X"
+	printk(PFX "%s:Address:0x%X Size:0x%X"
 			":AddrMod:0x%X DWidth:0x%X:VirtAddr:0x%lX\n",
-			msg, vme, win, amd, dwd, vmeaddr);
+			msg, vme, size, amd, dwd, vmeaddr);
 	return (void *)vmeaddr;
 }
 
 static void vmeio_map_init(struct vmeio_map *map,
-		int vme, int win, int amd, int dwd)
+		int vme, int size, int amd, int dwd)
 {
 	map->base_address	= vme;
-	map->window_size	= win;
+	map->mapping_size	= size;
 	map->address_modifier	= amd;
 	map->data_width		= dwd;
 	map->vaddr		= NULL;
@@ -225,14 +224,14 @@ static void vmeio_map_init(struct vmeio_map *map,
 
 static void vmeio_map_register(struct vmeio_map *map)
 {
-	map->vaddr = map_window(map->base_address, map->address_modifier,
-				map->data_width, map->window_size);
+	map->vaddr = find_mapping(map->base_address, map->address_modifier,
+				map->data_width, map->mapping_size);
 }
 
 static void vmeio_map_unregister(struct vmeio_map *map)
 {
 	if (map->base_address)
-		return_controller(map->base_address, map->window_size);
+		return_controller(map->base_address, map->mapping_size);
 }
 
 
@@ -609,38 +608,38 @@ static void vmeio_get_timeout(struct vmeio_device *dev, int *timeout)
 }
 
 static void vmeio_get_device(struct vmeio_device *dev,
-		struct vmeio_get_window_s *win)
+		struct vmeio_get_mapping_s *mapping)
 {
 	struct vmeio_map *map0 = &dev->maps[0];
 	struct vmeio_map *map1 = &dev->maps[1];
 
-	win->lun	= dev->lun;
-	win->lvl	= dev->lvl;
-	win->vec	= dev->vec;
-	win->nmap	= dev->nmap;
-	win->isrc	= dev->isrc;
+	mapping->lun	= dev->lun;
+	mapping->lvl	= dev->lvl;
+	mapping->vec	= dev->vec;
+	mapping->nmap	= dev->nmap;
+	mapping->isrc	= dev->isrc;
 
-	win->amd1	= map0->address_modifier;
-	win->dwd1	= map0->data_width;
-	win->vme1	= map0->base_address;
-	win->win1	= map0->window_size;
+	mapping->amd1	= map0->address_modifier;
+	mapping->dwd1	= map0->data_width;
+	mapping->vme1	= map0->base_address;
+	mapping->size1	= map0->mapping_size;
 
-	win->amd2	= map1->address_modifier;
-	win->dwd2	= map1->data_width;
-	win->vme2	= map1->base_address;
-	win->win2	= map1->window_size;
+	mapping->amd2	= map1->address_modifier;
+	mapping->dwd2	= map1->data_width;
+	mapping->vme2	= map1->base_address;
+	mapping->size2	= map1->mapping_size;
 }
 
 static void vmeio_set_device(struct vmeio_device *dev,
-		struct vmeio_get_window_s *win)
+		struct vmeio_get_mapping_s *mapping)
 {
 	struct vmeio_map *map0 = &dev->maps[0];
 	struct vmeio_map *map1 = &dev->maps[1];
 
 	vmeio_map_unregister(map0);
-	vmeio_map_init(map0, win->vme1, win->win1, win->amd1, win->dwd1);
+	vmeio_map_init(map0, mapping->vme1, mapping->size1, mapping->amd1, mapping->dwd1);
 	vmeio_map_unregister(map1);
-	vmeio_map_init(map1, win->vme2, win->win2, win->amd2, win->dwd2);
+	vmeio_map_init(map1, mapping->vme2, mapping->size2, mapping->amd2, mapping->dwd2);
 	if (dev->nmap)		/* DMA only */
 		return;
 	vmeio_map_register(map0);
@@ -699,7 +698,7 @@ static int do_raw_dma(struct vmeio_dma_op *request)
 static int raw_dma(struct vmeio_device *dev,
 	struct vmeio_riob_s *riob, enum vme_dma_dir direction)
 {
-	struct vmeio_map *map = &dev->maps[riob->winum];
+	struct vmeio_map *map = &dev->maps[riob->mapnum];
 	struct vmeio_dma_op req;
 
 	req.am = map->address_modifier;
@@ -721,7 +720,7 @@ union vmeio_word {
 
 static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 {
-	struct vmeio_map *mapx = &dev->maps[riob->winum-1];	
+	struct vmeio_map *mapx = &dev->maps[riob->mapnum-1];
 	int dwidth = mapx->data_width;
 	int i, j, cc;
 	char *map, *iob;
@@ -739,7 +738,7 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 	}
 	if (dev->debug > 1) {
 		printk("RAW:READ:win:%d map:0x%p offs:0x%X amd:0x%2lx dwd:%d len:%d\n",
-		     riob->winum, map, riob->offset,
+		     riob->mapnum, map, riob->offset,
 		     mapx->address_modifier, dwidth,
 		     riob->bsize);
 	}
@@ -762,7 +761,7 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 
 static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 {
-	struct vmeio_map *mapx = &dev->maps[riob->winum-1];	
+	struct vmeio_map *mapx = &dev->maps[riob->mapnum-1];	
 	int dwidth = mapx->data_width;
 	int i, j, cc;
 	char *map, *iob;
@@ -787,7 +786,7 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 
 	if (dev->debug > 1) {
 		printk("RAW:WRITE:win:%d map:0x%p ofs:0x%X amd:0x%2lx dwd:%d len:%d\n",
-		     riob->winum, map, riob->offset,
+		     riob->mapnum, map, riob->offset,
 		     mapx->address_modifier, dwidth,
 		     riob->bsize);
 	}

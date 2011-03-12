@@ -6,7 +6,7 @@
 void print_riob(struct vmeio_riob_s *p)
 {
 	printf("IOCTL: win %d at offset 0x%08x width %d\n", 
-		p->winum, p->offset, p->bsize);
+		p->mapnum, p->offset, p->bsize);
 }
 
 int vmeio_open(int lun)
@@ -36,14 +36,14 @@ int vmeio_raw_write(int fd, struct vmeio_riob_s *riobp)
 	return ioctl(fd, VMEIO_RAW_WRITE, riobp);
 }
 
-int vmeio_set_device(int fd, struct vmeio_get_window_s *getwinp)
+int vmeio_set_device(int fd, struct vmeio_get_mapping_s *getmap)
 {
 	printf("setting device (%x, %x, %x, %x)\n", 
-		getwinp->vme1,
-		getwinp->amd1,
-		getwinp->dwd1,
-		getwinp->win1);
-	return ioctl(fd, VMEIO_SET_DEVICE, getwinp);
+		getmap->vme1,
+		getmap->amd1,
+		getmap->dwd1,
+		getmap->size1);
+	return ioctl(fd, VMEIO_SET_DEVICE, getmap);
 }
 
 int vmeio_set_timeout(int fd, int msecs)
