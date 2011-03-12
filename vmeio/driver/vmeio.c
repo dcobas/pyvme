@@ -749,7 +749,7 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 		if (dwidth == 4)
 			dst->width4 = ioread32be(&map[j]);
 		else if (dwidth == 2)
-			dst->width4 = ioread16be(&map[j]);
+			dst->width2 = ioread16be(&map[j]);
 		else
 			dst->width1 = ioread8(&map[j]);
 	}
