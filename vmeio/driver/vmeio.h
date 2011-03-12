@@ -58,7 +58,6 @@ struct vmeio_get_mapping_s {
    int dwd2;    /* Second data width or zero */
    int size1;   /* First map size */
    int size2;   /* Second map size or zero */
-   int nmap;    /* No map flag, 1=DMA only */
    int isrc;    /* Offset of isrc in vme1 to be read in the isr */
 };
 

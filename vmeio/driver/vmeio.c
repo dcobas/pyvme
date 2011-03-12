@@ -49,7 +49,6 @@ static long dwd1;	/* First data width */
 static long dwd2;	/* Second data width */
 static long win1;	/* First mapping size */
 static long win2;	/* Second mapping size */
-static long nmap;	/* No map flag, 1=DMA only */
 static long isrc;	/* Location of interrupt source reg in vme1 */
 
 /* These parameter counts must equal the number of luns */
@@ -72,7 +71,6 @@ module_param(dwd1, long, S_IRUGO);
 module_param(dwd2, long, S_IRUGO);
 module_param(win1, long, S_IRUGO);
 module_param(win2, long, S_IRUGO);
-module_param(nmap, long, S_IRUGO);
 module_param(isrc, long, S_IRUGO);
 
 MODULE_PARM_DESC(luns, "Logical unit numbers");
@@ -87,7 +85,6 @@ MODULE_PARM_DESC(dwd1, "First data width 1,2,4,8 bytes");
 MODULE_PARM_DESC(dwd2, "Second data width 1,2,4,8 bytes");
 MODULE_PARM_DESC(win1, "First mapping size in bytes");
 MODULE_PARM_DESC(win2, "Second mapping size in bytes");
-MODULE_PARM_DESC(nmap, "No VME map flags, 1=DMA only");
 MODULE_PARM_DESC(isrc, "Location of interrupt source reg in vme1");
 
 /*
@@ -122,7 +119,6 @@ struct vmeio_map {
 struct vmeio_device {
 	int			lun;
 	struct vmeio_map	maps[MAX_MAPS];
-	int			nmap;
 
 	int			vec;
 	int			lvl;
@@ -305,7 +301,6 @@ int vmeio_install(void)
 		dev->isrc = isrc;
 		dev->lvl  = lvls;
 		dev->vec  = vecs[i];
-		dev->nmap = nmap;
 
 		init_waitqueue_head(&dev->queue);
 	}
@@ -327,11 +322,6 @@ int vmeio_install(void)
 		dev->debug = DEBUG;
 		dev->timeout = msecs_to_jiffies(TIMEOUT);
 		dev->icnt = 0;
-
-		if (dev->nmap != 0) {
-			printk(PFX PFX "Logical unit:%d is not mapped: DMA only\n", dev->lun);
-			continue;
-		}
 
 		printk(PFX "Mapping:Logical unit:%d\n", dev->lun);
 
@@ -616,7 +606,6 @@ static void vmeio_get_device(struct vmeio_device *dev,
 	mapping->lun	= dev->lun;
 	mapping->lvl	= dev->lvl;
 	mapping->vec	= dev->vec;
-	mapping->nmap	= dev->nmap;
 	mapping->isrc	= dev->isrc;
 
 	mapping->amd1	= map0->address_modifier;
@@ -640,8 +629,6 @@ static void vmeio_set_device(struct vmeio_device *dev,
 	vmeio_map_init(map0, mapping->vme1, mapping->size1, mapping->amd1, mapping->dwd1);
 	vmeio_map_unregister(map1);
 	vmeio_map_init(map1, mapping->vme2, mapping->size2, mapping->amd2, mapping->dwd2);
-	if (dev->nmap)		/* DMA only */
-		return;
 	vmeio_map_register(map0);
 	vmeio_map_register(map1);
 }
@@ -725,8 +712,6 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 	int i, j, cc;
 	char *map, *iob;
 
-	if (dev->nmap)
-		return -ENODEV;
 	if (riob->bsize > vmeioMAX_BUF)
 		return -E2BIG;
 	iob = kmalloc(riob->bsize, GFP_KERNEL);
@@ -766,8 +751,6 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 	int i, j, cc;
 	char *map, *iob;
 
-	if (dev->nmap)
-		return -ENODEV;
 	if (riob->bsize > vmeioMAX_BUF)
 		return -E2BIG;
 	iob = kmalloc(riob->bsize, GFP_KERNEL);
