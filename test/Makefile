@@ -7,9 +7,9 @@ include /acc/dsc/src/co/Make.auto
 
 COMPILE_TIME:=$(shell date +%s)
 
-CFLAGS = -g -Wall -I. -I../include -I../driver -DCOMPILE_TIME=$(COMPILE_TIME)
+CFLAGS = -g -Wall -I. -I ../lib -I../include -I../driver -DCOMPILE_TIME=$(COMPILE_TIME)
 
-LDLIBS= ../support/vmeio_support.L865.a
+LDLIBS= ../lib/vmeio_support.L865.a
 
 ALL  = vmeiotest.$(CPU).o vmeiotest.$(CPU)
 

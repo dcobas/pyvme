@@ -63,7 +63,7 @@ char tmpb[CMD_BUF_SIZE];
    else
       strcat(dev_name,"vmeio");
 
-   if ((vmeio[lun] = OPEN_NAME(lun,dev_name)) == NULL) {
+   if ((vmeio[lun] = __vsl_open_name(lun,dev_name)) == NULL) {
       printf("Warning: Can't open support library\n");
       perror(DRV_NAME);
    }

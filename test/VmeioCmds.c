@@ -559,7 +559,7 @@ int n, radix, nadr;
 
 void get_window_parameters(int tlun) {
 
-   if (GET_WINDOW(vmeio[tlun],&winpars)) {
+   if (__vsl_get_window(vmeio[tlun],&winpars)) {
       if (win == 2) dwd = winpars.dwd2;
       else          dwd = winpars.dwd1;
    }
@@ -633,7 +633,7 @@ char *cp;
    if (at == Numeric) {
       arg++;
       reg_val = v->Number;
-      if (WRITE_REG(vmeio[lun],reg,&reg_val) == 0) {
+      if (__vsl_write_reg(vmeio[lun],reg,&reg_val) == 0) {
 	 printf("Can't write reg:%d %s\n",reg,cp);
 	 return arg;
       }
@@ -642,7 +642,7 @@ char *cp;
 rdrg:
    cp = get_name(reg*dwd);
 
-   if (READ_REG(vmeio[lun],reg,&reg_val) == 0) {
+   if (__vsl_read_reg(vmeio[lun],reg,&reg_val) == 0) {
       printf("Can't read reg:%d %s\n",reg,cp);
       return arg;
    }
@@ -676,8 +676,8 @@ int tlun;
       arg++;
       if ((v->Number >= 0) && (v->Number < DRV_MAX_DEVICES)) {
 	 tlun = v->Number;
-	 if (vmeio[tlun]) CLOSE(vmeio[tlun]);
-	 vmeio[tlun] = OPEN(tlun);
+	 if (vmeio[tlun]) __vsl_close(vmeio[tlun]);
+	 vmeio[tlun] = __vsl_open_name(tlun, DRIVER_NAME);
 	 get_window_parameters(tlun);
       }
    }
@@ -740,7 +740,7 @@ AtomType  at;
 	 else           dmaswap = 0;
       }
    }
-   if (!SET_PARAMS(vmeio[lun],win,dma,dmaswap))
+   if (!__vsl_set_params(vmeio[lun],win,dma,dmaswap))
       printf("set_params:Error\n");
 
    printf("dma:DMA:");
@@ -789,10 +789,10 @@ int tdebug;
    at = v->Type;
    if (at == Numeric) {
       arg++;
-      if (SET_DEBUG(vmeio[lun],&v->Number)) debug = v->Number;
+      if (__vsl_set_debug(vmeio[lun],&v->Number)) debug = v->Number;
       else printf("Error from SET_DEBUG, level:%d\n",v->Number);
    }
-   if (GET_DEBUG(vmeio[lun],&tdebug)) debug = tdebug;
+   if (__vsl_get_debug(vmeio[lun],&tdebug)) debug = tdebug;
    else printf("Error:GET_DEBUG\n");
    printf("debug:lun:%d:level:%d:",lun,debug);
    if (debug) printf("ON\n");
@@ -814,10 +814,10 @@ int ttmo;
    at = v->Type;
    if (at == Numeric) {
       arg++;
-      if (SET_TIMEOUT(vmeio[lun],&v->Number)) tmo = v->Number;
+      if (__vsl_set_timeout(vmeio[lun],&v->Number)) tmo = v->Number;
       else printf("Error:SET_DEBUG:level:%d\n",v->Number);
    }
-   if (GET_TIMEOUT(vmeio[lun],&ttmo)) tmo = ttmo;
+   if (__vsl_get_timeout(vmeio[lun],&ttmo)) tmo = ttmo;
    else printf("Error:GET_TIMEOUT\n");
    printf("timeout:lun:%d:milliseconds:%d:",lun,tmo);
    if (tmo) printf("SET\n");
@@ -842,10 +842,10 @@ int reg;
       arg++;
       reg = v->Number;
       offset = reg * dwd;
-      SET_OFFSET(vmeio[lun],&offset);
+      __vsl_set_offset(vmeio[lun],&offset);
    }
 
-   GET_OFFSET(vmeio[lun],&offset);
+   __vsl_get_offset(vmeio[lun],&offset);
    reg = offset/dwd;
 
    printf("BlockOffset:Register:%d RealOffset:0x%X\n",reg,offset);
@@ -866,7 +866,7 @@ int mask;
    at = v->Type;
    if (at == Numeric) {
       arg++;
-      if (DO_INTERRUPT(vmeio[lun],&v->Number)) {
+      if (__vsl_do_interrupt(vmeio[lun],&v->Number)) {
 	 mask = v->Number;
 	 printf("Interrupt:0x%X sent OK\n",mask);
 	 return arg;
@@ -886,7 +886,7 @@ struct vmeio_read_buf_s event;
 
    arg++;
 
-   if (!WAIT(vmeio[lun],&event)) {
+   if (!__vsl_wait(vmeio[lun],&event)) {
       printf("wait:ERROR:lun:%d\n",lun);
       perror(DRV_NAME);
       return arg;
@@ -957,10 +957,10 @@ int items, start, len;
    iob.buffer = mem;
 
    if (dma) {
-      if (DMA(vmeio[lun],&iob,0)) printf("Read:DMA:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.bsize);
+      if (__vsl_dma(vmeio[lun],&iob,0)) printf("Read:DMA:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.bsize);
       else                        printf("Read:DMA:Error(See dmesg)\n");
    } else {
-      if (RAW(vmeio[lun],&iob,0)) printf("Read:RAW:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.bsize);
+      if (__vsl_raw(vmeio[lun],&iob,0)) printf("Read:RAW:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.bsize);
       else                        printf("Read:RAW:Error(See dmesg)\n");
    }
    return arg;
@@ -1005,10 +1005,10 @@ int items, start;
    iob.buffer = mem;
 
    if (dma) {
-      if (DMA(vmeio[lun],&iob,1)) printf("Write:DMA:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.bsize);
+      if (__vsl_dma(vmeio[lun],&iob,1)) printf("Write:DMA:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.bsize);
       else                        printf("Write:DMA:Error(See dmesg)\n");
    } else {
-      if (RAW(vmeio[lun],&iob,1)) printf("Write:RAW:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.bsize);
+      if (__vsl_raw(vmeio[lun],&iob,1)) printf("Write:RAW:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.bsize);
       else                        printf("Write:RAW:Error(See demsg)\n");
    }
    return arg;
@@ -1019,7 +1019,7 @@ int items, start;
 int GetVersion(int arg) {
 struct vmeio_version_s ver;
 
-   if (GET_VERSION(vmeio[lun],&ver)) {
+   if (__vsl_get_version(vmeio[lun],&ver)) {
       printf("Driver:  %s - %d\n",TimeToStr(ver.driver),  ver.driver);
       printf("Library: %s - %d\n",TimeToStr(ver.library), ver.library);
    } else
