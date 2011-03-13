@@ -12,11 +12,6 @@
 #include "vmebus.h"
 #include "vmeio.h"
 
-/*
- * ======================================================================
- * Static memory
- */
-
 #define PFX DRIVER_NAME ": "
 
 MODULE_AUTHOR("Julian Lewis BE/CO/HT CERN");
@@ -24,11 +19,7 @@ MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Raw IO to VME");
 MODULE_SUPPORTED_DEVICE("Any VME device");
 
-/*
- * ==============================
- * Module parameter storage area
- * Indexed by minor device number
- */
+/* vcector parameters, one entry per lun */
 
 static unsigned int lun_num;
 static long lun[DRV_MAX_DEVICES];
@@ -50,8 +41,7 @@ static long vector[DRV_MAX_DEVICES];
 module_param_array(vector, long, &vector_num, S_IRUGO);
 MODULE_PARM_DESC(vector, "Interrupt vectors");
 
-/* Single value parameter handling */
-/* Usually the same for each lun.  */
+/* parameters common to all luns */
 
 static long level;
 module_param(level, long, S_IRUGO);
@@ -125,8 +115,6 @@ static struct vmeio_device devices[DRV_MAX_DEVICES];
 static dev_t vmeio_major;
 struct file_operations vmeio_fops;
 
-/* ================= */
-
 int check_minor(long num)
 {
 	if (num < 0 || num >= DRV_MAX_DEVICES) {
@@ -136,12 +124,6 @@ int check_minor(long num)
 	}
 	return 1;
 }
-
-/*
- * =========================================================
- * Interrupt service routine
- * =========================================================
- */
 
 static irqreturn_t vmeio_irq(void *arg)
 {
@@ -163,8 +145,6 @@ static irqreturn_t vmeio_irq(void *arg)
 	return IRQ_HANDLED;
 }
 
-/* ==================== */
-
 int register_isr(struct vmeio_device *dev, unsigned vector, unsigned level)
 {
 	int err;
@@ -182,12 +162,6 @@ void register_int_source(struct vmeio_device *dev, void *map, unsigned offset)
 	dev->isr_source_address = dev->maps[0].kernel_va + dev->isrc;
 	printk("SourceRegister:0x%p", dev->isr_source_address);
 }
-
-/*
- * =====================================================
- * Install
- * =====================================================
- */
 
 static int check_module_params(void)
 {
@@ -306,8 +280,6 @@ int vmeio_install(void)
 	return 0;
 }
 
-/* ==================== */
-
 void unregister_module(struct vmeio_device *dev)
 {
 	if (dev->vector)
@@ -317,12 +289,6 @@ void unregister_module(struct vmeio_device *dev)
 	if (dev->maps[1].kernel_va)
 		vme_release_mapping(&dev->maps[1], 1);
 }
-
-/*
- * =====================================================
- * Uninstall the driver
- * =====================================================
- */
 
 void vmeio_uninstall(void)
 {
@@ -334,11 +300,7 @@ void vmeio_uninstall(void)
 	unregister_chrdev(vmeio_major, DRIVER_NAME);
 }
 
-/*
- * =====================================================
- * Open
- * =====================================================
- */
+/* file operations */
 
 int vmeio_open(struct inode *inode, struct file *filp)
 {
@@ -351,12 +313,6 @@ int vmeio_open(struct inode *inode, struct file *filp)
 	return 0;
 }
 
-/*
- * =====================================================
- * Close
- * =====================================================
- */
-
 int vmeio_close(struct inode *inode, struct file *filp)
 {
 	long num;
@@ -367,12 +323,6 @@ int vmeio_close(struct inode *inode, struct file *filp)
 
 	return 0;
 }
-
-/*
- * =====================================================
- * Read
- * =====================================================
- */
 
 ssize_t vmeio_read(struct file * filp, char *buf, size_t count,
 		   loff_t * f_pos)
@@ -441,13 +391,6 @@ ssize_t vmeio_read(struct file * filp, char *buf, size_t count,
 	return sizeof(struct vmeio_read_buf_s);
 }
 
-/*
- * =====================================================
- * Write
- * Used to simulate interrupts
- * =====================================================
- */
-
 ssize_t vmeio_write(struct file * filp, const char *buf, size_t count,
 		    loff_t * f_pos)
 {
@@ -480,17 +423,6 @@ ssize_t vmeio_write(struct file * filp, const char *buf, size_t count,
 	wake_up(&dev->queue);
 	return sizeof(int);
 }
-
-/*
- * =====================================================
- * Ioctl
- * =====================================================
- */
-
-/*
- * ====================================================================
- * Debug routines
- */
 
 static char *ioctl_names[vmeioLAST - vmeioFIRST] = {
 	"Unknown IOCTL number",
@@ -749,10 +681,6 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 	return 0;
 }
 
-/*
- * =====================================================
- */
-
 int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		unsigned long arg)
 {
@@ -823,36 +751,36 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		break;
 #endif
 
-	case VMEIO_RAW_READ_DMA:   /** Raw read VME registers */
+	case VMEIO_RAW_READ_DMA:
 
 		cc = raw_dma(dev, arb, VME_DMA_FROM_DEVICE);
 		if (cc < 0)
 			goto out;
 		break;
 
-	case VMEIO_RAW_WRITE_DMA:  /** Raw write VME registers */
+	case VMEIO_RAW_WRITE_DMA:
 
 		cc = raw_dma(dev, arb, VME_DMA_TO_DEVICE);
 		if (cc < 0)
 			goto out;
 		break;
 
-	case VMEIO_READ_DMA:   /** Raw read VME registers */
-	case VMEIO_WRITE_DMA:  /** Raw write VME registers */
+	case VMEIO_READ_DMA:
+	case VMEIO_WRITE_DMA:
 
 		cc = do_raw_dma(arb);
 		if (cc < 0)
 			goto out;
 		break;
 
-	case VMEIO_RAW_READ:	   /** Raw read VME registers */
+	case VMEIO_RAW_READ:
 
 		cc = raw_read(dev, arb);
 		if (cc < 0)
 			goto out;
 		break;
 
-	case VMEIO_RAW_WRITE:	   /** Raw write VME registers */
+	case VMEIO_RAW_WRITE:
 		cc = raw_write(dev, arb);
 		if (cc < 0) 
 			goto out;
@@ -872,11 +800,7 @@ out:	kfree(arb);
 	return cc;
 }
 
-/* ===================================================== */
-
 static DEFINE_MUTEX(driver_mutex);
-
-/* ===================================================== */
 
 int vmeio_ioctl32(struct inode *inode, struct file *filp, unsigned int cmd,
 		  unsigned long arg)
