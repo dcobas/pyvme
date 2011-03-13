@@ -12,8 +12,6 @@
 #include "vmebus.h"
 #include "vmeio.h"
 
-#define TSI148_LCSR_DSTA_DON (1<<25)	/* DMA done */
-
 /*
  * ======================================================================
  * Static memory
@@ -493,10 +491,6 @@ ssize_t vmeio_write(struct file * filp, const char *buf, size_t count,
  * =====================================================
  */
 
-#define VME_NO_ADDR_INCREMENT 1
-#define DMA_BLOCK_SIZE        4096
-#define SAMPLES_IN_DMA_BLOCK  2048
-
 /*
  * ====================================================================
  * Debug routines
@@ -652,11 +646,6 @@ static int do_raw_dma(struct vmeio_dma_op *request)
 
 	if ((cc = vme_do_dma(&dma_desc)) < 0)
 		return cc;
-
-	if (!(dma_desc.status & TSI148_LCSR_DSTA_DON)) {
-		printk(PFX "DMA:NotDone:Status:0x%X\n", dma_desc.status);
-		return -EIO;
-	}
 
 	return 0;
 }
