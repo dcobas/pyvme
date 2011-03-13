@@ -189,7 +189,7 @@ static int check_module_params(void)
 }
 
 static int map(struct vme_mapping *desc, 
-	int base_address, int data_width, int am, int size)
+	unsigned base_address, unsigned data_width, unsigned am, unsigned size)
 {
 	desc->data_width = data_width;
 	desc->am = am;
@@ -204,27 +204,24 @@ static int map(struct vme_mapping *desc,
 
 int install_device(struct vmeio_device *dev, unsigned i)
 {
-	int cc = 0;
-
 	memset(dev, 0, sizeof(*dev));
 
 	dev->lun = lun[i];
 	dev->debug = DEBUG;
 
 	/* configure mmapped I/O */
-	printk(PFX "Mapping:Logical unit:%d\n", dev->lun);
-	if (base_address1_num != 0) {
-		cc = map(&dev->maps[0], base_address1[i],
-			data_width1, am1, size1);
-		if (cc)
-			goto out_map1;
+	if (base_address1_num && !map(&dev->maps[0], base_address1[i], 
+						data_width1, am1, size1)) {
+		printk(KERN_ERR PFX "could not map lun:%d, first space\n", 
+							dev->lun);
+		goto out_map1;
 	}
 
-	if (base_address2_num != 0) {
-		cc = map(&dev->maps[1], base_address2[i],
-			data_width2, am2, size2);
-		if (cc)
-			goto out_map2;
+	if (base_address2_num && !map(&dev->maps[1], base_address2[i], 
+						data_width2, am2, size2)) {
+		printk(KERN_ERR PFX "could not map lun:%d, second space\n",
+							dev->lun);
+		goto out_map2;
 	}
 
 	/* configure interrupt handling */
@@ -234,13 +231,15 @@ int install_device(struct vmeio_device *dev, unsigned i)
 	dev->timeout = msecs_to_jiffies(TIMEOUT);
 	dev->icnt = 0;
 	init_waitqueue_head(&dev->queue);
-	if (dev->level && dev->vector) {
-		cc = register_isr(dev, dev->vector, dev->level);
-		if (cc < 0)
+	if (dev->level && dev->vector && 
+		register_isr(dev, dev->vector, dev->level) < 0) {
+			printk(KERN_ERR PFX "could not register isr "
+				"for vector %d, level %d\n",
+				dev->vector, dev->level);
 			goto out_isr;
-		/* This will be eventually removed */
-		register_int_source(dev, dev->maps[0].kernel_va, dev->isrc);
 	}
+	/* This will be eventually removed */
+	register_int_source(dev, dev->maps[0].kernel_va, dev->isrc);
 
 	return 0;
 
