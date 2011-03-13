@@ -9,91 +9,77 @@
 #srce=/acc/src/dsc/drivers/cohtdrep/lewis/development-vmeio-drivers
 srce=/acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers
 
-encr=$srce/encore
+ENCORE_PATH=$srce/encore
 dsrc=$srce/vmeio
-ltar=`echo $1 | $encr/tolower`
-utar=`echo $1 | $encr/toupper`
-tnam=`echo $ltar"test"`
+tnam=`echo $LOWER_DEVNAME"test"`
 
-drvr=`pwd`/$ltar/driver
-supt=`pwd`/$ltar/support
-test=`pwd`/$ltar/support_test
-regs=`pwd`/$ltar/awk/regs
-ulib=`pwd`/$ltar/awk/lib
+drvr=`pwd`/$LOWER_DEVNAME/driver
+supt=`pwd`/$LOWER_DEVNAME/support
+test=`pwd`/$LOWER_DEVNAME/support_test
+regs=`pwd`/$LOWER_DEVNAME/awk/regs
+ulib=`pwd`/$LOWER_DEVNAME/awk/lib
 
 echo "drvencore [<driver name>] [<cpu type> [<kernel version> [<registers file>]]]"
 echo "drvencore " $1 " " $2 " " $3 " " $4
 echo
 sleep 1
 
-if [ $1 ]
-then
-   echo
-   echo Building directory ./$ltar
-   rm -rf ./$ltar.old
-   mv -f ./$ltar ./$ltar.old
-   cp -R $dsrc ./$ltar
-
-   if [ $2 ]
-   then
-      cpu=$2
-   else
-      cpu=L865
-   fi
-
-   if [ $3 ]
-   then
-      kver=$3
-   else
-      kver=2.6.24.7-rt27
-   fi
-
-   echo
-   echo "drvencore: Using CPU="$cpu " KVER="$kver
-   echo
-
-   if [ $4 ]
-   then
-      echo
-      echo Copying register names from $4 to $regs/$utar.regs
-      rm -f $regs/$utar.regs
-      cp $4 $regs/$utar.regs
-   else
-      echo
-      echo Extracting Oracle register definitions
-      cd $regs; ./makeregs.bat $utar
-   fi
-
-   echo
-   echo Building user driver parameters file and Kbuild
-   rm -f $drvr/user_driver_parameters.h
-   cat $dsrc/driver/user_driver_parameters.h | sed 's/vmeio/'$ltar'/g' > $drvr/user_driver_parameters.h
-   rm -f $drvr/Kbuild
-   cat $dsrc/driver/Kbuild | sed 's/vmeio/'$ltar'/g' > $drvr/Kbuild
-   rm -f $drvr/vmeio.c
-   cp $dsrc/driver/vmeio.c $drvr/$ltar.c
-
-   echo
-   echo Compiling driver
-   cd $drvr; make CPU=$cpu KVER=$kver clean; make CPU=$cpu KVER=$kver
-
-   echo
-   echo Compiling support library
-   cd $supt; make CPU=$cpu clean; make CPU=$cpu
-
-   echo
-   echo Compiling user library
-   cp $regs/$utar.regs $ulib
-   cd $ulib; ./makelib.bat $ltar $cpu
-
-   echo
-   echo Building test program
-   cp $regs/$utar.regs $test
-   cd $test; make CPU=$cpu clean; make CPU=$cpu
-   cd $test; rm -f $tnam
-   cd $test; echo "vmeiotest."$cpu $ltar > $tnam
-   cd $test; chmod +x $tnam
-else
-
-   cat $encr/README
+if [ x"$1" = x"" ]; then
+   cat $ENCORE_PATH/README
+   exit 1
 fi
+
+UPPER_DEVNAME=`echo $1 | tr '[a-z]' '[A-Z]'`
+LOWER_DEVNAME=`echo $1 | tr '[A-Z]' '[a-z]'`
+
+echo Building directory ./$LOWER_DEVNAME
+rm -rf ./$LOWER_DEVNAME.old
+mv -f ./$LOWER_DEVNAME ./$LOWER_DEVNAME.old
+cp -R $dsrc ./$LOWER_DEVNAME
+
+CPU=L865
+KVER=2.6.24.7-rt27
+if [ x"$2" != x"" ]; then
+  CPU=$2
+else
+if [ x"$3" != x"" ]; then
+  KVER=$3
+else
+fi
+
+echo "drvencore: Using CPU="$CPU " KVER="$KVER
+
+if [ x"$4" != x"" ]; then
+  echo Copying register names from $4 to $regs/$UPPER_DEVNAME.regs
+  rm -f $regs/$UPPER_DEVNAME.regs
+  cp $4 $regs/$UPPER_DEVNAME.regs
+else
+  echo Extracting Oracle register definitions
+  sh ./makeregs.bat $UPPER_DEVNAME
+fi
+
+echo Building user driver parameters file and Kbuild
+rm -f $drvr/user_driver_parameters.h
+cat $dsrc/driver/user_driver_parameters.h | sed 's/vmeio/'$LOWER_DEVNAME'/g' > $drvr/user_driver_parameters.h
+rm -f $drvr/Kbuild
+cat $dsrc/driver/Kbuild | sed 's/vmeio/'$LOWER_DEVNAME'/g' > $drvr/Kbuild
+rm -f $drvr/vmeio.c
+cp $dsrc/driver/vmeio.c $drvr/$LOWER_DEVNAME.c
+
+echo Compiling driver
+cd $drvr; make CPU=$CPU KVER=$KVER clean; make CPU=$CPU KVER=$KVER
+
+echo Compiling support library
+cd $supt; make CPU=$CPU clean; make CPU=$CPU
+
+echo Compiling user library
+cp $regs/$UPPER_DEVNAME.regs $ulib
+cd $ulib; ./makelib.bat $LOWER_DEVNAME $CPU
+
+echo Building test program
+cp $regs/$UPPER_DEVNAME.regs $test
+cd $test; make CPU=$CPU clean; make CPU=$CPU
+cd $test; rm -f $tnam
+cd $test; echo "vmeiotest."$CPU $LOWER_DEVNAME > $tnam
+cd $test; chmod +x $tnam
+
