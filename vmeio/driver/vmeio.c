@@ -17,8 +17,6 @@
  * Static memory
  */
 
-static int vmeio_major = 0;
-
 #define PFX DRIVER_NAME ": "
 
 MODULE_AUTHOR("Julian Lewis BE/CO/HT CERN");
@@ -124,7 +122,7 @@ struct vmeio_device {
 };
 
 static struct vmeio_device devices[DRV_MAX_DEVICES];
-
+static dev_t vmeio_major;
 struct file_operations vmeio_fops;
 
 /* ================= */
@@ -299,14 +297,12 @@ int vmeio_install(void)
 	}
 
 	/* Register driver */
-	cc = register_chrdev(vmeio_major, DRIVER_NAME, &vmeio_fops);
+	cc = register_chrdev(0, DRIVER_NAME, &vmeio_fops);
 	if (cc < 0) {
 		printk(PFX "Fatal:Error from register_chrdev [%d]\n", cc);
 		return cc;
 	}
-	if (vmeio_major == 0)
-		vmeio_major = cc;	/* dynamic */
-
+	vmeio_major = cc;
 	return 0;
 }
 
