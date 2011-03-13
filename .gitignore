@@ -7,3 +7,5 @@ Module.symvers
 cvorg
 ct
 ctypes
+.tmp_versions
+RCS

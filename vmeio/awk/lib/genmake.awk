@@ -11,7 +11,7 @@ BEGIN {
    print "LIBNAME = lib" tolower($1)
    print "REGFILE = " toupper($1) ".regs"
    print ""
-   print "CPU=L865"
+   print "CPU=" $2
    print ""
    print "include /ps/dsc/src/co/Make.auto"
    print ""

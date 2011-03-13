@@ -1,0 +1,118 @@
+#!/bin/sh
+
+# BE/CO/HT Julian Lewis Thu 27th/Jan/2011 julian.lewis@cern.ch
+# insencore driver, test and library installer.
+#
+#The three variables $SOURCE, $DELIVERY_DRV and $DELIVERY_LIB should be set to
+#point to the vmeio-drivers sources wherever we decide that should be,
+#the root destination directory where we install stuff, it can be changed
+#/tmp for testing; and finally the root directory for libraries and includes.
+#When testing with /tmp you should create the same directory tree as is in
+#the real $DELIVERY_DRV, ie /tmp/CPU/KVER etc. This script will not attempt to
+#create generic directories that should be already present.
+
+SOURCE=/acc/src/dsc/drivers/cohtdrep/lewis/vmeio-drivers
+#SOURCE=/acc/src/dsc/drivers/cohtdrep/lewis/development-vmeio-drivers
+DELIVERY_DRV=/acc/dsc
+#DELIVERY_DRV=/tmp
+DELIVERY_LIB=/acc/local
+#DELIVERY_LIB=/tmp
+
+ENCORESRC=$SOURCE/encore
+TARGET=`echo $1 | tr '[A-Z]' '[a-z]'`
+TESTNAME="${TARGET}test"
+LIBNAME="lib$TARGET"
+
+WDIR=`pwd`/$TARGET
+DRIVER=$WDIR/driver
+SUPPORT=$WDIR/support
+SUPPORT_TEST=$WDIR/support_test
+USERLIB=$WDIR/awk/lib/$TARGET
+INCLUDE=$WDIR/include
+INSTALL=$WDIR/awk/install
+SYSGO=$WDIR/awk/sysgo
+
+echo "insencore $*"
+sleep 1
+
+if [ $# -lt 1 ] ; then
+	echo "usage: $0 [<driver name>] [<cpu type> [<kernel version>] [<lab/oper/operlhc>]]]"
+   	cat $ENCORESRC/README
+	exit 1
+fi
+
+echo
+echo "Installing driver, library and test program from: " $WDIR
+
+# default script parameters
+CPU=L865
+KVER=2.6.24.7-rt27
+COMPLEX=lab
+
+# override by command-line settings
+if [ x"$2" != x"" ]; then
+	CPU=$2
+fi
+
+if [ x"$3" != x"" ]; then
+	KVER=$3
+fi
+
+if [ x"$4" != x"" ] ; then
+	COMPLEX=$4
+fi
+
+if [ ! -d $WDIR ] ; then
+	echo "No such directory $WDIR"
+	exit 1
+fi
+cd $WDIR
+
+echo
+echo "insencore: Using CPU="$CPU " KVER="$KVER " COMPLEX="$COMPLEX
+echo
+
+DRV_TARGET=$DELIVERY_DRV/$COMPLEX/$CPU/$KVER/$TARGET
+if [ -d $DRV_TARGET ]; then
+	echo "insencore: Using pre-existing driver target directory: " $DRV_TARGET
+else
+	echo "insencore: Creating driver target directory: " $DRV_TARGET
+	mkdir $DRV_TARGET
+	chmod g+w $DRV_TARGET
+fi
+
+echo "insencore: Installing: driver, sysgo and installer in " $DRV_TARGET
+dsc_install $DRIVER/$TARGET.ko $DRV_TARGET
+dsc_install $INSTALL/doinstall.bat geninstall.awk $DRV_TARGET
+dsc_install $SYSGO/dosysgo.bat callsysgo.awk sysgo $DRV_TARGET
+
+TST_TARGET=$DELIVERY_DRV/$COMPLEX/$CPU/$TARGET
+if [ -d $TST_TARGET ]; then
+	echo "insencore: Using pre-existing program target directory: " $TST_TARGET
+else
+	echo "insencore: Creating program target directory: " $TST_TARGET
+	mkdir $TST_TARGET
+	chmod g+w $TST_TARGET
+fi
+
+echo "insencore: Installing: test program files in " $TST_TARGET
+cd $SUPPORT_TEST; dsc_install vmeiotest.$CPU $TESTNAME vmeiotest.config $TST_TARGET
+
+LIB_TARGET=$DELIVERY_LIB/$CPU/drv/$TARGET
+if [ -d $LIB_TARGET ]; then
+	echo "insencore: Using pre-existing library target directory: " $LIB_TARGET
+else
+	echo "insencore: Creating library target directory: " $LIB_TARGET
+	mkdir $LIB_TARGET
+	chmod g+w $LIB_TARGET
+fi
+
+echo "insencore: Installing: libraries and include files in " $LIB_TARGET
+dsc_install $SUPPORT/vmeio_support.$CPU.a $LIB_TARGET
+dsc_install $SUPPORT/vmeio_support.h $LIB_TARGET
+dsc_install $USERLIB/$LIBNAME.$CPU.a $LIB_TARGET
+dsc_install $USERLIB/$LIBNAME.h $LIB_TARGET
+dsc_install $DRIVER/user_driver_parameters.h $LIB_TARGET
+dsc_install $DRIVER/vmeio.h $LIB_TARGET
+dsc_install $INCLUDE/vmebus.h $LIB_TARGET
+

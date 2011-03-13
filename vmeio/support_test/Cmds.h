@@ -119,7 +119,7 @@ static Cmd cmds[CmdCMDS] = {
    { CmdRMEM,    "rmem",  "Read from dev to memory"  ,"start,count"        ,RawRead           },
    { CmdWMEM,    "wmem",  "Write from memory to dev" ,"start,count"        ,RawWrite          },
    { CmdEMEM,    "emem",  "Alloc/Set/Edit memory"    ,"start/count,value"  ,EditMem           },
-   { CmdEREG,    "ereg",  "Edit registers"           ,"reg,val"            ,EditRegs          }
+   { CmdEREG,    "ereg",  "Edit registers"           ,"reg|name,val"       ,EditRegs          }
 
    };
 

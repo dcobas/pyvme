@@ -16,5 +16,21 @@ Example:
 
 more CVORB.regs
 
+============
+
+If you supply an extra split parameter value as follows ...
+
+./makeregs.bat <name> <value>
+
+all offset values less than the split parameter go in window 1
+all greater or equal offsets get put in window 2 ond the offset
+is adjusted by the split value.
+
+So if you call ./makeregs.bat CVORB 0x20
+then everything below 0x20 goes in window 1
+and all offsets greater than or equal get 0x20 subtracted
+and put in window 2.
+This is needed because of the brain dead way drivergen
+used to work with flat memory spaces ... don't ask !
 
 Julian
