@@ -136,6 +136,56 @@ def gen_c_file(register_list, libname):
     out.write(gen_lib_calls(register_list))
     out.close()
 
+def gen_regs(register_list, module_name):
+
+    rwmode_translate = {
+        "rw"	: "RW",
+        "rc"	: "RO",
+        "rc"	: "RO",
+        "r"	    : "RO",
+        "w" 	: "RW",
+        "rw"	: "RW",
+        "e"     : "WO",
+        "rc"	: "RO",
+        "rwc"	: "RW",
+    }
+
+    size_translate = {
+        'long'  : 4,
+        'short' : 2,
+        'char'  : 1,
+    }
+
+    row_template = ( "$\t%(register_name)-16s\t%(rwflags)2s\t"
+            "0x%(offset)08X\t%(size)d\t%(window)d\t%(depth)s\n")
+    regs = []
+    for register in register_list:
+        register_name = register['name']
+        rwflags = rwmode_translate[register['rwmode']]
+        offset = int(register['total_offset'])
+        size = int(size_translate[register['wordsize']])
+        window = 1
+        depth = int(register['depth'])
+        row = row_template % locals()
+        regs.append(row)
+    return ''.join(regs)
+
+def gen_regs_file(register_list, module_name):
+    """produce a .regs file"""
+
+    name = module_name.upper()
+    header = """NAME %s
+
+  RegName		RwFlags	Offset		Size	Window	Depth
+
+""" % name
+
+    upper_name = name.upper()
+    out = open(upper_name+'.regs', 'wb')
+    out.write(header)
+    out.write(gen_regs(register_list, upper_name))
+    out.close()
+
 def main():
 
     from pprint import pprint
@@ -147,6 +197,9 @@ def main():
                         metavar="FILE")
     parser.add_option("--csv", dest="csv", action="store",
                         help="create a CSV file with register data",
+                        metavar="FILE")
+    parser.add_option("--regs", action="store_true", dest="regs",
+                        help="create a .regs file for encore v1.0 compat",
                         metavar="FILE")
     parser.add_option("-q", "--quiet",
                       action="store_false", dest="verbose", default=True,
@@ -164,10 +217,14 @@ def main():
         gen_csv_file(register_list, options.csv)
     if options.plain:
         gen_plain_file(register_list, options.plain)
-    else:
-        gen_h_file(register_list, libname)
-        gen_c_file(register_list, libname)
+    if options.regs:
+        gen_regs_file(register_list, module_name)
+
+    # the lib is always generated
+    gen_h_file(register_list, libname)
+    gen_c_file(register_list, libname)
 
 if __name__ == '__main__':
 
     main()
+
