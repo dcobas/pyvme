@@ -15,7 +15,7 @@ field_list = [
     'register_offset',
     'total_offset',
     'wordsize',
-    'depth', 
+    'depth',
     ]
 
 query_template = '''
@@ -27,20 +27,20 @@ set pagesize 0;
 set pause off;
 set linesize 4000;
 set trims on;
-select name, 
-    rwmode, 
-    block, 
+select name,
+    rwmode,
+    block,
     mb.address as block_address_space,
     nvl(mb.offsetval,0) as block_offsetval,
     mr.offsetval as register_offset,
     mr.offsetval + nvl(mb.offsetval,0) as total_offset,
-    wordsize, 
+    wordsize,
     depthval as depth
-from moduleregisters mr join moduleblocks mb 
+from moduleregisters mr join moduleblocks mb
     using (block, moduletype_id)
-where moduletype_id = ( 
-    select hwtype_id 
-    from hard_types 
+where moduletype_id = (
+    select hwtype_id
+    from hard_types
     where hwtype = '%s' )
 order by block, block_offsetval, register_offset;
 QUERY'''
@@ -51,11 +51,11 @@ def get_register_data(module_name):
     query = query_template % module_name
     pipe =  Popen([query], shell=True, stdout=PIPE)
     out = pipe.communicate()[0]
-    return [ dict(zip(field_list, line.split())) 
-            for line in out.split('\n') 
+    return [ dict(zip(field_list, line.split()))
+            for line in out.split('\n')
             if line ]
 
-def make_plain_file(register_list, filename):
+def gen_plain_file(register_list, filename):
     """given a list of dicts with registers, construct a columnated file"""
 
     out = open(filename, 'wb')
@@ -65,12 +65,76 @@ def make_plain_file(register_list, filename):
         out.write('\n')
     out.close()
 
-def make_csv_file(register_list, filename):
+def gen_csv_file(register_list, filename):
     """given a list of dicts with registers, construct a CSV file"""
 
     out = csv.DictWriter(open(filename, 'wb'), field_list)
     for reg in register_list:
         out.writerow(reg)
+
+def gen_offsets(register_list):
+    """generate offset list #define's"""
+
+    define_template = "#define\t%(offset_name)-16s\t0x%(offset)08x\n"
+
+    defines = []
+    for register in register_list:
+        name = register['name']
+        offset = int(register['total_offset'])
+        offset_name = 'OFFSET_%s' % name
+        define = define_template % locals()
+        defines.append(define)
+    return ''.join(defines)
+
+def gen_lib_decls(register_list, prefix="vmeio"):
+    """produce declarations for the get/set user lib functions"""
+    decl_template = """
+int %(driver_name)s_set_%(register_name)s (struct vsl_device *handle, %(argtype)s value);"""
+    decls = []
+    for register in register_list:
+        driver_name = prefix
+        register_name = register['name']
+        argtype = register['wordsize']
+        decl = decl_template % locals()
+        decls.append(decl)
+    return ''.join(decls)
+
+def gen_lib_calls(register_list, prefix="vmeio"):
+    """produce code for the get/set user lib functions"""
+    call_template = """
+int %(driver_name)s_set_%(register_name)s(struct vsl_device *handle, %(argtype)s value) {
+    return usr_raw_write(%(offset_name)s, value);
+}
+"""
+    calls = []
+    for register in register_list:
+        driver_name = prefix
+        register_name = register['name']
+        argtype = register['wordsize']
+        offset_name = 'OFFSET_%s' % driver_name
+        call = call_template % locals()
+        calls.append(call)
+    return ''.join(calls)
+
+def gen_h_file(register_list, libname):
+    """produce a lib<module>.h user library header"""
+    h_file_header = """#include "vsl.h"\n\n"""
+
+    out = open(libname+'.h', 'wb')
+    out.write(h_file_header)
+    out.write(gen_offsets(register_list))
+    out.write('\n')
+    out.write(gen_lib_decls(register_list))
+    out.close()
+
+def gen_c_file(register_list, libname):
+    """produce a lib<module>.c user library module"""
+    c_file_header = """#include "%s.h"\n\n""" % libname
+
+    out = open(libname+'.c', 'wb')
+    out.write(c_file_header)
+    out.write(gen_lib_calls(register_list))
+    out.close()
 
 def main():
 
@@ -91,17 +155,18 @@ def main():
     (options, args) = parser.parse_args(argv)
 
     module_name = args[1]
+    libname = 'lib%s' % module_name.lower()
+
     register_list = get_register_data(module_name)
-    pprint(register_list)
-    registers = dict([ (regdata['name'], regdata) 
+    registers = dict([ (regdata['name'], regdata)
         for regdata in register_list ])
     if options.csv:
-        make_csv_file(register_list, options.csv)
+        gen_csv_file(register_list, options.csv)
     if options.plain:
-        make_plain_file(register_list, options.plain)
+        gen_plain_file(register_list, options.plain)
     else:
-        for reg in register_list:
-            print reg
+        gen_h_file(register_list, libname)
+        gen_c_file(register_list, libname)
 
 if __name__ == '__main__':
 
