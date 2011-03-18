@@ -186,12 +186,27 @@ def gen_regs_file(register_list, module_name):
     out.write(gen_regs(register_list, upper_name))
     out.close()
 
+def make_out_dir(dirname):
+    try:
+        isdir = stat.S_ISDIR(os.stat(dirname).st_mode)
+        kill = raw_input(dirname + ' already exists, remove? (y/N) ')
+        if kill != 'y':
+            return -errno.ENOENT
+        for root, dirs, files in os.walk(dirname, topdown=False):
+            for name in files:
+                os.remove(os.path.join(root, name))
+            for name in dirs:
+                os.rmdir(os.path.join(root, name))
+        os.rmdir(dirname)
+        return os.mkdir(dirname)
+    except OSError:
+        return os.mkdir(dirname)
+
 def main():
 
-    from pprint import pprint
-    from sys import argv
+    usage = 'usage: dbexctract.py [options] MODULE_NAME'
 
-    parser = OptionParser()
+    parser = OptionParser(usage=usage)
     parser.add_option("--plain", dest="plain", action="store",
                         help="create a plaintext file with register data",
                         metavar="FILE")
@@ -204,21 +219,34 @@ def main():
     parser.add_option("-q", "--quiet",
                       action="store_false", dest="verbose", default=True,
                       help="don't print status messages to stdout")
+    (options, args) = parser.parse_args(sys.argv)
 
-    (options, args) = parser.parse_args(argv)
+    if len(args) != 2:
+        parser.print_help()
+        sys.exit(1)
+    module_name = args[1].upper()
 
-    module_name = args[1]
+    output_dir = module_name.lower()
     libname = 'lib%s' % module_name.lower()
+    lib_filename = join(output_dir, libname)
+    make_filename = join(output_dir, 'Makefile')
+
+    if make_out_dir(output_dir):
+        print 'could not make output dir ' + output_dir
+        sys.exit(1)
 
     register_list = get_register_data(module_name)
     registers = dict([ (regdata['name'], regdata)
         for regdata in register_list ])
     if options.csv:
-        gen_csv_file(register_list, options.csv)
+        csv_filename = join(output_dir, options.csv)
+        gen_csv_file(register_list, csv_filename)
     if options.plain:
-        gen_plain_file(register_list, options.plain)
+        plain_filename =join(output_dir, options.plain)
+        gen_plain_file(register_list, plain_filename)
     if options.regs:
-        gen_regs_file(register_list, module_name)
+        regs_filename = join(output_dir, module_name)
+        gen_regs_file(register_list, regs_filename)
 
     # the lib is always generated
     gen_h_file(register_list, libname)
