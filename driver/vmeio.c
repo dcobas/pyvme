@@ -188,7 +188,7 @@ static int check_module_params(void)
 	return 0;
 }
 
-static int map(struct vme_mapping *desc, 
+static int map(struct vme_mapping *desc,
 	unsigned base_address, unsigned data_width, unsigned am, unsigned size)
 {
 	desc->data_width = data_width;
@@ -210,14 +210,14 @@ int install_device(struct vmeio_device *dev, unsigned i)
 	dev->debug = DEBUG;
 
 	/* configure mmapped I/O */
-	if (base_address1_num && !map(&dev->maps[0], base_address1[i], 
+	if (base_address1_num && map(&dev->maps[0], base_address1[i],
 						data_width1, am1, size1)) {
-		printk(KERN_ERR PFX "could not map lun:%d, first space\n", 
+		printk(KERN_ERR PFX "could not map lun:%d, first space\n",
 							dev->lun);
 		goto out_map1;
 	}
 
-	if (base_address2_num && !map(&dev->maps[1], base_address2[i], 
+	if (base_address2_num && map(&dev->maps[1], base_address2[i],
 						data_width2, am2, size2)) {
 		printk(KERN_ERR PFX "could not map lun:%d, second space\n",
 							dev->lun);
@@ -231,7 +231,8 @@ int install_device(struct vmeio_device *dev, unsigned i)
 	dev->timeout = msecs_to_jiffies(TIMEOUT);
 	dev->icnt = 0;
 	init_waitqueue_head(&dev->queue);
-	if (dev->level && dev->vector && 
+
+	if (dev->level && dev->vector &&
 		register_isr(dev, dev->vector, dev->level) < 0) {
 			printk(KERN_ERR PFX "could not register isr "
 				"for vector %d, level %d\n",
@@ -263,7 +264,7 @@ int vmeio_install(void)
 		if (install_device(&devices[i], i) == 0)
 			continue;
 		/* error, bail out */
-		printk(KERN_ERR PFX 
+		printk(KERN_ERR PFX
 			"ERROR: lun %d not installed, quitting\n",
 			devices[i].lun);
 		return -1;
@@ -341,7 +342,7 @@ ssize_t vmeio_read(struct file * filp, char *buf, size_t count,
 	dev = &devices[minor];
 
 	if (dev->debug) {
-		printk(PFX "read:count:%d minor:%d\n", 
+		printk(PFX "read:count:%d minor:%d\n",
 		       count, (int) minor);
 		if (dev->debug > 1) {
 			printk(PFX "read:timout:%d\n", dev->timeout);
@@ -781,7 +782,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 	case VMEIO_RAW_WRITE:
 		cc = raw_write(dev, arb);
-		if (cc < 0) 
+		if (cc < 0)
 			goto out;
 		break;
 
