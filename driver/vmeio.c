@@ -656,6 +656,11 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 		     mapx->am, dwidth, riob->bsize);
 	}
 
+#ifdef DEBUG
+	printk("RAW:READ:win:%d map:0x%p offs:0x%X amd:0x%2x dwd:%d len:%d\n",
+		     riob->mapnum, mapx->kernel_va, riob->offset,
+		     mapx->am, dwidth, riob->bsize);
+#endif
 	for (i = 0, j = riob->offset; i < riob->bsize; i += dwidth, j += dwidth) {
 		union vmeio_word *dst = (void *)&iob[i];
 		if (dwidth == 4)
@@ -664,6 +669,11 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 			dst->width2 = ioread16be(&map[j]);
 		else
 			dst->width1 = ioread8(&map[j]);
+#ifdef DEBUG
+		printk("RAW:READ:read %08x %04x %02x, real data width %d bits "
+			"vaddr = %p\n",
+			dst->width4, dst->width2, dst->width1, dwidth*8, &map[j]);
+#endif
 	}
 	cc = copy_to_user(riob->buffer, iob, riob->bsize);
 	kfree(iob);
@@ -701,6 +711,11 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 		     mapx->am, dwidth, riob->bsize);
 	}
 
+#ifdef DEBUG
+	printk("RAW:WRITE:win:%d map:0x%p ofs:0x%X amd:0x%2x dwd:%d len:%d\n",
+		     riob->mapnum, mapx->kernel_va, riob->offset,
+		     mapx->am, dwidth, riob->bsize);
+#endif
 	for (i = 0, j = riob->offset; i < riob->bsize; i += dwidth, j += dwidth) {
 		union vmeio_word *src = (void *)&iob[i];
 		if (dwidth == 4)
@@ -709,6 +724,11 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 			iowrite16be(src->width2, &map[j]);
 		else
 			iowrite8(src->width1, &map[j]);
+#ifdef DEBUG
+		printk("RAW:WRITE:writing %08x %04x %02x, real data width %d bits "
+			"vaddr = %p\n",
+			src->width4, src->width2, src->width1, dwidth*8, &map[j]);
+#endif
 	}
 	kfree(iob);
 	return 0;
