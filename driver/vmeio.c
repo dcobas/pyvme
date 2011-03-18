@@ -686,6 +686,10 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 #endif
 	for (i = 0, j = riob->offset; i < riob->bsize; i += dwidth, j += dwidth) {
 		union vmeio_word *dst = (void *)&iob[i];
+#ifdef DEBUG
+	printk(KERN_ERR PFX "ioread32be(&map[j] gives 0x%08x\n", 
+				ioread32be(&map[j]));
+#endif
 		if (dwidth == 4)
 			dst->width4 = ioread32be(&map[j]);
 		else if (dwidth == 2)
@@ -741,6 +745,10 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 #endif
 	for (i = 0, j = riob->offset; i < riob->bsize; i += dwidth, j += dwidth) {
 		union vmeio_word *src = (void *)&iob[i];
+#ifdef DEBUG
+	printk(KERN_ERR PFX "iowrite32be(0x%08x, &map[j]) gives 0x%08x\n", 
+				src->width4, ioread32be(&map[j]));
+#endif
 		if (dwidth == 4)
 			iowrite32be(src->width4, &map[j]);
 		else if (dwidth == 2)
