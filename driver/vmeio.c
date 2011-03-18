@@ -604,8 +604,31 @@ static int do_raw_dma(struct vmeio_dma_op *request)
 		dma_desc.dst.addrl = bl;
 		dma_desc.dst.addru = bu;
 	}
-
+#ifdef DEBUG
+	printk(KERN_ERR PFX "performing raw DMA operation:\n"
+		"    dma_desc.src.addru	 = 0x%08u\n"
+		"    dma_desc.src.addrl	 = 0x%08u\n"
+		"    dma_desc.dst.addru	 = 0x%08u\n"
+		"    dma_desc.dst.addrl	 = 0x%08u\n"
+		"    dma_desc.dst.am	 = 0x%08u\n"
+		"    dma_desc.dst.data_width = 0x%08u\n"
+		"    dma_desc.length	 = 0x%08u\n"
+		"    dma_desc.dir	 = 0x%08u\n"
+		"    dma_desc.novmeinc	 = 0x%08u\n",
+		dma_desc.src.addru,
+		dma_desc.src.addrl,
+		dma_desc.dst.addru,
+		dma_desc.dst.addrl,
+		dma_desc.dst.am,
+		dma_desc.dst.data_width,
+		dma_desc.length,
+		dma_desc.dir,
+		dma_desc.novmeinc);
+#endif
 	if ((cc = vme_do_dma(&dma_desc)) < 0)
+#ifdef DEBUG
+	printk(KERN_ERR PFX "dma cc = %d\n", cc);
+#endif
 		return cc;
 
 	return 0;
