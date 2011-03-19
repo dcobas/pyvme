@@ -585,7 +585,7 @@ static int raw_dma(struct vmeio_device *dev,
 	struct vmeio_dma_op req;
 
 	req.am = map->am;
-	req.data_width = 8*map->data_width;
+	req.data_width = map->data_width;
 	req.address = map->vme_addrl + riob->offset;
 	req.byte_length = riob->bsize;
 	req.buffer = riob->buffer;
