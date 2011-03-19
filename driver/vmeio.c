@@ -606,15 +606,15 @@ static int do_raw_dma(struct vmeio_dma_op *request)
 	}
 #ifdef DEBUG
 	printk(KERN_ERR PFX "performing raw DMA operation:\n"
-		"    dma_desc.src.addru	 = 0x%08u\n"
-		"    dma_desc.src.addrl	 = 0x%08u\n"
-		"    dma_desc.dst.addru	 = 0x%08u\n"
-		"    dma_desc.dst.addrl	 = 0x%08u\n"
-		"    dma_desc.dst.am	 = 0x%08u\n"
-		"    dma_desc.dst.data_width = 0x%08u\n"
-		"    dma_desc.length	 = 0x%08u\n"
-		"    dma_desc.dir	 = 0x%08u\n"
-		"    dma_desc.novmeinc	 = 0x%08u\n",
+		"    dma_desc.src.addru	 = 0x%08x\n"
+		"    dma_desc.src.addrl	 = 0x%08x\n"
+		"    dma_desc.dst.addru	 = 0x%08x\n"
+		"    dma_desc.dst.addrl	 = 0x%08x\n"
+		"    dma_desc.dst.am	 = 0x%08x\n"
+		"    dma_desc.dst.data_width = 0x%08x\n"
+		"    dma_desc.length	 = 0x%08x\n"
+		"    dma_desc.dir	 = 0x%08x\n"
+		"    dma_desc.novmeinc	 = 0x%08x\n",
 		dma_desc.src.addru,
 		dma_desc.src.addrl,
 		dma_desc.dst.addru,
