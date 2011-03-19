@@ -3,15 +3,16 @@
 #================================================================
 
 CPU=L865
-include /acc/dsc/src/co/Make.auto
+include /acc/dsc/src/co/Make.common
 
 COMPILE_TIME:=$(shell date +%s)
+LIB_PATH=../driver
 
-CFLAGS = -g -Wall -I. -I ../lib -I../include -I../driver -DCOMPILE_TIME=$(COMPILE_TIME)
+CFLAGS = -g -Wall -I $(LIB_PATH) -DCOMPILE_TIME=$(COMPILE_TIME)
 
-LDLIBS= ../lib/vmeio_support.L865.a
+LDLIBS= $(LIB_PATH)/vmeio_support.a
 
-ALL  = vmeiotest.$(CPU).o vmeiotest.$(CPU)
+ALL  = vmeiotest.o vmeiotest
 
 SRCS = vmeiotest.c VmeioCmds.c DoCmd.c GetAtoms.c Cmds.c
 
@@ -21,9 +22,9 @@ all: $(ALL)
 
 # Run on Workstation only
 
-vmeiotest.$(CPU).o: $(SRCS) $(HDRS)
+vmeiotest.o: $(SRCS) $(HDRS)
 
-vmeiotest.$(CPU): vmeiotest.$(CPU).o
+vmeiotest: vmeiotest.o
 
 clean:
-	rm -f *.o *.$(CPU)
+	rm -f *.o vmeiotest
