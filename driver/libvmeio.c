@@ -1,4 +1,5 @@
-#include <linux/ioctl.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include "vmeio.h"

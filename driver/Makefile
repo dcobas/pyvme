@@ -1,4 +1,5 @@
 CPU=L865
+include /acc/dsc/src/co/Make.common
 
 # KVER=2.6.24.7-rt21
 # KVER=2.6.24.7-rt27
@@ -9,14 +10,23 @@ KVER=2.6.24.7-rt27
 
 KERNELSRC=/acc/sys/$(CPU)/usr/src/kernels/$(KVER)
 DRIVER_NAME = "vmeio"
+COMPILE_TIME = $(shell date +%s)
 CFLAGS += -I /acc/local/L865/include/
+CFLAGS += -DCOMPILE_TIME=$(COMPILE_TIME) -g -Wall -fPIC
 
 all: libs modules
 
-libs: libvmeio.so
+libs: libvmeio.so vmeio_support.so vmeio_support.a
 
 libvmeio.so: libvmeio.o
 	$(CC) -shared -o $@ $^
+vmeio_support.so: vmeio_support.o
+	-$(RM) $@
+	$(CC) $(CFLAGS) -o $@ -shared $^
+vmeio_support.a: vmeio_support.o
+	-$(RM) $@
+	$(AR) $(ARFLAGS) $@ $^
+	$(RANLIB) $@
 
 doc:
 	pydoc -w ./pyvme.py
@@ -29,6 +39,5 @@ clean:
 	rm -f *.o *.a *.pyc *.so \
 		brka.aux brka.dvi brka.log
 	rm -f pyvme.html
-	rm -rf $(CPU)
 	make -C $(KERNELSRC) M=`pwd` clean
 
