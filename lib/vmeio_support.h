@@ -18,11 +18,11 @@
 
 struct __vsl_device {
 	int file;			/** File number */
-	int winum;			/** Window 1..2 */
+	int mapnum;			/** Window 1..2 */
 	int dmaflag;			/** Use DMA flag 0..1 */
 	int dmaswap;			/** Swap after DMA flag 0..1 */
 	int offset;			/** Block offset added to all addresses */
-	struct vmeio_get_window_s window;
+	struct vmeio_get_mapping_s mapping;
 };
 
 /*
@@ -54,7 +54,7 @@ void __vsl_close(struct __vsl_device *h);
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_get_version(struct __vsl_device *h, struct vmeio_version_s *ver);
+int __vsl_get_version(struct __vsl_device *h, int *ver);
 
 /**
  * ============================================
@@ -104,13 +104,13 @@ int __vsl_do_interrupt(struct __vsl_device *h, int *mask);
 
 /**
  * ============================================
- * Get a window descriptor for a given lun
+ * Get a complete descriptor for a given lun
  * @param handle returned from open
  * @param win pointer to your descriptor
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_get_window(struct __vsl_device *h, struct vmeio_get_window_s *win);
+int __vsl_get_mapping(struct __vsl_device *h, struct vmeio_get_mapping_s *win);
 
 /**
  * ============================================
@@ -151,13 +151,13 @@ int __vsl_wait(struct __vsl_device *h, struct vmeio_read_buf_s *event);
 /**
  * @brief Set default parameter for READ/WRITE REG calls
  * @param handle returned from open
- * @param winnum window number 1..2
+ * @param mapnum mapping number 1..2
  * @param dmaflag 0 use map 1 use DMA
  * @param dmaswap 0 not swap 1 swap
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_set_params(struct __vsl_device *h, int winnum, int dmaflag, int dmaswap);
+int __vsl_set_params(struct __vsl_device *h, int mapnum, int dmaflag, int dmaswap);
 
 /**
  * @brief read a register

@@ -34,7 +34,7 @@ static int  win     =  1;
 static int  dwd     =  4;
 static int  debug   =  0;
 static int  tmo     =  1000;
-struct vmeio_get_window_s winpars;
+struct vmeio_get_mapping_s winpars;
 
 static void *vmeio[DRV_MAX_DEVICES];
 
@@ -559,9 +559,9 @@ int n, radix, nadr;
 
 void get_window_parameters(int tlun) {
 
-   if (__vsl_get_window(vmeio[tlun],&winpars)) {
-      if (win == 2) dwd = winpars.dwd2;
-      else          dwd = winpars.dwd1;
+   if (__vsl_get_mapping(vmeio[tlun],&winpars)) {
+      if (win == 2) dwd = winpars.data_width2;
+      else          dwd = winpars.data_width1;
    }
 }
 
@@ -903,10 +903,10 @@ int DisplayDevicePars(int arg) {
    arg++;
    get_window_parameters(lun);
 
-   printf("lun:%02d lvl:%d vec:0x%02X\n",winpars.lun,winpars.lvl,winpars.vec);
-   printf("vme1:0x%06X amd1:0x%02X win1:0x%04X\n",winpars.vme1, winpars.amd1, winpars.win1);
-   printf("vme2:0x%06x amd2:0x%02X win2:0x%04X\n",winpars.vme2, winpars.amd2, winpars.win2);
-   printf("nmap:%d isrc:%d\n",winpars.nmap,winpars.isrc);
+   printf("lun:%02d level:%d vector:0x%02X\n",winpars.lun,winpars.level,winpars.vector);
+   printf("base_address1:0x%06X am1:0x%02X size1:0x%04X\n",winpars.base_address1, winpars.am1, winpars.size1);
+   printf("base_address2:0x%06x am2:0x%02X size2:0x%04X\n",winpars.base_address2, winpars.am2, winpars.size2);
+   printf("isrc:%d\n",winpars.isrc);
 
    return arg;
 }
@@ -951,7 +951,7 @@ int items, start, len;
       memlen = len;
    }
 
-   iob.winum  = win;
+   iob.mapnum  = win;
    iob.offset = start*dwd;
    iob.bsize  = items*dwd;
    iob.buffer = mem;
@@ -999,7 +999,7 @@ int items, start;
       return arg;
    }
 
-   iob.winum  = win;
+   iob.mapnum  = win;
    iob.offset = start*dwd;
    iob.bsize  = items*dwd;
    iob.buffer = mem;
@@ -1017,11 +1017,11 @@ int items, start;
 /* ============================= */
 
 int GetVersion(int arg) {
-struct vmeio_version_s ver;
+int ver;
 
    if (__vsl_get_version(vmeio[lun],&ver)) {
-      printf("Driver:  %s - %d\n",TimeToStr(ver.driver),  ver.driver);
-      printf("Library: %s - %d\n",TimeToStr(ver.library), ver.library);
+      printf("Driver: %s - %d\n", TimeToStr(ver),  ver);
+      /* printf("Library: %s - %d\n",TimeToStr(ver.library), ver.library); */
    } else
       printf("GetVersion:Error\n");
 

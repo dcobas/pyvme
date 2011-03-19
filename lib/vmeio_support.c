@@ -57,11 +57,11 @@ struct __vsl_device *__vsl_open_name(int lun, char *name)
 	memset(h, 0, sizeof(*h));
 
 	h->file = fnum;
-	h->winum = 1;
+	h->mapnum = 1;
 	h->dmaflag = 0;
 	h->offset = 0;
 
-	__vsl_get_window(h, &h->window);
+	__vsl_get_mapping(h, &h->mapping);
 
 	return h;
 }
@@ -86,14 +86,10 @@ void __vsl_close(struct __vsl_device *h)
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_get_version(struct __vsl_device *h, struct vmeio_version_s *ver)
+int __vsl_get_version(struct __vsl_device *h, int *ver)
 {
-	long vd;
-
-	if (ioctl(h->file, VMEIO_GET_VERSION, &vd) < 0)
+	if (ioctl(h->file, VMEIO_GET_VERSION, ver) < 0)
 		return 0;
-	ver->driver = vd;
-	ver->library = COMPILE_TIME;
 	return 1;
 }
 
@@ -195,9 +191,9 @@ int __vsl_get_debug(struct __vsl_device *h, int *level)
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_get_window(struct __vsl_device *h, struct vmeio_get_window_s *win)
+int __vsl_get_mapping(struct __vsl_device *h, struct vmeio_get_mapping_s *map)
 {
-	if (ioctl(h->file, VMEIO_GET_DEVICE, win) < 0)
+	if (ioctl(h->file, VMEIO_GET_DEVICE, map) < 0)
 		return 0;
 	return 1;
 }
@@ -215,7 +211,7 @@ int __vsl_raw(struct __vsl_device *h, struct vmeio_riob_s *buf, int flag)
 {
 	struct vmeio_riob_s cb;
 
-	cb.winum = buf->winum;
+	cb.mapnum = buf->mapnum;
 	cb.offset = buf->offset + h->offset;	/* Block offset */
 	cb.bsize = buf->bsize;
 	cb.buffer = buf->buffer;
@@ -239,10 +235,10 @@ static void __vsl_swap_buf(struct __vsl_device * h, struct vmeio_riob_s *buf)
 	int i, dwd;
 	char *cp, *bp, c;
 
-	if (h->winum == 2)
-		dwd = h->window.dwd2;
+	if (h->mapnum == 2)
+		dwd = h->mapping.data_width2;
 	else
-		dwd = h->window.dwd1;
+		dwd = h->mapping.data_width1;
 
 	bp = buf->buffer;
 
@@ -289,7 +285,7 @@ int __vsl_dma(struct __vsl_device *h, struct vmeio_riob_s *buf, int flag)
 {
 	struct vmeio_riob_s cb;
 
-	cb.winum = buf->winum;
+	cb.mapnum = buf->mapnum;
 	cb.offset = buf->offset + h->offset;	/* Block offset */
 	cb.bsize = buf->bsize;
 	cb.buffer = buf->buffer;
@@ -322,7 +318,7 @@ int __vsl_wait(struct __vsl_device *h, struct vmeio_read_buf_s *event)
 
 	cc = read(h->file, event, sizeof(struct vmeio_read_buf_s));
 	if (cc == -ETIME) {
-		event->logical_unit = h->window.lun;
+		event->logical_unit = h->mapping.lun;
 		event->interrupt_mask = 0;
 		return 1;
 	}
@@ -339,15 +335,15 @@ int __vsl_wait(struct __vsl_device *h, struct vmeio_read_buf_s *event)
 /**
  * @brief Set default parameter for DMA/READ/WRITE REG calls
  * @param handle returned from open
- * @param winnum window number 1..2
+ * @param winnum mapping number 1..2
  * @param dmaflag 0 use map 1 use DMA
  * @param dmaswap 0 no swap 1 swap
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_set_params(struct __vsl_device *h, int winum, int dmaflag, int dmaswap)
+int __vsl_set_params(struct __vsl_device *h, int mapnum, int dmaflag, int dmaswap)
 {
-	h->winum = winum;
+	h->mapnum = mapnum;
 	h->dmaflag = dmaflag;
 	h->dmaswap = dmaswap;
 	h->offset = 0;
@@ -371,12 +367,12 @@ int __vsl_read_reg(struct __vsl_device *h, int reg_num, int *reg_val)
 	long value = 0;
 	int dwd;
 
-	if (h->winum == 2)
-		dwd = h->window.dwd2;
+	if (h->mapnum == 2)
+		dwd = h->mapping.data_width2;
 	else
-		dwd = h->window.dwd1;
+		dwd = h->mapping.data_width1;
 
-	buf.winum = h->winum;
+	buf.mapnum = h->mapnum;
 	buf.offset = reg_num * dwd;
 	buf.bsize = dwd;
 	buf.buffer = &value;
@@ -409,12 +405,12 @@ int __vsl_write_reg(struct __vsl_device *h, int reg_num, int *reg_val)
 
 	value = *reg_val;
 
-	if (h->winum == 2)
-		dwd = h->window.dwd2;
+	if (h->mapnum == 2)
+		dwd = h->mapping.data_width2;
 	else
-		dwd = h->window.dwd1;
+		dwd = h->mapping.data_width1;
 
-	buf.winum = h->winum;
+	buf.mapnum = h->mapnum;
 	buf.offset = reg_num * dwd;
 	buf.bsize = dwd;
 	buf.buffer = &value;
