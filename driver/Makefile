@@ -11,7 +11,7 @@ KERNELSRC=/acc/sys/$(CPU)/usr/src/kernels/$(KVER)
 DRIVER_NAME = "vmeio"
 CFLAGS += -I /acc/local/L865/include/ -DDEBUG
 
-all: libs modules doc
+all: libs modules
 
 libs: libvmeio.so
 
