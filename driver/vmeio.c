@@ -595,9 +595,9 @@ static int raw_dma(struct vmeio_device *dev,
 }
 
 union vmeio_word {
-	int	width4;
-	short	width2;
-	char	width1;
+	unsigned int	width4;
+	unsigned short	width2;
+	unsigned char	width1;
 };
 
 
@@ -605,6 +605,7 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 {
 	struct vme_mapping *mapx = &dev->maps[riob->mapnum-1];
 	int dwidth = mapx->data_width;
+	int byte_dwidth = dwidth/8;
 	int i, j, cc;
 	char *map, *iob;
 
@@ -623,14 +624,16 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 		     mapx->am, dwidth, riob->bsize);
 	}
 
-	for (i = 0, j = riob->offset; i < riob->bsize; i += dwidth, j += dwidth) {
+	for (i = 0, j = riob->offset; i < riob->bsize; i += byte_dwidth, j += byte_dwidth) {
 		union vmeio_word *dst = (void *)&iob[i];
-		if (dwidth == 4)
+		if (dwidth == VME_D32)
 			dst->width4 = ioread32be(&map[j]);
-		else if (dwidth == 2)
+		else if (dwidth == VME_D16)
 			dst->width2 = ioread16be(&map[j]);
-		else
+		else if (dwidth == VME_D8)
 			dst->width1 = ioread8(&map[j]);
+		else
+			printk(KERN_ERR PFX "invalid data width %d\n", dwidth);
 	}
 	cc = copy_to_user(riob->buffer, iob, riob->bsize);
 	kfree(iob);
@@ -643,6 +646,7 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 {
 	struct vme_mapping *mapx = &dev->maps[riob->mapnum-1];	
 	int dwidth = mapx->data_width;
+	int byte_dwidth = dwidth/8;
 	int i, j, cc;
 	char *map, *iob;
 
@@ -668,14 +672,16 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 		     mapx->am, dwidth, riob->bsize);
 	}
 
-	for (i = 0, j = riob->offset; i < riob->bsize; i += dwidth, j += dwidth) {
+	for (i = 0, j = riob->offset; i < riob->bsize; i += byte_dwidth, j += byte_dwidth) {
 		union vmeio_word *src = (void *)&iob[i];
-		if (dwidth == 4)
+		if (dwidth == VME_D32)
 			iowrite32be(src->width4, &map[j]);
-		else if (dwidth == 2)
+		else if (dwidth == VME_D16)
 			iowrite16be(src->width2, &map[j]);
-		else
+		else if (dwidth == VME_D8)
 			iowrite8(src->width1, &map[j]);
+		else
+			printk(KERN_ERR PFX "invalid data width %d\n", dwidth);
 	}
 	kfree(iob);
 	return 0;
