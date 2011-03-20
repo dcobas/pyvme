@@ -16,7 +16,7 @@ CFLAGS += -DCOMPILE_TIME=$(COMPILE_TIME) -g -Wall -fPIC
 
 all: libs modules
 
-libs: vmeio_support.so vmeio_support.a
+libs: vmeio_support.so vmeio_support.a libencore.o
 
 pyvme: libvmeio.so doc
 
@@ -26,6 +26,10 @@ vmeio_support.so: vmeio_support.o
 	-$(RM) $@
 	$(CC) $(CFLAGS) -o $@ -shared $^
 vmeio_support.a: vmeio_support.o
+	-$(RM) $@
+	$(AR) $(ARFLAGS) $@ $^
+	$(RANLIB) $@
+libencore.a: libencore.o
 	-$(RM) $@
 	$(AR) $(ARFLAGS) $@ $^
 	$(RANLIB) $@
