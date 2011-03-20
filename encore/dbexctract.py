@@ -1,10 +1,15 @@
 #!   /usr/bin/env	python
 #    coding: utf8
 
-from subprocess import Popen, PIPE
+import sys
+import os
+import errno
+import stat
+import datetime
 import csv
+from subprocess import Popen, PIPE
+from os.path import join
 from optparse import OptionParser
-
 
 field_list = [
     'name',
@@ -89,7 +94,8 @@ def gen_offsets(register_list):
 def gen_lib_decls(register_list, prefix="vmeio"):
     """produce declarations for the get/set user lib functions"""
     decl_template = """
-int %(driver_name)s_set_%(register_name)s (struct vsl_device *handle, %(argtype)s value);"""
+int %(driver_name)s_set_%(register_name)s (struct __vsl_device *handle, %(argtype)s value);
+int %(driver_name)s_get_%(register_name)s (struct __vsl_device *handle, %(argtype)s *value);"""
     decls = []
     for register in register_list:
         driver_name = prefix
@@ -102,8 +108,12 @@ int %(driver_name)s_set_%(register_name)s (struct vsl_device *handle, %(argtype)
 def gen_lib_calls(register_list, prefix="vmeio"):
     """produce code for the get/set user lib functions"""
     call_template = """
-int %(driver_name)s_set_%(register_name)s(struct vsl_device *handle, %(argtype)s value) {
+int %(driver_name)s_set_%(register_name)s(struct __vsl_device *handle, %(argtype)s value) {
     return usr_raw_write(%(offset_name)s, value);
+}
+
+int %(driver_name)s_get_%(register_name)s(struct __vsl_device *handle, %(argtype)s *value) {
+    return usr_raw_read(%(offset_name)s, *value);
 }
 """
     calls = []
@@ -111,27 +121,27 @@ int %(driver_name)s_set_%(register_name)s(struct vsl_device *handle, %(argtype)s
         driver_name = prefix
         register_name = register['name']
         argtype = register['wordsize']
-        offset_name = 'OFFSET_%s' % driver_name
+        offset_name = 'OFFSET_%s' % register_name
         call = call_template % locals()
         calls.append(call)
     return ''.join(calls)
 
-def gen_h_file(register_list, libname):
+def gen_h_file(register_list, libname, filename):
     """produce a lib<module>.h user library header"""
-    h_file_header = """#include "vsl.h"\n\n"""
+    h_file_header = """#include "vmeio_support.h"\n\n"""
 
-    out = open(libname+'.h', 'wb')
+    out = open(filename, 'wb')
     out.write(h_file_header)
     out.write(gen_offsets(register_list))
     out.write('\n')
     out.write(gen_lib_decls(register_list))
     out.close()
 
-def gen_c_file(register_list, libname):
+def gen_c_file(register_list, libname, filename):
     """produce a lib<module>.c user library module"""
     c_file_header = """#include "%s.h"\n\n""" % libname
 
-    out = open(libname+'.c', 'wb')
+    out = open(filename, 'wb')
     out.write(c_file_header)
     out.write(gen_lib_calls(register_list))
     out.close()
@@ -186,12 +196,53 @@ def gen_regs_file(register_list, module_name):
     out.write(gen_regs(register_list, upper_name))
     out.close()
 
-def make_out_dir(dirname):
+def gen_makefile(lib_name, module_name, filename):
+    """produce a Makefile for the library"""
+
+    makefile_template = """
+# generated automatically by encore, date %(date)s
+
+LIBNAME = %(lib_name)s
+REGFILE = %(module_name)s.regs
+
+CPU=L865
+include /acc/dsc/src/co/Make.auto
+
+CFLAGS= -g -Wall -I. -I ../../driver
+SRCS=$(LIBNAME).c $(LIBNAME).h
+
+all: $(LIBNAME).$(CPU).a $(LIBNAME).$(CPU).so
+
+$(LIBNAME).$(CPU).o: $(SRCS)
+
+$(LIBNAME).$(CPU).a: $(LIBNAME).$(CPU).o
+\t-$(RM) $@
+\t$(AR) $(ARFLAGS) $@ $^
+\t$(RANLIB) $@
+
+$(LIBNAME).$(CPU).so: $(LIBNAME).$(CPU).o
+\t-$(RM) $@
+\t$(CC) $(CFLAGS) -o $@ -shared $^
+
+clean:
+\trm -f $(LIBNAME).$(CPU).o
+\trm -f $(LIBNAME).$(CPU).a
+\trm -f $(LIBNAME).$(CPU).so
+"""
+
+    date = datetime.datetime.now().isoformat(' ')
+    makefile = makefile_template % locals()
+    out = open(filename, 'wb')
+    out.write(makefile)
+    out.close()
+
+def make_out_dir(dirname, kill=False):
     try:
         isdir = stat.S_ISDIR(os.stat(dirname).st_mode)
-        kill = raw_input(dirname + ' already exists, remove? (y/N) ')
-        if kill != 'y':
+        if not kill and raw_input(dirname +
+                ' already exists, remove? (y/N) ') != 'y':
             return -errno.ENOENT
+
         for root, dirs, files in os.walk(dirname, topdown=False):
             for name in files:
                 os.remove(os.path.join(root, name))
@@ -204,6 +255,7 @@ def make_out_dir(dirname):
 
 def main():
 
+    # option processing
     usage = 'usage: dbexctract.py [options] MODULE_NAME'
 
     parser = OptionParser(usage=usage)
@@ -219,23 +271,34 @@ def main():
     parser.add_option("-q", "--quiet",
                       action="store_false", dest="verbose", default=True,
                       help="don't print status messages to stdout")
+    parser.add_option("-k", "--kill",
+                      action="store_true", dest="kill", default=False,
+                      help="kill destination directory if it exists")
     (options, args) = parser.parse_args(sys.argv)
 
+    # only positional parameter, module name
     if len(args) != 2:
         parser.print_help()
         sys.exit(1)
     module_name = args[1].upper()
 
+    # prepare output paths
     output_dir = module_name.lower()
     libname = 'lib%s' % module_name.lower()
-    lib_filename = join(output_dir, libname)
+    lib_filename = join(output_dir, libname + '.h')
+    c_filename = join(output_dir, libname + '.c')
     make_filename = join(output_dir, 'Makefile')
 
-    if make_out_dir(output_dir):
+    if make_out_dir(output_dir, options.kill):
         print 'could not make output dir ' + output_dir
         sys.exit(1)
 
     register_list = get_register_data(module_name)
+    if not register_list:
+        print 'no data for module %s in CCDB, exiting' % module_name
+        sys.exit(1)
+
+    # optional data files generation
     registers = dict([ (regdata['name'], regdata)
         for regdata in register_list ])
     if options.csv:
@@ -248,9 +311,10 @@ def main():
         regs_filename = join(output_dir, module_name)
         gen_regs_file(register_list, regs_filename)
 
-    # the lib is always generated
-    gen_h_file(register_list, libname)
-    gen_c_file(register_list, libname)
+    # library generation
+    gen_h_file(register_list, libname, lib_filename)
+    gen_c_file(register_list, libname, c_filename)
+    gen_makefile(libname, module_name, make_filename)
 
 if __name__ == '__main__':
 
