@@ -59,7 +59,6 @@ struct __vsl_device *__vsl_open_name(int lun, char *name)
 	h->file = fnum;
 	h->mapnum = 1;
 	h->dmaflag = 0;
-	h->offset = 0;
 
 	__vsl_get_mapping(h, &h->mapping);
 
@@ -212,7 +211,7 @@ int __vsl_raw(struct __vsl_device *h, struct vmeio_riob_s *buf, int flag)
 	struct vmeio_riob_s cb;
 
 	cb.mapnum = buf->mapnum;
-	cb.offset = buf->offset + h->offset;	/* Block offset */
+	cb.offset = buf->offset;
 	cb.bsize = buf->bsize;
 	cb.buffer = buf->buffer;
 
@@ -286,7 +285,7 @@ int __vsl_dma(struct __vsl_device *h, struct vmeio_riob_s *buf, int flag)
 	struct vmeio_riob_s cb;
 
 	cb.mapnum = buf->mapnum;
-	cb.offset = buf->offset + h->offset;	/* Block offset */
+	cb.offset = buf->offset;
 	cb.bsize = buf->bsize;
 	cb.buffer = buf->buffer;
 
@@ -346,7 +345,6 @@ int __vsl_set_params(struct __vsl_device *h, int mapnum, int dmaflag, int dmaswa
 	h->mapnum = mapnum;
 	h->dmaflag = dmaflag;
 	h->dmaswap = dmaswap;
-	h->offset = 0;
 	return 1;
 }
 
@@ -421,38 +419,4 @@ int __vsl_write_reg(struct __vsl_device *h, int reg_num, int *reg_val)
 		cc = __vsl_raw(h, &buf, 1);
 
 	return cc;
-}
-
-/**
- * ============================================
- * Basic support for BLOCKs needed in some modules
- * The offset is systematically added to the hardware address
- * so as to map the same set of registers onto different
- * addresses within the same logical unit.
- */
-
-/**
- * @brief Set global block offset
- * @param handle returned from open
- * @param offset to be applied
- * @return 1 = OK 0 = FAIL
- */
-
-int __vsl_set_offset(struct __vsl_device *h, int *offset)
-{
-	h->offset = *offset;
-	return 1;
-}
-
-/**
- * @brief Get global block offset
- * @param handle returned from open
- * @param will contain current offset
- * @return 1 = OK 0 = FAIL
- */
-
-int __vsl_get_offset(struct __vsl_device *h, int *offset)
-{
-	*offset = h->offset;
-	return 1;
 }

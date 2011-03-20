@@ -827,33 +827,6 @@ int ttmo;
 
 /* ============================= */
 
-int EditOffset(int arg) {
-ArgVal   *v;
-AtomType  at;
-
-int offset;
-int reg;
-
-   arg++;
-
-   v = &(vals[arg]);
-   at = v->Type;
-   if (at == Numeric) {
-      arg++;
-      reg = v->Number;
-      offset = reg * dwd;
-      __vsl_set_offset(vmeio[lun],&offset);
-   }
-
-   __vsl_get_offset(vmeio[lun],&offset);
-   reg = offset/dwd;
-
-   printf("BlockOffset:Register:%d RealOffset:0x%X\n",reg,offset);
-   return arg;
-}
-
-/* ============================= */
-
 int DoInterrupt(int arg) {
 ArgVal   *v;
 AtomType  at;

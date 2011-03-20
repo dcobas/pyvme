@@ -63,7 +63,6 @@ typedef enum {
    CmdLUN,     /* Edit Logical Unit Number */
    CmdDMAFL,   /* Edit raw DMA memory IO */
    CmdWIN,     /* Edit window number */
-   CmdOFFSET,  /* Edit block offset */
    CmdOPEN,    /* Open LUN */
 
    CmdDEBUG,   /* Edit LUN debug level */
@@ -107,7 +106,6 @@ static Cmd cmds[CmdCMDS] = {
    { CmdLUN,     "lun",   "Edit Logical Unit Number" ,"lun"                ,EditLun           },
    { CmdDMAFL,   "dma",   "Edit DMA flags"           ,"dma,swap"           ,EditDmaFlag       },
    { CmdWIN,     "win",   "Edit window number"       ,"window"             ,EditWindowNumber  },
-   { CmdOFFSET,  "offs",  "Edit block offset reg"    ,"regcount"           ,EditOffset        },
    { CmdOPEN,    "opn",   "Open LUN"                 ,""                   ,OpenLun           },
 
    { CmdDEBUG,   "deb",   "Edit LUN debug level"     ,"level"              ,EditDebug         },

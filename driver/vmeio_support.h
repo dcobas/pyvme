@@ -21,7 +21,6 @@ struct __vsl_device {
 	int mapnum;			/** Window 1..2 */
 	int dmaflag;			/** Use DMA flag 0..1 */
 	int dmaswap;			/** Swap after DMA flag 0..1 */
-	int offset;			/** Block offset added to all addresses */
 	struct vmeio_get_mapping_s mapping;
 };
 
@@ -178,25 +177,6 @@ int __vsl_read_reg(struct __vsl_device *h, int reg_num, int *reg_val);
  */
 
 int __vsl_write_reg(struct __vsl_device *h, int reg_num, int *reg_val);
-
-/**
- * ============================================
- * @brief Set global block offset
- * @param handle returned from open
- * @param offset to be applied
- * @return 1 = OK 0 = FAIL
- */
-
-int __vsl_set_offset(struct __vsl_device *h, int *offset);
-
-/**
- * @brief Get global block offset
- * @param handle returned from open
- * @param offset will contain current offset
- * @return 1 = OK 0 = FAIL
- */
-
-int __vsl_get_offset(struct __vsl_device *h, int *offset);
 
 #endif
 
