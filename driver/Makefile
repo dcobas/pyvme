@@ -16,7 +16,9 @@ CFLAGS += -DCOMPILE_TIME=$(COMPILE_TIME) -g -Wall -fPIC
 
 all: libs modules
 
-libs: libvmeio.so vmeio_support.so vmeio_support.a
+libs: vmeio_support.so vmeio_support.a
+
+pyvme: libvmeio.so doc
 
 libvmeio.so: libvmeio.o
 	$(CC) -shared -o $@ $^
