@@ -66,6 +66,7 @@ char tmpb[CMD_BUF_SIZE];
    if ((vmeio[lun] = __vsl_open_name(lun,dev_name)) == NULL) {
       printf("Warning: Can't open support library\n");
       perror(DRV_NAME);
+      exit(1);
    }
 
    memlen = 1024;
