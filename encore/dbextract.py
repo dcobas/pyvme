@@ -256,7 +256,7 @@ def make_out_dir(dirname, kill=False):
 def main():
 
     # option processing
-    usage = 'usage: dbexctract.py [options] MODULE_NAME'
+    usage = 'usage: dbextract.py [options] MODULE_NAME'
 
     parser = OptionParser(usage=usage)
     parser.add_option("--plain", dest="plain", action="store",
