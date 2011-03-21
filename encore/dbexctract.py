@@ -296,6 +296,7 @@ def main():
     register_list = get_register_data(module_name)
     if not register_list:
         print 'no data for module %s in CCDB, exiting' % module_name
+        os.rmdir(output_dir)
         sys.exit(1)
 
     # optional data files generation
