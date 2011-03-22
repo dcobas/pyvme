@@ -9,7 +9,7 @@ echo "Installing %(device_name)s driver..."
 INSMOD_ARGS=`awk -f transfer2insmod.awk %(device_name)s %(transfer)s`
 
 echo "installing %(driver_name)s by insmod $INSMOD_ARGS"
-insmod "$INSMOD_ARGS"
+insmod %(driver_name)s.ko "$INSMOD_ARGS"
 
 MAJOR=`cat /proc/devices | awk '$2 == "%(driver_name)s" {print $1}' %(transfer)s`
 if [ -z "$MAJOR" ]; then
@@ -51,5 +51,9 @@ def gen_install_script(device_name, driver_name,
         'level'		    	: '0xa5a5a5',
         'vectors_list'    	: '0xa5a5a5',
 }
+
+if (len(sys.argv) < 2):
+    print "usage: install.py DEVICE [DRIVER_NAME]"
+    sys.exit(1)
 
 print gen_install_script('RF_VTU', 'rf_vtu')
