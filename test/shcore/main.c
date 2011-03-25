@@ -86,15 +86,15 @@ int cexec(char *buffer)
 	return run;
 }
 
-int do_script(int argc, char *argv[])
+int do_script(char *filename)
 {
 	FILE *f;
 	int run;
 	char *str;
 	char buffer[BUFSIZE];
-	f = fopen(argv[1], "r");
+	f = fopen(filename, "r");
 	if (!f) {
-		printf("failed to open vmeiosh script: %s\n", argv[1]);
+		printf("failed to open vmeiosh script: %s\n", filename);
 		return 1;
 	}
 	while (run && fgets(buffer, sizeof(buffer), f) != NULL) {
@@ -107,6 +107,7 @@ int do_script(int argc, char *argv[])
 		while ((str = strtok(NULL, ";")) != NULL)
 			run = !cexec(str);
 	}
+	fclose(f);
 	return 0;
 }
 
@@ -125,13 +126,17 @@ int main(int argc, char *argv[])
 	add_command("driver", 'd', "Set driver name to use", &cmd_vmeio_driver);
 
 	/* we have a script being called */
-	if (argc > 1)
-		return do_script(argc, argv);
+	int i;
+	if (argc > 1) {
+		for (i = 1; i < argc; i++)
+			do_script(argv[i]);
+		return 0;
+	}
 
 	/* interactive mode */
 	printf("VMEIO Test Shell (Version %s)\n", VMEIO_SHELL_VERSION);
 	/* try opening .vmeiosh file for initial commands */
-
+	do_script(".vmeiorc");
 	/* go into shell loop */
 	do {
 		printf("> ");
