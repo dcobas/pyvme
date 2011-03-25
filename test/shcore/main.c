@@ -86,33 +86,31 @@ int cexec(char *buffer)
 	return run;
 }
 
-void my_getline(char *buf, int size)
+int do_script(int argc, char *argv[])
 {
-	int ptr = 0;
-	int c;
-	int set = 0;
-	while ((c = fgetc(stdin)) != '\n')
-	{
-		fflush(0);
-		printf("\nC=%d\n", c);
-		if (c == 97) {
-			fputc(c, stdout);
-			continue;
-		} else {
-			if (ptr >= size - 1) {
-				set = 1;
-				buf[size - 1] = '\0';
-				continue;
-			}
-			buf[ptr++] = c;
-		}
+	FILE *f;
+	int run;
+	char *str;
+	char buffer[BUFSIZE];
+	f = fopen(argv[1], "r");
+	if (!f) {
+		printf("failed to open vmeiosh script: %s\n", argv[1]);
+		return 1;
 	}
-	if (!set)
-		buf[ptr] = '\0';
-	return;
+	while (run && fgets(buffer, sizeof(buffer), f) != NULL) {
+		/* get rid of trailing newline if any */
+		if (buffer[strlen(buffer) - 1] == '\n')
+			buffer[strlen(buffer) - 1] = '\0';
+		/* run the commands in the line */
+		str = strtok(buffer, ";");
+		run = !cexec(str);
+		while ((str = strtok(NULL, ";")) != NULL)
+			run = !cexec(str);
+	}
+	return 0;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
 	int run = 1;
 	char buffer[BUFSIZE];
@@ -126,8 +124,16 @@ int main()
 	add_command("open", 'o', "Open a device by LUN", &cmd_vmeio_open);
 	add_command("driver", 'd', "Set driver name to use", &cmd_vmeio_driver);
 
+	/* we have a script being called */
+	if (argc > 1)
+		return do_script(argc, argv);
+
+	/* interactive mode */
 	printf("VMEIO Test Shell (Version %s)\n", VMEIO_SHELL_VERSION);
-	while (run) {
+	/* try opening .vmeiosh file for initial commands */
+
+	/* go into shell loop */
+	do {
 		printf("> ");
 		fgets(buffer, BUFSIZE - 1, stdin);
 		/* get rid of trailing newline if any */
@@ -138,7 +144,7 @@ int main()
 		run = !cexec(str);
 		while ((str = strtok(NULL, ";")) != NULL)
 			run = !cexec(str);
-	}
+	} while (run);
 	free_commands();
 	return 0;
 }
