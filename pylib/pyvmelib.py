@@ -82,6 +82,10 @@ VME_D16	= 16
 VME_D32	= 32
 VME_D64	= 64
 
+# vme dma direction
+VME_DMA_TO_DEVICE = 1
+VME_DMA_FROM_DEVICE = 2
+
 # vme_2esst_mode's
 VME_SST160, VME_SST267, VME_SST320  = range(3)
 
@@ -167,10 +171,64 @@ if __name__ == '__main__':
 
         return lib.vme_map(byref(mapping), 1)
 
+    def vme_dma_read(vme_addr, am, ptr, size):
+        desc = vme_dma();
+        desc.dir = VME_DMA_FROM_DEVICE
+        desc.length = size
+        desc.dst.addru = 0
+        desc.dst.addrl = ptr
+        desc.src.addru = 0
+        desc.src.addrl = vme_addr
+        desc.src.am = am
+        desc.src.v2esst_mode = VME_SST160
+        desc.src.data_width = VME_D32
+        desc.ctrl.pci_block_size = VME_DMA_BSIZE_2048
+        desc.ctrl.pci_backoff_time = VME_DMA_BACKOFF_0
+        desc.ctrl.vme_block_size = VME_DMA_BSIZE_2048
+        desc.ctrl.vme_backoff_time = VME_DMA_BACKOFF_0
+
+        return lib.vme_dma_read(byref(desc))
+
+    def vme_dma_write(vme_addr, am, ptr, size):
+        desc = vme_dma();
+        desc.dir = VME_DMA_TO_DEVICE
+        desc.length = size
+        desc.src.addru = 0
+        desc.src.addrl = ptr
+        desc.dst.addru = 0
+        desc.dst.addrl = addr
+        desc.dst.am = am
+        desc.dst.v2esst_mode = VME_SST160
+        desc.dst.data_width = VME_D32
+        desc.ctrl.pci_block_size = VME_DMA_BSIZE_2048
+        desc.ctrl.pci_backoff_time = VME_DMA_BACKOFF_0
+        desc.ctrl.vme_block_size = VME_DMA_BSIZE_2048
+        desc.ctrl.vme_backoff_time = VME_DMA_BACKOFF_0
+
+        return lib.vme_dma_write(byref(desc))
+
     addr = vme_map(am=0x9, data_width=VME_D32, base_address=0x10000000, size=0x10000)
     print 'Mapped at userspace vaddr 0x%08x' % addr
     p = cast(addr, POINTER(c_uint))
     for i in range(20):
         print 'register[%2d] = 0x%08x' % (i, swap32be(p[i]),)
-    
 
+    wval = c_ulong(0xBABEBABE)
+    p_wval = id(wval)
+    rval = c_ulong(42)
+    p_rval = id(rval)
+    addr = 0x10000000
+    amod_r = 0x9
+    amod_w = 0x9
+    sz = 2
+    ret = vme_dma_write(vme_addr=addr, am=amod_w, ptr=p_wval, size=sz)
+    if (ret == -1):
+        print 'Failed to do DMA read'
+    else:
+        print 'Written: 0x%08x' % wval.value
+    ret = vme_dma_read(vme_addr=0x10000000, am=amod_r, ptr=p_rval, size=sz)
+    print ret
+    if (ret != 0):
+        print 'Failed to do DMA write'
+    else:
+        print 'Read: 0x%08x' % rval.value

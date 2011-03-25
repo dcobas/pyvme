@@ -11,4 +11,4 @@ pp.so: pp.o
 	$(CC) -shared $^ -o $@
 
 clean:
-	rm -f *.o *.a
+	rm -f *.o *.a *.so
