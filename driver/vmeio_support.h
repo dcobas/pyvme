@@ -14,6 +14,7 @@
 
 /**
  * Internal open file structure used only by the support library
+ * and the module library
  */
 
 struct __vsl_device {
