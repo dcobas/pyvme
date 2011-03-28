@@ -117,13 +117,13 @@ int main(int argc, char *argv[])
 	char buffer[BUFSIZE];
 	char *str;
 
-	add_command("help", 'h', "Print this help information", &cmd_help);
-	add_command("quit", 'q', "Exit from vmeio test shell", &cmd_quit);
-	add_command("sh", 'b', "Run a shell command (b = bash)", &cmd_sh);
-	add_command("version", 'v', "Get the version of a given device", &cmd_vmeio_version);
-	add_command("set", 's', "Set a device parameter", &cmd_vmeio_set);
-	add_command("open", 'o', "Open a device by LUN", &cmd_vmeio_open);
-	add_command("driver", 'd', "Set driver name to use", &cmd_vmeio_driver);
+	add_command("help", 'h', "Print this help information", &cmd_help, NULL, NULL);
+	add_command("quit", 'q', "Exit from vmeio test shell", &cmd_quit, NULL, NULL);
+	add_command("sh", 'b', "Run a shell command (b = bash)", &cmd_sh, NULL, NULL);
+	add_command("get", 'g', "Get a device parameter", &cmd_vmeio_get, NULL, NULL);
+	add_command("set", 's', "Set a device parameter", &cmd_vmeio_set, NULL, NULL);
+	add_command("open", 'o', "Open a device by LUN", &cmd_vmeio_open, NULL, NULL);
+	add_command("driver", 'd', "Set driver name to use", &cmd_vmeio_driver, NULL, NULL);
 
 	/* we have a script being called */
 	int i;

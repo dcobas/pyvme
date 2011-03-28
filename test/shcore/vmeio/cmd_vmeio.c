@@ -128,7 +128,7 @@ int set_dma(int argc, char *argv[])
 int set_debug(int argc, char *argv[])
 {
 	int lun;
-	int debug, debug2;
+	int debug;
 	if (argc != 4) {
 		printf("usage: %s LUN debug VALUE\n", argv[0]);
 		printf("VALUE: debug level\n");
@@ -145,22 +145,19 @@ int set_debug(int argc, char *argv[])
 	}
 	debug = atoi(argv[3]);
 	debug = (debug < 0) ? 0 : debug;
-	if (__vsl_set_debug(devices[lun]->device, &debug)) {
-		if (__vsl_get_debug(devices[lun]->device, &debug2)) {
-			if (debug == debug2) {
-				devices[lun]->debug = debug;
-				printf("debug for device %d set to %d\n", lun, debug);
-			} else
-				printf("failed to set debug level\n");
-		}
+	if (!__vsl_set_debug(devices[lun]->device, &debug)) {
+		printf("failed to set debug level\n");
+		return 0;
 	}
+	devices[lun]->debug = debug;
+	printf("debug for device %d set to %d\n", lun, debug);
 	return 0;
 }
 
 int set_timeout(int argc, char *argv[])
 {
 	int lun;
-	int timeout, timeout2;
+	int timeout;
 	if (argc != 4) {
 		printf("usage: %s LUN timeout VALUE\n", argv[0]);
 		printf("VALUE: timeout in msec\n");
@@ -177,15 +174,12 @@ int set_timeout(int argc, char *argv[])
 	}
 	timeout = atoi(argv[3]);
 	timeout = (timeout < 0) ? 0 : timeout;
-	if (__vsl_set_timeout(devices[lun]->device, &timeout)) {
-		if (__vsl_get_timeout(devices[lun]->device, &timeout2)) {
-			if (timeout == timeout2) {
-				devices[lun]->timeout = timeout;
-				printf("timeout for device %d set to %d\n", lun, timeout);
-			} else
-				printf("failed to set timeout\n");
-		}
+	if (!__vsl_set_timeout(devices[lun]->device, &timeout)) {
+		printf("failed to set timeout\n");
+		return 0;
 	}
+	devices[lun]->timeout = timeout;
+	printf("timeout for device %d set to %d\n", lun, timeout);
 	return 0;
 }
 
@@ -222,13 +216,13 @@ int cmd_vmeio_set(int argc, char *argv[])
 		printf("%s: usage: %s LUN [dma|debug|timeout|window] ARGS\n", argv[0], argv[0]);
 		return 0;
 	}
-	if (strncmp(argv[2], "dma", strlen("dma")) == 0)
+	if (strcmp(argv[2], "dma") == 0)
 		return set_dma(argc, argv);
-	else if (strncmp(argv[2], "debug", strlen("debug")) == 0)
+	else if (strcmp(argv[2], "debug") == 0)
 		return set_debug(argc, argv);
-	else if (strncmp(argv[2], "timeout", strlen("timeout")) == 0)
+	else if (strcmp(argv[2], "timeout") == 0)
 		return set_timeout(argc, argv);
-	else if (strncmp(argv[2], "window", strlen("window")) == 0)
+	else if (strcmp(argv[2], "window") == 0)
 		return set_window(argc, argv);
 	else {
 		printf("invalid parameter: %s\n", argv[2]);
@@ -236,12 +230,32 @@ int cmd_vmeio_set(int argc, char *argv[])
 	}
 }
 
-int cmd_vmeio_version(int argc, char *argv[])
+int get_wparm(int argc, char *argv[])
 {
 	int lun;
-	int ver;
-	if (argc != 2) {
-		printf("usage: %s LUN\n", argv[0]);
+	struct vmeio_get_mapping_s wp;
+
+#if 0
+	/* Reference */
+	struct vmeio_get_mapping_s {
+		int lun;     /* Logical unit number */
+		int level;     /* Interrupt level */
+		int vector;     /* Interrupt vector */
+		int base_address1;    /* First VME base address */
+		int base_address2;    /* Second VME base address or zero */
+	
+		int am1;     /* First address modifier */
+		int am2;    /* Second address modifier or zero */
+		int data_width1;    /* First data width */
+		int data_width2;    /* Second data width or zero */
+		int size1;   /* First map size */
+		int size2;   /* Second map size or zero */
+		int isrc;    /* Offset of isrc in vme1 to be read in the isr */
+	};
+#endif
+
+	if (argc != 3) {
+		printf("usage: %s LUN wparm\n", argv[0]);
 		return 0;
 	}
 	lun = atoi(argv[1]);
@@ -253,10 +267,151 @@ int cmd_vmeio_version(int argc, char *argv[])
 		printf("device with LUN %d not opened\n", lun);
 		return 0;
 	}
-	if (__vsl_get_version(devices[lun]->device, &ver)) {
-		printf("driver version for LUN %d: %d\n", lun, ver);
+	if (!__vsl_get_mapping(devices[lun]->device, &wp)) {
+		printf("failed to get window parameters for LUN %d\n", lun);
+		return 0;
+	}
+	printf("window parameters for LUN %d:\n", lun);
+	if (devices[lun]->window == 2) {
+		printf("interrupt level: %d\n", wp.level);
+		printf("interrupt vector: %d\n", wp.vector);
+		printf("base addr: %08x\n", wp.base_address2);
+		printf("address mod: %02x\n", wp.am2);
+		printf("data width: %d\n", wp.data_width2);
+		printf("mapping size: %d\n", wp.size2);
+		devices[lun]->dwidth = wp.data_width2;
 	} else {
-		printf("failed to get version for LUN %d\n", lun);
+		printf("interrupt level: %d\n", wp.level);
+		printf("interrupt vector: %d\n", wp.vector);
+		printf("base addr: %08x\n", wp.base_address1);
+		printf("address mod: %02x\n", wp.am1);
+		printf("data width: %d\n", wp.data_width1);
+		printf("mapping size: %d\n", wp.size1);
+		devices[lun]->dwidth = wp.data_width1;
 	}
 	return 0;
+}
+
+int get_debug(int argc, char *argv[])
+{
+	int lun;
+	int debug;
+	if (argc != 3) {
+		printf("usage: %s LUN debug\n", argv[0]);
+		return 0;
+	}
+	lun = atoi(argv[1]);
+	if (lun < 0 || lun >= VMEIO_MAX_DEVICES) {
+		printf("invalid lun %d\n", lun);
+		return 0;
+	}
+	if (!devices[lun]) {
+		printf("device with LUN %d not opened\n", lun);
+		return 0;
+	}
+	if (!__vsl_get_debug(devices[lun]->device, &debug)) {
+		printf("failed to get debug level for LUN %d\n", lun);
+		return 0;
+	}
+	printf("debug level for LUN %d: %d\n", lun, debug);
+	devices[lun]->debug = debug;
+	return 0;
+}
+
+int get_timeout(int argc, char *argv[])
+{
+	int lun;
+	int timeout;
+	if (argc != 3) {
+		printf("usage: %s LUN timeout\n", argv[0]);
+		return 0;
+	}
+	lun = atoi(argv[1]);
+	if (lun < 0 || lun >= VMEIO_MAX_DEVICES) {
+		printf("invalid lun %d\n", lun);
+		return 0;
+	}
+	if (!devices[lun]) {
+		printf("device with LUN %d not opened\n", lun);
+		return 0;
+	}
+	if (!__vsl_get_timeout(devices[lun]->device, &timeout)) {
+		printf("failed to get timeout for LUN %d\n", lun);
+		return 0;
+	}
+	printf("timeout for LUN %d: %d msec\n", lun, timeout);
+	devices[lun]->timeout = timeout;
+	return 0;
+}
+
+int get_window(int argc, char *argv[])
+{
+	int lun;
+	if (argc != 3) {
+		printf("usage: %s LUN window\n", argv[0]);
+		return 0;
+	}
+	lun = atoi(argv[1]);
+	if (lun < 0 || lun >= VMEIO_MAX_DEVICES) {
+		printf("invalid lun %d\n", lun);
+		return 0;
+	}
+	if (!devices[lun]) {
+		printf("device with LUN %d not opened\n", lun);
+		return 0;
+	}
+	printf("window number for LUN %d: %d\n", lun, devices[lun]->window);
+	return 0;
+}
+
+
+int get_version(int argc, char *argv[])
+{
+	int lun;
+	int ver;
+	if (argc != 3) {
+		printf("usage: %s LUN version\n", argv[0]);
+		return 0;
+	}
+	lun = atoi(argv[1]);
+	if (lun < 0 || lun >= VMEIO_MAX_DEVICES) {
+		printf("invalid lun %d\n", lun);
+		return 0;
+	}
+	if (!devices[lun]) {
+		printf("device with LUN %d not opened\n", lun);
+		return 0;
+	}
+	if (!__vsl_get_version(devices[lun]->device, &ver)) {
+		printf("failed to get version for LUN %d\n", lun);
+		return 0;
+	}
+	printf("driver version for LUN %d: %d\n", lun, ver);
+	return 0;
+}
+
+int cmd_vmeio_get(int argc, char *argv[])
+{
+	if (argc < 3) {
+		printf("%s: usage: %s LUN [wparm|debug|timeout|window|version]\n", argv[0], argv[0]);
+		return 0;
+	}
+	if (strcmp(argv[2], "wparm") == 0)
+		return get_wparm(argc, argv);
+	else if (strcmp(argv[2], "debug") == 0)
+		return get_debug(argc, argv);
+	else if (strcmp(argv[2], "timeout") == 0)
+		return get_timeout(argc, argv);
+	else if (strcmp(argv[2], "window") == 0)
+		return get_window(argc, argv);
+	else if (strcmp(argv[2], "version") == 0)
+		return get_version(argc, argv);
+	else {
+		printf("invalid parameter: %s\n", argv[2]);
+		return 0;
+	}
+}
+
+int cmd_vmeio_read(int argc, char *argv[])
+{
 }

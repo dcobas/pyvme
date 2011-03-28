@@ -6,7 +6,7 @@
 
 struct shell_cmd *cmd_list = NULL;
 
-int add_command(char *name, char sname, char *desc, command_t cmd)
+int add_command(char *name, char sname, char *desc, command_t cmd, init_t init, exit_t exit)
 {
 	struct shell_cmd *command;
 	if (!name || !cmd)
@@ -32,6 +32,8 @@ int add_command(char *name, char sname, char *desc, command_t cmd)
 	command->sname = sname;
 	command->cmd = cmd;
 	command->next = NULL;
+	command->init = init;
+	command->exit = exit;
 	if (!cmd_list) {
 		cmd_list = command;
 	} else {

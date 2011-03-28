@@ -4,6 +4,6 @@
 int cmd_vmeio_open(int argc, char *argv[]);
 int cmd_vmeio_driver(int argc, char *argv[]);
 int cmd_vmeio_set(int argc, char *argv[]);
-int cmd_vmeio_version(int argc, char *argv[]); /* replace with 'get' command? */
+int cmd_vmeio_get(int argc, char *argv[]);
 
 #endif

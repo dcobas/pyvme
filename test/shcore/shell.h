@@ -17,7 +17,7 @@ struct shell_cmd {
 
 extern struct shell_cmd *cmd_list;
 
-int add_command(char *name, char sname, char *desc, command_t cmd);
+int add_command(char *name, char sname, char *desc, command_t cmd, init_t init, exit_t exit);
 struct shell_cmd *get_command(char *name);
 struct shell_cmd *get_command_char(char name);
 void free_commands();
