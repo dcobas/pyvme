@@ -628,7 +628,6 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 		union vmeio_word *dst = (void *)&iob[i];
 		if (dwidth == VME_D32) {
 			dst->width4 = ioread32be(&map[j]);
-			printk("hello, %x %x\n", dst->width4, &map[j]);
 		} else if (dwidth == VME_D16)
 			dst->width2 = ioread16be(&map[j]);
 		else if (dwidth == VME_D8)
