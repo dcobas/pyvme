@@ -581,7 +581,7 @@ static int do_raw_dma(struct vmeio_dma_op *request)
 static int raw_dma(struct vmeio_device *dev,
 	struct vmeio_riob_s *riob, enum vme_dma_dir direction)
 {
-	struct vme_mapping *map = &dev->maps[riob->mapnum];
+	struct vme_mapping *map = &dev->maps[riob->mapnum - 1];
 	struct vmeio_dma_op req;
 
 	req.am = map->am;
