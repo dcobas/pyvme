@@ -113,16 +113,17 @@ struct vmeio_device {
 
 static struct vmeio_device devices[DRV_MAX_DEVICES];
 static dev_t vmeio_major;
-struct file_operations vmeio_fops;
+
+static DEFINE_MUTEX(driver_mutex);
 
 int check_minor(long num)
 {
 	if (num < 0 || num >= DRV_MAX_DEVICES) {
 		printk(PFX "minor:%d ", (int) num);
 		printk("BAD not in [0..%d]\n", DRV_MAX_DEVICES - 1);
-		return 0;
+		return -1;
 	}
-	return 1;
+	return 0;
 }
 
 static irqreturn_t vmeio_irq(void *arg)
@@ -202,7 +203,7 @@ static int map(struct vme_mapping *desc,
 	return vme_find_mapping(desc, 1);
 }
 
-int install_device(struct vmeio_device *dev, unsigned i)
+int vmeio_install_device(struct vmeio_device *dev, unsigned i)
 {
 	memset(dev, 0, sizeof(*dev));
 
@@ -210,18 +211,17 @@ int install_device(struct vmeio_device *dev, unsigned i)
 	dev->debug = DEBUG;
 
 	/* configure mmapped I/O */
-	if (base_address1_num && map(&dev->maps[0], base_address1[i],
-						data_width1, am1, size1)) {
-		printk(KERN_ERR PFX "could not map lun:%d, first space\n",
-							dev->lun);
-		goto out_map1;
+	if (base_address1_num) {
+		if (map(&dev->maps[0], base_address1[i], data_width1, am1, size1)) {
+			printk(KERN_ERR PFX "could not map lun %d, space 1\n", dev->lun);
+			goto out_map1;
+		}
 	}
-
-	if (base_address2_num && map(&dev->maps[1], base_address2[i],
-						data_width2, am2, size2)) {
-		printk(KERN_ERR PFX "could not map lun:%d, second space\n",
-							dev->lun);
-		goto out_map2;
+	if (base_address2_num) {
+		if (map(&dev->maps[1], base_address2[i], data_width2, am2, size2)) {
+			printk(KERN_ERR PFX "could not map lun %d, space 2\n", dev->lun);
+			goto out_map2;
+		}
 	}
 
 	/* configure interrupt handling */
@@ -232,12 +232,13 @@ int install_device(struct vmeio_device *dev, unsigned i)
 	dev->icnt = 0;
 	init_waitqueue_head(&dev->queue);
 
-	if (dev->level && dev->vector &&
-		register_isr(dev, dev->vector, dev->level) < 0) {
+	if (dev->level && dev->vector) {
+		if (register_isr(dev, dev->vector, dev->level) < 0) {
 			printk(KERN_ERR PFX "could not register isr "
 				"for vector %d, level %d\n",
 				dev->vector, dev->level);
 			goto out_isr;
+		}
 	}
 	/* This will be eventually removed */
 	register_int_source(dev, dev->maps[0].kernel_va, dev->isrc);
@@ -253,34 +254,7 @@ out_map1:
 	
 }
 
-int vmeio_install(void)
-{
-	int i, cc;
-
-	if ((cc = check_module_params()) != 0)
-		return cc;
-
-	for (i = 0; i < lun_num; i++) {
-		if (install_device(&devices[i], i) == 0)
-			continue;
-		/* error, bail out */
-		printk(KERN_ERR PFX
-			"ERROR: lun %d not installed, quitting\n",
-			devices[i].lun);
-		return -1;
-	}
-
-	/* Register driver */
-	cc = register_chrdev(0, DRIVER_NAME, &vmeio_fops);
-	if (cc < 0) {
-		printk(PFX "Fatal:Error from register_chrdev [%d]\n", cc);
-		return cc;
-	}
-	vmeio_major = cc;
-	return 0;
-}
-
-void unregister_module(struct vmeio_device *dev)
+void vmeio_uninstall_device(struct vmeio_device *dev)
 {
 	if (dev->vector)
 		vme_free_irq(dev->vector);
@@ -288,140 +262,6 @@ void unregister_module(struct vmeio_device *dev)
 		vme_release_mapping(&dev->maps[0], 1);
 	if (dev->maps[1].kernel_va)
 		vme_release_mapping(&dev->maps[1], 1);
-}
-
-void vmeio_uninstall(void)
-{
-	int i;
-
-	for (i = 0; i < lun_num; i++) {
-		unregister_module(&devices[i]);
-	}
-	unregister_chrdev(vmeio_major, DRIVER_NAME);
-}
-
-/* file operations */
-
-int vmeio_open(struct inode *inode, struct file *filp)
-{
-	long num;
-
-	num = MINOR(inode->i_rdev);
-	if (!check_minor(num))
-		return -EACCES;
-
-	return 0;
-}
-
-int vmeio_close(struct inode *inode, struct file *filp)
-{
-	long num;
-
-	num = MINOR(inode->i_rdev);
-	if (!check_minor(num))
-		return -EACCES;
-
-	return 0;
-}
-
-ssize_t vmeio_read(struct file * filp, char *buf, size_t count,
-		   loff_t * f_pos)
-{
-	int cc;
-	long minor;
-	struct inode *inode;
-
-	struct vmeio_read_buf_s rbuf;
-	struct vmeio_device *dev;
-	int icnt;
-
-	inode = filp->f_dentry->d_inode;
-	minor = MINOR(inode->i_rdev);
-	if (!check_minor(minor))
-		return -EACCES;
-	dev = &devices[minor];
-
-	if (dev->debug) {
-		printk(PFX "read:count:%d minor:%d\n",
-		       count, (int) minor);
-		if (dev->debug > 1) {
-			printk(PFX "read:timout:%d\n", dev->timeout);
-		}
-	}
-
-	if (count < sizeof(rbuf)) {
-		if (dev->debug) {
-			printk(PFX "read:Access error buffer too small\n");
-		}
-		return -EACCES;
-	}
-
-	icnt = dev->icnt;
-	if (dev->timeout) {
-		cc = wait_event_interruptible_timeout(dev->queue,
-						      icnt != dev->icnt,
-						      dev->timeout);
-	} else {
-		cc = wait_event_interruptible(dev->queue,
-					      icnt != dev->icnt);
-	}
-
-	if (dev->debug > 2) {
-		printk(PFX "wait_event:returned:%d\n", cc);
-	}
-
-	if (cc == -ERESTARTSYS) {
-		printk(PFX "vmeio_read:interrupted by signal\n");
-		return cc;
-	}
-	if (cc == 0 && dev->timeout)
-		return -ETIME;	/* Timer expired */
-	if (cc < 0)
-		return cc;	/* Error */
-
-	rbuf.logical_unit = dev->lun;
-	rbuf.interrupt_mask = dev->isr_source_mask;
-	rbuf.interrupt_count = dev->icnt;
-
-	cc = copy_to_user(buf, &rbuf, sizeof(rbuf));
-	if (cc != 0) {
-		printk(PFX "Can't copy to user space:cc=%d\n", cc);
-		return -EACCES;
-	}
-	return sizeof(struct vmeio_read_buf_s);
-}
-
-ssize_t vmeio_write(struct file * filp, const char *buf, size_t count,
-		    loff_t * f_pos)
-{
-	long minor;
-	struct vmeio_device *dev;
-	struct inode *inode;
-	int cc, mask;
-
-	inode = filp->f_dentry->d_inode;
-	minor = MINOR(inode->i_rdev);
-	if (!check_minor(minor))
-		return -EACCES;
-	dev = &devices[minor];
-
-	if (count >= sizeof(int)) {
-		cc = copy_from_user(&mask, buf, sizeof(int));
-		if (cc != 0) {
-			printk(PFX "write:Error:%d could not copy from user\n", cc);
-			return -EACCES;
-		}
-	}
-
-	if (dev->debug) {
-		printk(PFX "write:count:%d minor:%d mask:0x%X\n",
-		       count, (int) minor, mask);
-	}
-
-	dev->isr_source_mask = mask;
-	dev->icnt++;
-	wake_up(&dev->queue);
-	return sizeof(int);
 }
 
 static char *ioctl_names[vmeioLAST - vmeioFIRST] = {
@@ -711,16 +551,19 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 	iosz = _IOC_SIZE(cmd);
 
 	minor = MINOR(inode->i_rdev);
-	if (!check_minor(minor))
+	if (check_minor(minor))
 		return -EACCES;
+
 	dev = &devices[minor];
 
 	if ((arb = kmalloc(iosz, GFP_KERNEL)) == NULL)
 		return -ENOMEM;
 
-	if ((iodr & _IOC_WRITE) && copy_from_user(arb, (void *)arg, iosz)) {
-		cc = -EACCES;
-		goto out;
+	if ((iodr & _IOC_WRITE)) {
+		if (copy_from_user(arb, (void *)arg, iosz)) {
+			cc = -EACCES;
+			goto out;
+		}
 	}
 	debug_ioctl(_IOC_NR(cmd), iodr, iosz, arb, minor, dev->debug);
 
@@ -806,14 +649,133 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 	}
 
 	if ((iodr & _IOC_READ) && copy_to_user((void *)arg, arb, iosz)) {
-			cc = -EACCES;
-			goto out;
+		cc = -EACCES;
+		goto out;
 	}
-out:	kfree(arb);
+out:
+	kfree(arb);
 	return cc;
 }
 
-static DEFINE_MUTEX(driver_mutex);
+/* file operations */
+
+int vmeio_open(struct inode *inode, struct file *filp)
+{
+	long minor;
+	minor = MINOR(inode->i_rdev);
+	if (check_minor(minor))
+		return -EACCES;
+	return 0;
+}
+
+int vmeio_close(struct inode *inode, struct file *filp)
+{
+	long minor;
+	minor = MINOR(inode->i_rdev);
+	if (check_minor(minor))
+		return -EACCES;
+	return 0;
+}
+
+ssize_t vmeio_read(struct file * filp, char *buf, size_t count,
+		   loff_t * f_pos)
+{
+	int cc;
+	long minor;
+	struct inode *inode;
+
+	struct vmeio_read_buf_s rbuf;
+	struct vmeio_device *dev;
+	int icnt;
+
+	inode = filp->f_dentry->d_inode;
+	minor = MINOR(inode->i_rdev);
+	if (!check_minor(minor))
+		return -EACCES;
+	dev = &devices[minor];
+
+	if (dev->debug) {
+		printk(PFX "read:count:%d minor:%d\n",
+		       count, (int) minor);
+		if (dev->debug > 1) {
+			printk(PFX "read:timout:%d\n", dev->timeout);
+		}
+	}
+
+	if (count < sizeof(rbuf)) {
+		if (dev->debug) {
+			printk(PFX "read:Access error buffer too small\n");
+		}
+		return -EACCES;
+	}
+
+	icnt = dev->icnt;
+	if (dev->timeout) {
+		cc = wait_event_interruptible_timeout(dev->queue,
+						      icnt != dev->icnt,
+						      dev->timeout);
+	} else {
+		cc = wait_event_interruptible(dev->queue,
+					      icnt != dev->icnt);
+	}
+
+	if (dev->debug > 2) {
+		printk(PFX "wait_event:returned:%d\n", cc);
+	}
+
+	if (cc == -ERESTARTSYS) {
+		printk(PFX "vmeio_read:interrupted by signal\n");
+		return cc;
+	}
+	if (cc == 0 && dev->timeout)
+		return -ETIME;	/* Timer expired */
+	if (cc < 0)
+		return cc;	/* Error */
+
+	rbuf.logical_unit = dev->lun;
+	rbuf.interrupt_mask = dev->isr_source_mask;
+	rbuf.interrupt_count = dev->icnt;
+
+	cc = copy_to_user(buf, &rbuf, sizeof(rbuf));
+	if (cc != 0) {
+		printk(PFX "Can't copy to user space:cc=%d\n", cc);
+		return -EACCES;
+	}
+	return sizeof(struct vmeio_read_buf_s);
+}
+
+ssize_t vmeio_write(struct file * filp, const char *buf, size_t count,
+		    loff_t * f_pos)
+{
+	long minor;
+	struct vmeio_device *dev;
+	struct inode *inode;
+	int cc, mask;
+
+	inode = filp->f_dentry->d_inode;
+	minor = MINOR(inode->i_rdev);
+	if (check_minor(minor))
+		return -EACCES;
+	dev = &devices[minor];
+
+	if (count >= sizeof(int)) {
+		cc = copy_from_user(&mask, buf, sizeof(int));
+		if (cc != 0) {
+			printk(PFX "write:Error:%d could not copy from user\n", cc);
+			return -EACCES;
+		}
+	}
+
+	if (dev->debug) {
+		printk(PFX "write:count:%d minor:%d mask:0x%X\n",
+		       count, (int) minor, mask);
+	}
+
+	dev->isr_source_mask = mask;
+	dev->icnt++;
+	wake_up(&dev->queue);
+	return sizeof(int);
+}
 
 int vmeio_ioctl32(struct inode *inode, struct file *filp, unsigned int cmd,
 		  unsigned long arg)
@@ -827,13 +789,53 @@ int vmeio_ioctl32(struct inode *inode, struct file *filp, unsigned int cmd,
 
 struct file_operations vmeio_fops = {
 	.owner = THIS_MODULE,
+	.open = vmeio_open,
+	.release = vmeio_close,
 	.read = vmeio_read,
 	.write = vmeio_write,
 	.ioctl = vmeio_ioctl32,
-	.open = vmeio_open,
-	.release = vmeio_close,
 };
 
+int vmeio_init(void)
+{
+	int i;
+	int cc;
 
-module_init(vmeio_install);
-module_exit(vmeio_uninstall);
+	if ((cc = check_module_params()) != 0)
+		return cc;
+
+	for (i = 0; i < lun_num; i++) {
+		if (vmeio_install_device(&devices[i], i) == 0)
+			continue;
+		/* error, bail out */
+		printk(KERN_ERR PFX
+			"ERROR: lun %d not installed, quitting\n",
+			devices[i].lun);
+		goto install_fail;
+	}
+
+	/* Register character driver */
+	cc = register_chrdev(0, DRIVER_NAME, &vmeio_fops);
+	if (cc < 0) {
+		printk(KERN_ERR PFX "register_chrdev failed [%d]\n", cc);
+		return cc;
+	}
+	vmeio_major = cc;
+	return 0;
+
+install_fail:
+	while (--i >= 0)
+		vmeio_uninstall_device(&devices[i]);
+	return -1;
+}
+
+void vmeio_exit(void)
+{
+	int i;
+	for (i = 0; i < lun_num; i++)
+		vmeio_uninstall_device(&devices[i]);
+	unregister_chrdev(vmeio_major, DRIVER_NAME);
+}
+
+module_init(vmeio_init);
+module_exit(vmeio_exit);
