@@ -234,10 +234,7 @@ static void __vsl_swap_buf(struct __vsl_device * h, struct vmeio_riob_s *buf)
 	int i, dwd;
 	char *cp, *bp, c;
 
-	if (h->mapnum == 2)
-		dwd = h->mapping.data_width2;
-	else
-		dwd = h->mapping.data_width1;
+	dwd = h->mapping.maps[h->mapnum - 1].dwidth;
 
 	bp = buf->buffer;
 
@@ -365,10 +362,7 @@ int __vsl_read_reg(struct __vsl_device *h, int reg_num, int *reg_val)
 	long value = 0;
 	int dwd;
 
-	if (h->mapnum == 2)
-		dwd = h->mapping.data_width2;
-	else
-		dwd = h->mapping.data_width1;
+	dwd = h->mapping.maps[h->mapnum - 1].dwidth;
 
 	buf.mapnum = h->mapnum;
 	buf.offset = reg_num * dwd;
@@ -403,10 +397,7 @@ int __vsl_write_reg(struct __vsl_device *h, int reg_num, int *reg_val)
 
 	value = *reg_val;
 
-	if (h->mapnum == 2)
-		dwd = h->mapping.data_width2;
-	else
-		dwd = h->mapping.data_width1;
+	dwd = h->mapping.maps[h->mapnum - 1].dwidth;
 
 	buf.mapnum = h->mapnum;
 	buf.offset = reg_num * dwd;

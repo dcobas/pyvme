@@ -28,6 +28,8 @@
 #define DRV_NAME	DRIVER_NAME
 #define DRV_MAX_DEVICES	32
 
+#define VMEIO_MAX_MAPS 2
+
 /**
  * Connect and read buffer
  * The interrupt counter is the total number of interrupts
@@ -44,21 +46,20 @@ struct vmeio_read_buf_s {
  * Parameter for get mapping
  */
 
+struct map_info {
+	unsigned int base;	/* VME base address */
+	unsigned int am;	/* Address modifier */
+	int dwidth;			/* Data width or zero */
+	unsigned int size;	/* Mapping size */
+};
+
 struct vmeio_get_mapping_s {
 
    int lun;     /* Logical unit number */
    int level;     /* Interrupt level */
    int vector;     /* Interrupt vector */
-   int base_address1;    /* First VME base address */
-   int base_address2;    /* Second VME base address or zero */
-
-   int am1;     /* First address modifier */
-   int am2;    /* Second address modifier or zero */
-   int data_width1;    /* First data width */
-   int data_width2;    /* Second data width or zero */
-   int size1;   /* First map size */
-   int size2;   /* Second map size or zero */
    int isrc;    /* Offset of isrc in vme1 to be read in the isr */
+   struct map_info maps[VMEIO_MAX_MAPS]; /* VME maps */
 };
 
 /*

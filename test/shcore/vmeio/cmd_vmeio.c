@@ -234,6 +234,7 @@ int cmd_vmeio_set(int argc, char *argv[])
 int get_wparm(int argc, char *argv[])
 {
 	int lun;
+	int winidx;
 	struct vmeio_get_mapping_s wp;
 
 	printf("NOT IMPLEMENTED\n");
@@ -276,23 +277,15 @@ int get_wparm(int argc, char *argv[])
 		return 0;
 	}
 	printf("window parameters for LUN %d:\n", lun);
-	if (devices[lun]->window == 2) {
-		printf("interrupt level: %d\n", wp.level);
-		printf("interrupt vector: %d\n", wp.vector);
-		printf("base addr: %08x\n", wp.base_address2);
-		printf("address mod: %02x\n", wp.am2);
-		printf("data width: %d\n", wp.data_width2);
-		printf("mapping size: %d\n", wp.size2);
-		devices[lun]->dwidth = wp.data_width2;
-	} else {
-		printf("interrupt level: %d\n", wp.level);
-		printf("interrupt vector: %d\n", wp.vector);
-		printf("base addr: %08x\n", wp.base_address1);
-		printf("address mod: %02x\n", wp.am1);
-		printf("data width: %d\n", wp.data_width1);
-		printf("mapping size: %d\n", wp.size1);
-		devices[lun]->dwidth = wp.data_width1;
-	}
+	
+	winidx = devices[lun]->window - 1;
+	printf("interrupt level: %d\n", wp.level);
+	printf("interrupt vector: %d\n", wp.vector);
+	printf("base addr: %08x\n", wp.maps[winidx].base);
+	printf("address mod: %02x\n", wp.maps[winidx].am);
+	printf("data width: %d\n", wp.maps[winidx].dwidth);
+	printf("mapping size: %d\n", wp.maps[winidx].size);
+	devices[lun]->dwidth = wp.maps[winidx].dwidth;
 	return 0;
 }
 
