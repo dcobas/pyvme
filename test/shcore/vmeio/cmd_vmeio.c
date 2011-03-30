@@ -48,7 +48,6 @@ int cmd_vmeio_open(int argc, char *argv[])
 		printf("unable to allocate\n"); 
 		return 0;
 	}
-	printf("opening lun: %d\n", lun);
 	dev->device = __vsl_open_name(lun, driver_name);
 	if (!dev->device) {
 		printf("failed to open /dev/%s.%d\n", driver_name, lun);
@@ -63,6 +62,7 @@ int cmd_vmeio_open(int argc, char *argv[])
 	dev->debug = 0;
 	dev->timeout = 1000;
 	devices[lun] = dev;
+	printf("opened lun: %d\n", lun);
 	return 0;
 }
 
@@ -207,6 +207,7 @@ int set_window(int argc, char *argv[])
 		return 0;
 	}
 	devices[lun]->window = window;
+	printf("window for LUN %d set to %d\n", lun, window);
 	return 0;
 }
 
@@ -234,6 +235,9 @@ int get_wparm(int argc, char *argv[])
 {
 	int lun;
 	struct vmeio_get_mapping_s wp;
+
+	printf("NOT IMPLEMENTED\n");
+	return 0;
 
 #if 0
 	/* Reference */
@@ -412,6 +416,119 @@ int cmd_vmeio_get(int argc, char *argv[])
 	}
 }
 
+void print_buf(unsigned int *buf, int len)
+{
+	int i;
+	for (i = 0; i < len; i++) {
+		if (i % 4 == 0 && i != 0)
+			printf("\n");
+		printf("%08x ", buf[i]);
+	}
+	printf("\n");
+}
+
 int cmd_vmeio_read(int argc, char *argv[])
 {
+	int lun;
+	unsigned int off;
+	int size;
+	int dma = 0;
+	unsigned int *buf; 
+	struct vmeio_riob_s iob;
+
+	if (argc != 5) {
+		printf("usage: %s LUN [dma|raw] offset size\n", argv[0]);
+		printf("    offset and size are hexadecimal\n");
+		printf("    the current window is used\n");
+		printf("    a size of 1 is 32 bits\n");
+		return 0;
+	}
+	lun = atoi(argv[1]);
+	if (lun < 0 || lun >= VMEIO_MAX_DEVICES) {
+		printf("invalid lun %d\n", lun);
+		return 0;
+	}
+	if (!devices[lun]) {
+		printf("device with LUN %d not opened\n", lun);
+		return 0;
+	}
+	off = strtoul(argv[3], NULL, 16);
+	size = strtoul(argv[4], NULL, 16);
+
+	if (size == 0) {
+		printf("size is 0\n");
+		return 0;
+	}
+
+	buf = malloc(size * sizeof(unsigned int));
+	if (!buf) {
+		printf("failed to allocate buffer\n");
+		return 0;
+	}
+	memset(buf, 0, size*sizeof(unsigned int));
+
+	if (strcmp(argv[2], "dma") == 0)
+		dma = 1;
+
+	iob.mapnum  = devices[lun]->window;
+	iob.offset = off;
+	iob.bsize  = size * sizeof(unsigned int);
+	iob.buffer = (void *)buf;
+
+	if (dma) {
+		printf("DMA read of %d bytes at offset %08x (window %d):\n", size*sizeof(unsigned int), off, devices[lun]->window);
+		if (!__vsl_dma(devices[lun]->device, &iob, 0)) {
+			printf("Error: DMA read failed\n");
+			free(buf);
+			return 0;
+		}
+		printf("DMA Read:\n");
+		print_buf(buf, size);
+	} else {
+		printf("RAW read of %d bytes at offset %08x (window %d):\n", size*sizeof(unsigned int), off, devices[lun]->window);
+		if (!__vsl_raw(devices[lun]->device, &iob, 0)) {
+			printf("Error: RAW read failed\n");
+			free(buf);
+			return 0;
+		}
+		printf("RAW Read:\n");
+		print_buf(buf, size);
+	}
+	free(buf);
+	return 0;
+}
+
+int cmd_vmeio_write(int argc, char *argv[])
+{
+	int lun;
+	unsigned int off;
+	int size;
+	int dma = 0;
+	unsigned int *buf; 
+	struct vmeio_riob_s iob;
+
+	if (argc != 5) {
+		printf("usage: %s LUN [dma|raw] offset value\n", argv[0]);
+		printf("    offset is hexadecimal\n");
+		printf("    the current window is used\n");
+		printf("    A 32 bit value is written\n");
+		return 0;
+	}
+	lun = atoi(argv[1]);
+	if (lun < 0 || lun >= VMEIO_MAX_DEVICES) {
+		printf("invalid lun %d\n", lun);
+		return 0;
+	}
+	if (!devices[lun]) {
+		printf("device with LUN %d not opened\n", lun);
+		return 0;
+	}
+	off = strtoul(argv[3], NULL, 16);
+	size = strtoul(argv[4], NULL, 16);
+
+	if (size == 0) {
+		printf("size is 0\n");
+		return 0;
+	}
+	return 0;
 }

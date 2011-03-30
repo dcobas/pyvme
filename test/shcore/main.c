@@ -120,6 +120,7 @@ int main(int argc, char *argv[])
 	add_command("help", 'h', "Print this help information", &cmd_help, NULL, NULL);
 	add_command("quit", 'q', "Exit from vmeio test shell", &cmd_quit, NULL, NULL);
 	add_command("sh", 'b', "Run a shell command (b = bash)", &cmd_sh, NULL, NULL);
+	add_command("read", 'r', "Read data from a device's memory", &cmd_vmeio_read, NULL, NULL);
 	add_command("get", 'g', "Get a device parameter", &cmd_vmeio_get, NULL, NULL);
 	add_command("set", 's', "Set a device parameter", &cmd_vmeio_set, NULL, NULL);
 	add_command("open", 'o', "Open a device by LUN", &cmd_vmeio_open, NULL, NULL);

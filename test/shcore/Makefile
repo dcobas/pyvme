@@ -6,7 +6,7 @@ VPATH+=./vmeio
 all: vmeiosh
 
 vmeiosh: $(SOURCES)
-	gcc $(CFLAGS) $(SOURCES) ../../driver/vmeio_support.a $(LDFLAGS) -o vmeiosh
+	$(CC) $(CFLAGS) $(SOURCES) ../../driver/vmeio_support.a $(LDFLAGS) -o vmeiosh
 
 clean:
 	rm -rf $(SOURCES) vmeiosh
