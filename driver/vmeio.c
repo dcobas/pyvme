@@ -611,6 +611,13 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 
 	if (riob->bsize > vmeioMAX_BUF)
 		return -E2BIG;
+	if (riob->mapnum == 1) {
+		if (riob->offset > size1)
+			return -E2BIG;
+	} else if (riob->mapnum == 2) {
+		if (riob->offset > size2)
+			return -E2BIG;
+	}
 	iob = kmalloc(riob->bsize, GFP_KERNEL);
 	if (!iob)
 		return -ENOMEM;
