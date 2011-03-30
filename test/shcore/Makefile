@@ -1,4 +1,4 @@
-SOURCES=shell.o cmd_core.o cmd_vmeio.o main.o
+SOURCES=shell.o cmd_core.o cmd_vmeio.o regs_parse.o main.o util.o
 CFLAGS += -Wall -ggdb -I. -I../../driver -I/acc/src/dsc/drivers/coht/include -I./vmeio
 
 VPATH+=./vmeio

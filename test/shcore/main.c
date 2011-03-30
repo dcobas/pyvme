@@ -1,62 +1,18 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <ctype.h>
 
+#include <util.h>
 #include <shell.h>
 #include <cmd_core.h>
 #include <cmd_vmeio.h>
+#include <regs_parse.h>
 
 #define VMEIO_SHELL_VERSION "1.0"
 #define BUFSIZE 1024
 
 #define ERROR "error: "
 #define WARN "warning: "
-
-static int setargs(char *args, char **argv)
-{
-	int count = 0;
-
-	while (isspace(*args))
-		++args;
-	while (*args) {
-		if (argv)
-			argv[count] = args;
-		while (*args && !isspace(*args))
-			++args;
-		if (argv && *args)
-			*args++ = '\0';
-		while (isspace(*args))
-			++args;
-		count++;
-	}
-	return count;
-}
-
-char **parse_args(char *args, int *argc)
-{
-	char **argv = NULL;
-	int    argn = 0;
-	if (args && *args
-		&& (args = strdup(args))
-		&& (argn = setargs(args,NULL))
-		&& (argv = malloc((argn+1) * sizeof(char *)))) {
-		*argv++ = args;
-		argn = setargs(args,argv);
-	}
-	if (args && !argv)
-		free(args);
-	*argc = argn;
-	return argv;
-}
-
-void free_args(char **argv)
-{
-	if (argv) {
-		free(argv[-1]);
-		free(argv-1);
-	} 
-}
 
 int cexec(char *buffer)
 {
@@ -116,6 +72,8 @@ int main(int argc, char *argv[])
 	int run = 1;
 	char buffer[BUFSIZE];
 	char *str;
+
+	parse_regs(NULL);
 
 	add_command("help", 'h', "Print this help information", &cmd_help, NULL, NULL);
 	add_command("quit", 'q', "Exit from vmeio test shell", &cmd_quit, NULL, NULL);
