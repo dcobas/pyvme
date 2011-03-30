@@ -502,9 +502,9 @@ int cmd_vmeio_write(int argc, char *argv[])
 {
 	int lun;
 	unsigned int off;
-	int size;
+	unsigned int value;
 	int dma = 0;
-	unsigned int *buf; 
+	unsigned int rval; 
 	struct vmeio_riob_s iob;
 
 	if (argc != 5) {
@@ -524,11 +524,30 @@ int cmd_vmeio_write(int argc, char *argv[])
 		return 0;
 	}
 	off = strtoul(argv[3], NULL, 16);
-	size = strtoul(argv[4], NULL, 16);
+	value = strtoul(argv[4], NULL, 16);
 
-	if (size == 0) {
-		printf("size is 0\n");
-		return 0;
+	if (strcmp(argv[2], "dma") == 0)
+		dma = 1;
+
+	iob.mapnum = devices[lun]->window;
+	iob.offset = off;
+	iob.bsize = sizeof(value);
+	iob.buffer = (void *)&value;
+
+	if (dma) {
+		printf("DMA write (%d bytes) at offset %08x (window %d):\n", sizeof(unsigned int), off, devices[lun]->window);
+		if (!__vsl_dma(devices[lun]->device, &iob, 1)) {
+			printf("Error: DMA write failed\n");
+			return 0;
+		}
+		printf("DMA Write Successful\n");
+	} else {
+		printf("RAW write (%d bytes) at offset %08x (window %d):\n", sizeof(unsigned int), off, devices[lun]->window);
+		if (!__vsl_raw(devices[lun]->device, &iob, 1)) {
+			printf("Error: RAW write failed\n");
+			return 0;
+		}
+		printf("RAW Write Successful\n");
 	}
 	return 0;
 }

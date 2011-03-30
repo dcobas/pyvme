@@ -6,5 +6,6 @@ int cmd_vmeio_driver(int argc, char *argv[]);
 int cmd_vmeio_set(int argc, char *argv[]);
 int cmd_vmeio_get(int argc, char *argv[]);
 int cmd_vmeio_read(int argc, char *argv[]);
+int cmd_vmeio_write(int argc, char *argv[]);
 
 #endif
