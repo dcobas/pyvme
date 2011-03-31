@@ -97,16 +97,16 @@ int parse_regs(char *drv_name)
 					break;
 				}
 				printf("Found %s regs file: %s\n", argv[1], dp->d_name);
-				printf("===============|======|======|======|======|======|\n");
-				printf("%-15s|%-6s|%-6s|%-6s|%-6s|%-6s|\n", "Name", "Flags", "Offset", "Size", "Window", "Depth");
-				printf("===============|======|======|======|======|======|\n");
+				printf("===============|======|==========|======|======|======|\n");
+				printf("%-15s|%-6s|%-10s|%-6s|%-6s|%-6s|\n", "Name", "Flags", "Offset", "Size", "Window", "Depth");
+				printf("===============|======|==========|======|======|======|\n");
 				found = 1;
 				continue;
 			} else if (strcmp(argv[0], "$") == 0) {
 				if (argc != 7)
 					continue;
 			//	printf("Reg:\n\tName: %s\n\tFlags: %s\n\tOff: %s\n\tSize: %d bytes\n\tWindow: %d\n", argv[1], argv[2], argv[3], atoi(argv[4]), atoi(argv[5]));
-				printf("%-15s|%-6s|0x%04x|%-6d|%-6d|%-6d|\n", argv[1], argv[2], (unsigned int)strtoul(argv[3], NULL, 16), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]));
+				printf("%-15s|%-6s|0x%08x|%-6d|%-6d|%-6d|\n", argv[1], argv[2], (unsigned int)strtoul(argv[3], NULL, 16), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]));
 				add_reg(argv[1], argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), atoi(argv[6]));
 			}
 			free_args(argv);
@@ -119,6 +119,6 @@ int parse_regs(char *drv_name)
 	if (!found)
 		printf("failed to find register file for driver: %s\n", driver_name);
 	else
-		printf("===================================================\n");
+		printf("=======================================================\n");
 	return 1;
 }
