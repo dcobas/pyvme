@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include <vmeio_support.h>
+#include <regs_parse.h>
 
 #define VMEIO_MAX_DEVICES 32
 
@@ -92,6 +93,7 @@ int cmd_vmeio_driver(int argc, char *argv[])
 	}
 	strcpy(driver_name, argv[1]);
 	printf("driver name set: %s\n", driver_name);
+	parse_regs(NULL);
 	return 0;
 }
 

@@ -1,3 +1,4 @@
+#include <cmd_vmeio.h>
 #include <regs_parse.h>
 #include <util.h>
 
@@ -72,6 +73,7 @@ int parse_regs(char *drv_name)
 	struct dirent *dp;
 	char *dir_path = ".";
 	char buffer[1024];
+	int found = 0;
 	dir = opendir(dir_path);
 	if (!dir) {
 		printf("failed to read directory\n");
@@ -90,17 +92,33 @@ int parse_regs(char *drv_name)
 			if (argc < 1)
 				continue;
 			if (strcmp(argv[0], "NAME") == 0) {
-				printf("Regs name: %s\n", argv[1]);
+				if (strcmp(argv[1], driver_name)) {
+					free_args(argv);
+					break;
+				}
+				printf("Found %s regs file: %s\n", argv[1], dp->d_name);
+				printf("===============|======|======|======|======|======|\n");
+				printf("%-15s|%-6s|%-6s|%-6s|%-6s|%-6s|\n", "Name", "Flags", "Offset", "Size", "Window", "Depth");
+				printf("===============|======|======|======|======|======|\n");
+				found = 1;
 				continue;
-			}
-			else if (strcmp(argv[0], "$") == 0) {
+			} else if (strcmp(argv[0], "$") == 0) {
 				if (argc != 7)
 					continue;
-				printf("Reg:\n\tName: %s\n\tFlags: %s\n\tOff: %s\n\tSize: %d bytes\n\tWindow: %d\n", argv[1], argv[2], argv[3], atoi(argv[4]), atoi(argv[5]));
+			//	printf("Reg:\n\tName: %s\n\tFlags: %s\n\tOff: %s\n\tSize: %d bytes\n\tWindow: %d\n", argv[1], argv[2], argv[3], atoi(argv[4]), atoi(argv[5]));
+				printf("%-15s|%-6s|0x%04x|%-6d|%-6d|%-6d|\n", argv[1], argv[2], (unsigned int)strtoul(argv[3], NULL, 16), atoi(argv[4]), atoi(argv[5]), atoi(argv[6]));
+				add_reg(argv[1], argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), atoi(argv[6]));
 			}
 			free_args(argv);
 		}
+		fclose(f);
+		if (found)
+			break;
 	}
 	closedir(dir);
+	if (!found)
+		printf("failed to find register file for driver: %s\n", driver_name);
+	else
+		printf("===================================================\n");
 	return 1;
 }

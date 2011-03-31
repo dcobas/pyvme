@@ -73,8 +73,6 @@ int main(int argc, char *argv[])
 	char buffer[BUFSIZE];
 	char *str;
 
-	parse_regs(NULL);
-
 	add_command("help", 'h', "Print this help information", &cmd_help, NULL, NULL);
 	add_command("quit", 'q', "Exit from vmeio test shell", &cmd_quit, NULL, NULL);
 	add_command("sh", 'b', "Run a shell command (b = bash)", &cmd_sh, NULL, NULL);
