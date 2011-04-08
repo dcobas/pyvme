@@ -21,17 +21,10 @@ field_list = [
     'total_offset',
     'wordsize',
     'depth',
+    'description',
     ]
 
 query_template = '''
-sqlplus -s copub/co@dbabco <<QUERY
-set echo off;
-set verify off;
-set feed off;
-set pagesize 0;
-set pause off;
-set linesize 4000;
-set trims on;
 select name,
     rwmode,
     block,
@@ -40,25 +33,26 @@ select name,
     mr.offsetval as register_offset,
     mr.offsetval + nvl(mb.offsetval,0) as total_offset,
     wordsize,
-    depthval as depth
+    depthval as depth,
+    mr.description as description
 from moduleregisters mr join moduleblocks mb
     using (block, moduletype_id)
 where moduletype_id = (
     select hwtype_id
     from hard_types
     where hwtype = '%s' )
-order by block, block_offsetval, register_offset;
-QUERY'''
+order by block, block_offsetval, register_offset
+'''
 
 def get_register_data(module_name):
     """get a list of dicts containing register attributes"""
 
+    import cx_Oracle
     query = query_template % module_name
-    pipe =  Popen([query], shell=True, stdout=PIPE)
-    out = pipe.communicate()[0]
-    return [ dict(zip(field_list, line.split()))
-            for line in out.split('\n')
-            if line ]
+    cur = cx_Oracle.connect(user='copub', password='co').cursor()
+    cur.execute(query)
+
+    return [ dict(zip(field_list, row)) for row in cur ]
 
 def gen_plain_file(register_list, filename):
     """given a list of dicts with registers, construct a columnated file"""
