@@ -9,7 +9,7 @@ ct
 ctypes
 .tmp_versions
 RCS
-rf_*
+rf_*/
 ctc
 cvora
 vmeiotest
