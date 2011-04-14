@@ -7,7 +7,6 @@ import errno
 import stat
 import datetime
 import csv
-from subprocess import Popen, PIPE
 from os.path import join
 from optparse import OptionParser
 
