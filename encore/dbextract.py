@@ -24,7 +24,7 @@ field_list = [
     'description',
     ]
 
-query_template = '''
+query = '''
 select name,
     rwmode,
     block,
@@ -40,7 +40,7 @@ from moduleregisters mr join moduleblocks mb
 where moduletype_id = (
     select hwtype_id
     from hard_types
-    where hwtype = '%s' )
+    where hwtype = :hwtype )
 order by block, block_offsetval, register_offset
 '''
 
@@ -48,9 +48,8 @@ def get_register_data(module_name):
     """get a list of dicts containing register attributes"""
 
     import cx_Oracle
-    query = query_template % module_name
     cur = cx_Oracle.connect(user='copub', password='co').cursor()
-    cur.execute(query)
+    cur.execute(query, hwtype=module_name)
 
     return [ dict(zip(field_list, row)) for row in cur ]
 
