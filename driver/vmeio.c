@@ -304,13 +304,18 @@ void vmeio_uninstall(void)
 
 int vmeio_open(struct inode *inode, struct file *filp)
 {
-	long num;
+	long minor;
+	int i;
 
-	num = MINOR(inode->i_rdev);
-	if (!check_minor(num))
+	minor = MINOR(inode->i_rdev);
+	if (!check_minor(minor))
 		return -EACCES;
-
-	return 0;
+	for (i = 0; i < lun_num; i++) {
+		if (devices[i].lun == minor) {
+			filp->private_data = &devices[i];
+			return 0;
+	}
+	return -ENODEV;
 }
 
 int vmeio_close(struct inode *inode, struct file *filp)
@@ -320,6 +325,7 @@ int vmeio_close(struct inode *inode, struct file *filp)
 	num = MINOR(inode->i_rdev);
 	if (!check_minor(num))
 		return -EACCES;
+	filp->private_data = NULL;
 
 	return 0;
 }
@@ -339,7 +345,7 @@ ssize_t vmeio_read(struct file * filp, char *buf, size_t count,
 	minor = MINOR(inode->i_rdev);
 	if (!check_minor(minor))
 		return -EACCES;
-	dev = &devices[minor];
+	dev = filp->private_data;
 
 	if (dev->debug) {
 		printk(PFX "read:count:%d minor:%d\n",
@@ -403,7 +409,7 @@ ssize_t vmeio_write(struct file * filp, const char *buf, size_t count,
 	minor = MINOR(inode->i_rdev);
 	if (!check_minor(minor))
 		return -EACCES;
-	dev = &devices[minor];
+	dev = filp->private_data;
 
 	if (count >= sizeof(int)) {
 		cc = copy_from_user(&mask, buf, sizeof(int));
@@ -706,7 +712,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 	minor = MINOR(inode->i_rdev);
 	if (!check_minor(minor))
 		return -EACCES;
-	dev = &devices[minor];
+	dev = filp->private_data;
 
 	if ((arb = kmalloc(iosz, GFP_KERNEL)) == NULL)
 		return -ENOMEM;
