@@ -14,23 +14,6 @@ class vmeio_read_buf_s(Structure):
     ('interrupt_count', c_int),
     ]
 
-class vmeio_get_mapping_s(Structure):
-    _fields_ = [
-   ('lun', c_int),	     	    # Logical unit number
-   ('level', c_int),	     	# Interrupt level
-   ('vector', c_int),	     	# Interrupt vector
-   ('base_address1', c_int),   	# First VME base address
-   ('base_address2', c_int),  	# Second VME base address or zero
-
-   ('am1', c_int),	         	# First address modifier
-   ('am2', c_int),	    	    # Second address modifier or zero
-   ('data_width1', c_int),    	# First data width
-   ('data_width2', c_int),		# Second data width or zero
-   ('size1', c_int),	      	# First map size
-   ('size2', c_int),	   	    # Second map size or zero
-   ('isrc', c_int),	         	# Offset of isrc in vme1 to be read in the isr
-   ]
-
 class vme_mapping(Structure):
     _fields_ = [
 	('window_num', c_int),
