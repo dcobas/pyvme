@@ -31,13 +31,40 @@ class vmeio_get_mapping_s(Structure):
    ('isrc', c_int),	         	# Offset of isrc in vme1 to be read in the isr
    ]
 
+class vme_mapping(Structure):
+    _fields_ = [
+	('window_num', c_int),
+	('kernel_va', c_void_p),
+	('user_va', c_void_p),
+	('fd', c_int),
+	('window_enabled', c_int),
+	('data_width', c_int),
+	('am', c_int),
+	('read_prefetch_enabled', c_int),
+	('read_prefetch_size', c_int),
+	('v2esst_mode', c_int),
+	('bcast_select', c_int),
+	('pci_addru', c_int),
+	('pci_addrl', c_int),
+	('sizeu', c_int),
+	('sizel', c_int),
+	('vme_addru', c_int),
+	('vme_addrl', c_int),
+    ]
+
+class vmeio_get_mapping(Structure):
+    _fields_ = [
+    ('mapnum', c_int),
+    ('map', vme_mapping),
+    ]
+
 vmeioMAX_BUF = 8192
 
 class vmeio_riob_s(Structure):
     _fields_ = [
     ('mapnum', c_int),	   	# Mapping number 1..2
     ('offset', c_int),	   	# Byte offset in map
-    ('bsize', c_int),	   	# The number of bytes to read
+    ('wsize', c_int),	   	# The number of bytes to read
     ('buffer', c_void_p),	# Pointer to data area
     ]
 
@@ -68,11 +95,32 @@ VMEIO_GET_MAPPING   = 0xc044560e
 
 libc = CDLL('/lib/libc.so.6')
 
-def raw_read(fd, mapnum, offset, bsize):
-    buf = create_string_buffer(bsize+1)
-    s = vmeio_riob_s(mapnum=mapnum, offset=offset, bsize=bsize, buffer=addressof(buf))
-    libc.ioctl(fd, VMEIO_RAW_READ, byref(s))
-    return struct.unpack('I', buf[:-1])[0]
+
+data_width_format = {
+    32 : 'I',
+    16 : 'H',
+     8 : 'B',
+}
+
+def mapnum2dw(fd, mapno):
+    s = vmeio_get_mapping(mapnum=mapno, map=vme_mapping())
+    if 0 > libc.ioctl(fd, VMEIO_GET_MAPPING, byref(s)):
+        print 'Failed to get data width for address space ', mapno
+        return -1
+    return s.map.data_width
+
+def raw_read(fd, mapnum, offset, items):
+    data_width =  mapnum2dw(fd, mapnum)
+    bpw = data_width / 8
+    print 'bytes per word = ', bpw
+    buf = create_string_buffer(bpw*items+1)
+    format = items * data_width_format[data_width]
+    print 'format = ', format
+    s = vmeio_riob_s(mapnum=mapnum, offset=offset, wsize=items, buffer=addressof(buf))
+    print libc.ioctl(fd, VMEIO_RAW_READ, byref(s))
+    ret = struct.unpack(format, buf[:-1])
+    print ret
+    return ret
 
 device_name = '/dev/vmeio.%d'
 
@@ -80,7 +128,7 @@ class TestProgram(cmd.Cmd):
 
     def __init__(self):
         cmd.Cmd.__init__(self)
-        self.fd = None
+        self.do_open(0)
 
     def do_open(self, arg):
         try:
@@ -92,34 +140,61 @@ class TestProgram(cmd.Cmd):
         self.fd = libc.open(self.devname, os.O_RDWR)
         if not self.fd < 0:
             print 'open lun %d with fd %d' % (self.lun, self.fd)
+            self.do_EOF('')
         else:
             print 'could not open %s' % self.devname
+            self.do_EOF('')
 
-    def do_hello(self, arg):
-        print 'Hello'
-        print arg
-
-    def help_hello(self):
-        print "Prints hello"
 
     def do_raw_read(self, arg):
-        """raw_read mapnum offset bsize
+        """raw_read mapnum offset nitems
 
-        Read bsize bytes at offset of mapping mapnum
+        Read nitems word at offset of mapping mapnum
         """
         args = arg.split()
         if len(args) != 3:
-            print 'usage: raw_read mapnum offset bsize'
+            print 'usage: raw_read mapnum offset items'
             return
         try:
-            mapnum, offset, bsize = map(int, args)
+            mapnum, offset, items = map(int, args)
         except:
-            print 'mapnum, offset and bsize must be integers'
+            print 'mapnum, offset and items must be integers'
+            return
         if not self.fd:
             print 'open a lun first'
             return
-        val = raw_read(self.fd, mapnum, offset, bsize)
-        print '0x%08x' % val
+
+        byte_width = mapnum2dw(self.fd, mapnum)/8
+        val = raw_read(self.fd, mapnum, offset, items)
+        for i in range(items):
+            fmt = '%%08x: 0x%%0%dx' % (byte_width*2)
+            print fmt % (offset, val[i])
+            offset += byte_width
+
+    def do_params(self, arg):
+        """params mapnum        show device parameters
+        """
+        
+        if not arg:
+            self.do_params(1)
+            self.do_params(2)
+            return
+
+        try:
+            mapnum = int(arg)
+        except:
+            print 'please provide a valid mapnum'
+            return 
+
+        s = vmeio_get_mapping(mapnum=mapnum, map=vme_mapping())
+        if 0 > libc.ioctl(self.fd, VMEIO_GET_MAPPING, byref(s)):
+            print 'VMEIO_GET_MAPPING failed'
+            return
+        print 'mapping = %d, data_width = %d, size = 0x%x, am = 0x%x' % (
+            mapnum,
+            s.map.data_width,
+            s.map.sizel,
+            s.map.am, )
 
     def do_EOF(self, arg):
         print
