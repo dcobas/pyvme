@@ -505,7 +505,7 @@ static void vmeio_get_timeout(struct vmeio_device *dev, int *timeout)
 
 static int get_mapping(struct vmeio_device *dev, struct vmeio_get_mapping *mapping)
 {
-	int mapnum = mapping->mapnum;
+	int mapnum = mapping->mapnum-1;
 
 	if (!(mapnum >=0 && mapnum < MAX_MAPS))
 		return -EINVAL;
