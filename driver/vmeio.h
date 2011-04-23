@@ -41,24 +41,12 @@ struct vmeio_read_buf_s {
 };
 
 /**
- * Parameter for get mapping
+ * Parameter for get_mapping
  */
 
-struct vmeio_get_mapping_s {
-
-   int lun;     /* Logical unit number */
-   int level;     /* Interrupt level */
-   int vector;     /* Interrupt vector */
-   int base_address1;    /* First VME base address */
-   int base_address2;    /* Second VME base address or zero */
-
-   int am1;     /* First address modifier */
-   int am2;    /* Second address modifier or zero */
-   int data_width1;    /* First data width */
-   int data_width2;    /* Second data width or zero */
-   int size1;   /* First map size */
-   int size2;   /* Second map size or zero */
-   int isrc;    /* Offset of isrc in vme1 to be read in the isr */
+struct vmeio_get_mapping {
+	int			mapnum;
+	struct vme_mapping	map;
 };
 
 /*
@@ -110,6 +98,7 @@ typedef enum {
    vmeioSET_DEVICE,    /** Very dangerous IOCTL, not for users */
    vmeioREAD_DMA,      /** Direct interface to DMA */
    vmeioWRITE_DMA,     /** Direct interface to DMA */
+   vmeioGET_MAPPING,   /** Obtain mapping properties */
 
    vmeioLAST           /** For range checking (LAST - FIRST) */
 
@@ -136,5 +125,6 @@ typedef enum {
 #define  VMEIO_SET_DEVICE     _IOW(MAGIC,   vmeioGET_DEVICE,     struct  vmeio_get_mapping_s)
 #define  VMEIO_READ_DMA       _IOW(MAGIC,   vmeioREAD_DMA,       struct	 vmeio_dma_op)
 #define  VMEIO_WRITE_DMA      _IOW(MAGIC,   vmeioWRITE_DMA,      struct  vmeio_dma_op)
+#define  VMEIO_GET_MAPPING    _IOWR(MAGIC,  vmeioGET_MAPPING,    struct  vme_mapping)
 
 #endif

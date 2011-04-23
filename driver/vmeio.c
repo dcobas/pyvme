@@ -314,6 +314,7 @@ int vmeio_open(struct inode *inode, struct file *filp)
 		if (devices[i].lun == minor) {
 			filp->private_data = &devices[i];
 			return 0;
+		}
 	}
 	return -ENODEV;
 }
@@ -500,6 +501,16 @@ static void vmeio_set_timeout(struct vmeio_device *dev, int *timeout)
 static void vmeio_get_timeout(struct vmeio_device *dev, int *timeout)
 {
 	*timeout = jiffies_to_msecs(dev->timeout);
+}
+
+static int get_mapping(struct vmeio_device *dev, struct vmeio_get_mapping *mapping)
+{
+	int mapnum = mapping->mapnum;
+
+	if (!(mapnum >=0 && mapnum < MAX_MAPS))
+		return -EINVAL;
+	memcpy(&mapping->map, &dev->maps[mapnum], sizeof(mapping->map));
+	return 0;
 }
 
 #if 0
@@ -798,6 +809,11 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 			goto out;
 		break;
 
+	case VMEIO_GET_MAPPING:
+		cc = get_mapping(dev, arb);
+		if (cc < 0)
+			goto out;
+		break;
 	default:
 		cc = -ENOENT;
 		goto out;

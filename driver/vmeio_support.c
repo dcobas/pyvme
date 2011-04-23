@@ -57,10 +57,12 @@ struct __vsl_device *__vsl_open_name(int lun, char *name)
 	memset(h, 0, sizeof(*h));
 
 	h->file = fnum;
+	h->lun = lun;
 	h->mapnum = 1;
 	h->dmaflag = 0;
 
-	__vsl_get_mapping(h, &h->mapping);
+	__vsl_get_mapping(h, 1, &h->mapping1);
+	__vsl_get_mapping(h, 2, &h->mapping2);
 
 	return h;
 }
@@ -190,10 +192,14 @@ int __vsl_get_debug(struct __vsl_device *h, int *level)
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_get_mapping(struct __vsl_device *h, struct vmeio_get_mapping_s *map)
+int __vsl_get_mapping(struct __vsl_device *h, int mapnum, struct vme_mapping *map)
 {
-	if (ioctl(h->file, VMEIO_GET_DEVICE, map) < 0)
+	struct vmeio_get_mapping gm;
+
+	gm.mapnum = mapnum;
+	if (ioctl(h->file, VMEIO_GET_MAPPING, map) < 0)
 		return 0;
+	memcpy(map, &gm.map, sizeof(*map));
 	return 1;
 }
 
@@ -235,9 +241,9 @@ static void __vsl_swap_buf(struct __vsl_device * h, struct vmeio_riob_s *buf)
 	char *cp, *bp, c;
 
 	if (h->mapnum == 2)
-		dwd = h->mapping.data_width2;
+		dwd = h->mapping2.data_width;
 	else
-		dwd = h->mapping.data_width1;
+		dwd = h->mapping1.data_width;
 
 	bp = buf->buffer;
 
@@ -317,7 +323,7 @@ int __vsl_wait(struct __vsl_device *h, struct vmeio_read_buf_s *event)
 
 	cc = read(h->file, event, sizeof(struct vmeio_read_buf_s));
 	if (cc == -ETIME) {
-		event->logical_unit = h->mapping.lun;
+		event->logical_unit = h->lun;
 		event->interrupt_mask = 0;
 		return 1;
 	}
@@ -366,9 +372,9 @@ int __vsl_read_reg(struct __vsl_device *h, int reg_num, int *reg_val)
 	int dwd;
 
 	if (h->mapnum == 2)
-		dwd = h->mapping.data_width2;
+		dwd = h->mapping2.data_width;
 	else
-		dwd = h->mapping.data_width1;
+		dwd = h->mapping1.data_width;
 
 	buf.mapnum = h->mapnum;
 	buf.offset = reg_num * dwd;
@@ -404,9 +410,9 @@ int __vsl_write_reg(struct __vsl_device *h, int reg_num, int *reg_val)
 	value = *reg_val;
 
 	if (h->mapnum == 2)
-		dwd = h->mapping.data_width2;
+		dwd = h->mapping2.data_width;
 	else
-		dwd = h->mapping.data_width1;
+		dwd = h->mapping1.data_width;
 
 	buf.mapnum = h->mapnum;
 	buf.offset = reg_num * dwd;

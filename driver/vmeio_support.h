@@ -18,10 +18,12 @@
 
 struct __vsl_device {
 	int file;			/** File number */
+	int lun;			/** logical unit number */
 	int mapnum;			/** Window 1..2 */
 	int dmaflag;			/** Use DMA flag 0..1 */
 	int dmaswap;			/** Swap after DMA flag 0..1 */
-	struct vmeio_get_mapping_s mapping;
+	struct vme_mapping mapping1;
+	struct vme_mapping mapping2;
 };
 
 /*
@@ -105,11 +107,12 @@ int __vsl_do_interrupt(struct __vsl_device *h, int *mask);
  * ============================================
  * Get a complete descriptor for a given lun
  * @param handle returned from open
- * @param win pointer to your descriptor
+ * @param mapnum vme mapping number (1 or 2)
+ * @param win pointer to descriptor
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_get_mapping(struct __vsl_device *h, struct vmeio_get_mapping_s *win);
+int __vsl_get_mapping(struct __vsl_device *h, int mapnum, struct vme_mapping *win);
 
 /**
  * ============================================
