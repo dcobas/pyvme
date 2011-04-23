@@ -3,6 +3,7 @@
 *.o
 *.cmd
 *.mod.c
+*.pyc
 Module.symvers
 cvorg
 ct
