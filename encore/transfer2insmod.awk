@@ -1,6 +1,16 @@
 #
 # transfer2insmod.awk - extract insmod parameters from transfer.ref
 #
+# usage: transfer2insmod.awk DEVICE_NAME [transfer_file]
+#
+# e.g.:
+#  $ awk -f transfer2insmod.awk VD80 /acc/dsc/tst/cfv-864-cdv28/etc/transfer.ref
+#
+#  produces
+#      luns=0,2 vectors=0xb0,0xb2 level=2 am1=0x2F data_width1=32 size1=0x80000 \
+#      base_address1=0x100000,0x200000 am2=0x29 data_width2=32 size2=0x80000 \
+#      base_address2=0x100000,0x200000
+#
 
 BEGIN	{
 	device_name = ARGV[1]
@@ -32,7 +42,8 @@ BEGIN	{
 }
 
 END	{ 
-	insmod_params = "luns=" substr(luns, 2)
+	if (luns)
+	    insmod_params = "luns=" substr(luns, 2)
 	if (level) {
 	    insmod_params = insmod_params " vectors=" substr(vectors, 2)
 	    insmod_params = insmod_params " level=" level
