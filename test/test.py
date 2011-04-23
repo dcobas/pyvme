@@ -103,22 +103,18 @@ class TestProgram(cmd.Cmd):
 
     def __init__(self):
         cmd.Cmd.__init__(self)
+        self.fd = None
         self.do_open(0)
 
-    def do_open(self, arg):
+    def do_open(self, arg, device_name=device_name):
+        if arg == '':
+            print 'open: lun = %d, fd = %d' % (self.lun, self.fd)
+            return
         try:
-            self.lun = int(arg)
+            lun = int(arg)
         except:
             print 'please provide a valid LUN'
             return
-        self.devname = device_name % self.lun
-        self.fd = libc.open(self.devname, os.O_RDWR)
-        if not self.fd < 0:
-            print 'open lun %d with fd %d' % (self.lun, self.fd)
-            self.do_EOF('')
-        else:
-            print 'could not open %s' % self.devname
-            self.do_EOF('')
 
         devname = device_name % lun
         fd = libc.open(devname, os.O_RDWR)
