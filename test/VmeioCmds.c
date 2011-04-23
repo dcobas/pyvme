@@ -925,14 +925,14 @@ int items, start, len;
 
    iob.mapnum  = win;
    iob.offset = start*dwd;
-   iob.bsize  = items*dwd;
+   iob.wsize  = items;
    iob.buffer = mem;
 
    if (dma) {
-      if (__vsl_dma(vmeio[lun],&iob,0)) printf("Read:DMA:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.bsize);
+      if (__vsl_dma(vmeio[lun],&iob,0)) printf("Read:DMA:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.wsize);
       else                        printf("Read:DMA:Error(See dmesg)\n");
    } else {
-      if (__vsl_raw(vmeio[lun],&iob,0)) printf("Read:RAW:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.bsize);
+      if (__vsl_raw(vmeio[lun],&iob,0)) printf("Read:RAW:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.wsize);
       else                        printf("Read:RAW:Error(See dmesg)\n");
    }
    return arg;
@@ -973,14 +973,14 @@ int items, start;
 
    iob.mapnum  = win;
    iob.offset = start*dwd;
-   iob.bsize  = items*dwd;
+   iob.wsize  = items;
    iob.buffer = mem;
 
    if (dma) {
-      if (__vsl_dma(vmeio[lun],&iob,1)) printf("Write:DMA:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.bsize);
+      if (__vsl_dma(vmeio[lun],&iob,1)) printf("Write:DMA:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.wsize);
       else                        printf("Write:DMA:Error(See dmesg)\n");
    } else {
-      if (__vsl_raw(vmeio[lun],&iob,1)) printf("Write:RAW:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.bsize);
+      if (__vsl_raw(vmeio[lun],&iob,1)) printf("Write:RAW:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.wsize);
       else                        printf("Write:RAW:Error(See demsg)\n");
    }
    return arg;

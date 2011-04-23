@@ -58,7 +58,7 @@ struct vmeio_get_mapping {
 struct vmeio_riob_s {
    int mapnum;   /** Mapping number 1..2 */
    int offset;   /** Byte offset in map */
-   int bsize;    /** The number of bytes to read */
+   int wsize;    /** The number of words to read */
    void *buffer; /** Pointer to data area */
 };
 

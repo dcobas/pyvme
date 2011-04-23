@@ -566,7 +566,7 @@ static int raw_dma(struct vmeio_device *dev,
 	req.am = map->am;
 	req.data_width = map->data_width;
 	req.address = map->vme_addrl + riob->offset;
-	req.byte_length = riob->bsize;
+	req.byte_length = riob->wsize * req.data_width/8;
 	req.buffer = riob->buffer;
 	req.direction = direction;
 
@@ -585,12 +585,13 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 	struct vme_mapping *mapx = &dev->maps[riob->mapnum-1];
 	int dwidth = mapx->data_width;
 	int byte_dwidth = dwidth/8;
+	int bsize = riob->wsize * byte_dwidth;
 	int i, j, cc;
 	char *map, *iob;
 
-	if (riob->bsize > vmeioMAX_BUF)
+	if (bsize > vmeioMAX_BUF)
 		return -E2BIG;
-	iob = kmalloc(riob->bsize, GFP_KERNEL);
+	iob = kmalloc(bsize, GFP_KERNEL);
 	if (!iob)
 		return -ENOMEM;
 	if ((map = mapx->kernel_va) == NULL) {
@@ -598,12 +599,12 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 		return -ENODEV;
 	}
 	if (dev->debug > 1) {
-		printk("RAW:READ:win:%d map:0x%p offs:0x%X amd:0x%2x dwd:%d len:%d\n",
+		printk("RAW:READ:win:%d map:0x%p offs:0x%X amd:0x%2x dwd:%d words:%d\n",
 		     riob->mapnum, mapx->kernel_va, riob->offset,
-		     mapx->am, dwidth, riob->bsize);
+		     mapx->am, dwidth, riob->wsize);
 	}
 
-	for (i = 0, j = riob->offset; i < riob->bsize; i += byte_dwidth, j += byte_dwidth) {
+	for (i = 0, j = riob->offset; i < bsize; i += byte_dwidth, j += byte_dwidth) {
 		union vmeio_word *dst = (void *)&iob[i];
 		if (dwidth == VME_D32)
 			dst->width4 = ioread32be(&map[j]);
@@ -614,7 +615,7 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 		else
 			printk(KERN_ERR PFX "invalid data width %d\n", dwidth);
 	}
-	cc = copy_to_user(riob->buffer, iob, riob->bsize);
+	cc = copy_to_user(riob->buffer, iob, bsize);
 	kfree(iob);
 	if (cc)
 		return -EACCES;
@@ -626,12 +627,13 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 	struct vme_mapping *mapx = &dev->maps[riob->mapnum-1];	
 	int dwidth = mapx->data_width;
 	int byte_dwidth = dwidth/8;
+	int bsize = riob->wsize * byte_dwidth;
 	int i, j, cc;
 	char *map, *iob;
 
-	if (riob->bsize > vmeioMAX_BUF)
+	if (bsize > vmeioMAX_BUF)
 		return -E2BIG;
-	iob = kmalloc(riob->bsize, GFP_KERNEL);
+	iob = kmalloc(bsize, GFP_KERNEL);
 	if (!iob)
 		return -ENOMEM;
 	if ((map = mapx->kernel_va) == NULL) {
@@ -639,19 +641,19 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 		return -ENODEV;
 	}
 
-	cc = copy_from_user(iob, riob->buffer, riob->bsize);
+	cc = copy_from_user(iob, riob->buffer, bsize);
 	if (cc < 0) {
 		kfree(iob);
 		return -EACCES;
 	}
 
 	if (dev->debug > 1) {
-		printk("RAW:WRITE:win:%d map:0x%p ofs:0x%X amd:0x%2x dwd:%d len:%d\n",
+		printk("RAW:WRITE:win:%d map:0x%p ofs:0x%X amd:0x%2x dwd:%d words:%d\n",
 		     riob->mapnum, mapx->kernel_va, riob->offset,
-		     mapx->am, dwidth, riob->bsize);
+		     mapx->am, dwidth, riob->wsize);
 	}
 
-	for (i = 0, j = riob->offset; i < riob->bsize; i += byte_dwidth, j += byte_dwidth) {
+	for (i = 0, j = riob->offset; i < bsize; i += byte_dwidth, j += byte_dwidth) {
 		union vmeio_word *src = (void *)&iob[i];
 		if (dwidth == VME_D32)
 			iowrite32be(src->width4, &map[j]);

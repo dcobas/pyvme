@@ -218,7 +218,7 @@ int __vsl_raw(struct __vsl_device *h, struct vmeio_riob_s *buf, int flag)
 
 	cb.mapnum = buf->mapnum;
 	cb.offset = buf->offset;
-	cb.bsize = buf->bsize;
+	cb.wsize = buf->wsize;
 	cb.buffer = buf->buffer;
 
 	if (flag) {
@@ -251,7 +251,7 @@ static void __vsl_swap_buf(struct __vsl_device * h, struct vmeio_riob_s *buf)
 		return;
 
 	if (dwd == 2) {
-		for (i = 0; i < buf->bsize; i += 2) {
+		for (i = 0; i < 2*buf->wsize; i += 2) {
 			cp = &bp[i];
 
 			c = cp[1];
@@ -262,7 +262,7 @@ static void __vsl_swap_buf(struct __vsl_device * h, struct vmeio_riob_s *buf)
 	}
 
 	if (dwd == 4) {
-		for (i = 0; i < buf->bsize; i += 4) {
+		for (i = 0; i < 4*buf->wsize; i += 4) {
 			cp = &bp[i];
 
 			c = cp[3];
@@ -292,7 +292,7 @@ int __vsl_dma(struct __vsl_device *h, struct vmeio_riob_s *buf, int flag)
 
 	cb.mapnum = buf->mapnum;
 	cb.offset = buf->offset;
-	cb.bsize = buf->bsize;
+	cb.wsize = buf->wsize;
 	cb.buffer = buf->buffer;
 
 	if (flag) {
@@ -378,7 +378,7 @@ int __vsl_read_reg(struct __vsl_device *h, int reg_num, int *reg_val)
 
 	buf.mapnum = h->mapnum;
 	buf.offset = reg_num * dwd;
-	buf.bsize = dwd;
+	buf.wsize = 1;
 	buf.buffer = &value;
 
 	if (h->dmaflag)
@@ -416,7 +416,7 @@ int __vsl_write_reg(struct __vsl_device *h, int reg_num, int *reg_val)
 
 	buf.mapnum = h->mapnum;
 	buf.offset = reg_num * dwd;
-	buf.bsize = dwd;
+	buf.wsize = 1;
 	buf.buffer = &value;
 
 	if (h->dmaflag)
