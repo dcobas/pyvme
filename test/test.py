@@ -78,22 +78,14 @@ VMEIO_GET_MAPPING   = 0xc044560e
 
 libc = CDLL('/lib/libc.so.6')
 
-
 data_width_format = {
     32 : 'I',
     16 : 'H',
      8 : 'B',
 }
 
-def mapnum2dw(fd, mapno):
-    s = vmeio_get_mapping(mapnum=mapno, map=vme_mapping())
-    if 0 > libc.ioctl(fd, VMEIO_GET_MAPPING, byref(s)):
-        print 'Failed to get data width for address space ', mapno
-        return -1
-    return s.map.data_width
-
 def raw_read(fd, mapnum, offset, items):
-    data_width =  mapnum2dw(fd, mapnum)
+    data_width =  self.data_width[mapnum-1]
     bpw = data_width / 8
     print 'bytes per word = ', bpw
     buf = create_string_buffer(bpw*items+1)
@@ -128,6 +120,24 @@ class TestProgram(cmd.Cmd):
             print 'could not open %s' % self.devname
             self.do_EOF('')
 
+        devname = device_name % lun
+        fd = libc.open(devname, os.O_RDWR)
+        if fd < 0:
+            print 'could not open %s' % self.devname
+            if not self.fd:
+                return 1
+            else:
+                return
+        self.fd = fd
+        self.lun = lun
+        self.devname = devname
+        print 'open: lun %d, fd %d' % (self.lun, self.fd)
+
+        self.data_width = [ 0, 0 ]
+        for mapnum in [ 1, 2 ]:
+            gm = vmeio_get_mapping(mapnum=mapnum, map=vme_mapping())
+            libc.ioctl(self.fd, VMEIO_GET_MAPPING, byref(gm))
+            self.data_width[mapnum-1] = gm.map.data_width
 
     def do_raw_read(self, arg):
         """raw_read mapnum offset nitems
@@ -146,8 +156,11 @@ class TestProgram(cmd.Cmd):
         if not self.fd:
             print 'open a lun first'
             return
+        if mapnum not in [ 1, 2 ]:
+            print 'mapnum must be 1 or 2'
+            return
 
-        byte_width = mapnum2dw(self.fd, mapnum)/8
+        byte_width = self.data_width[mapnum-1]/8
         val = raw_read(self.fd, mapnum, offset, items)
         for i in range(items):
             fmt = '%%08x: 0x%%0%dx' % (byte_width*2)
@@ -157,7 +170,7 @@ class TestProgram(cmd.Cmd):
     def do_params(self, arg):
         """params mapnum        show device parameters
         """
-        
+
         if not arg:
             self.do_params(1)
             self.do_params(2)
