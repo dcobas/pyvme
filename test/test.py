@@ -84,19 +84,6 @@ data_width_format = {
      8 : 'B',
 }
 
-def raw_read(fd, mapnum, offset, items):
-    data_width =  self.data_width[mapnum-1]
-    bpw = data_width / 8
-    print 'bytes per word = ', bpw
-    buf = create_string_buffer(bpw*items+1)
-    format = items * data_width_format[data_width]
-    print 'format = ', format
-    s = vmeio_riob_s(mapnum=mapnum, offset=offset, wsize=items, buffer=addressof(buf))
-    print libc.ioctl(fd, VMEIO_RAW_READ, byref(s))
-    ret = struct.unpack(format, buf[:-1])
-    print ret
-    return ret
-
 device_name = '/dev/vmeio.%d'
 
 class TestProgram(cmd.Cmd):
@@ -138,7 +125,7 @@ class TestProgram(cmd.Cmd):
     def do_raw_read(self, arg):
         """raw_read mapnum offset nitems
 
-        Read nitems word at offset of mapping mapnum
+        Read nitems words at offset of mapping mapnum
         """
         args = arg.split()
         if len(args) != 3:
@@ -156,8 +143,16 @@ class TestProgram(cmd.Cmd):
             print 'mapnum must be 1 or 2'
             return
 
-        byte_width = self.data_width[mapnum-1]/8
-        val = raw_read(self.fd, mapnum, offset, items)
+        data_width =  self.data_width[mapnum-1]
+        byte_width = data_width / 8
+        buf = create_string_buffer(byte_width*items+1)
+        s = vmeio_riob_s(mapnum=mapnum, offset=offset, wsize=items, buffer=addressof(buf))
+        if libc.ioctl(self.fd, VMEIO_RAW_READ, byref(s)) < 0:
+            print 'VMEIO_RAW_READ failed!'
+            return
+        format = items * data_width_format[data_width]
+        val = struct.unpack(format, buf[:-1])
+
         for i in range(items):
             fmt = '%%08x: 0x%%0%dx' % (byte_width*2)
             print fmt % (offset, val[i])
