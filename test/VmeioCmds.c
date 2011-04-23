@@ -34,7 +34,7 @@ static int  win     =  1;
 static int  dwd     =  4;
 static int  debug   =  0;
 static int  tmo     =  1000;
-struct vmeio_get_mapping_s winpars;
+struct vme_mapping winpars[2];
 
 static void *vmeio[DRV_MAX_DEVICES];
 
@@ -559,10 +559,8 @@ int n, radix, nadr;
 
 void get_window_parameters(int tlun) {
 
-   if (__vsl_get_mapping(vmeio[tlun],&winpars)) {
-      if (win == 2) dwd = winpars.data_width2;
-      else          dwd = winpars.data_width1;
-   }
+   if (__vsl_get_mapping(vmeio[tlun], win, &winpars[0]))
+      dwd = winpars[win-1].data_width;
 }
 
 /* ============================= */
@@ -876,10 +874,11 @@ int DisplayDevicePars(int arg) {
    arg++;
    get_window_parameters(lun);
 
-   printf("lun:%02d level:%d vector:0x%02X\n",winpars.lun,winpars.level,winpars.vector);
-   printf("base_address1:0x%06X am1:0x%02X size1:0x%04X\n",winpars.base_address1, winpars.am1, winpars.size1);
-   printf("base_address2:0x%06x am2:0x%02X size2:0x%04X\n",winpars.base_address2, winpars.am2, winpars.size2);
-   printf("isrc:%d\n",winpars.isrc);
+   /* printf("lun:%02d level:%d * vector:0x%02X\n",lun,winpars.level,winpars.vector); */
+   /* printf("isrc:%d\n",winpars.isrc); */
+   printf("lun:%02d\n",lun);
+   printf("base_address1:0x%06X am1:0x%02X size1:0x%04X\n",winpars[0].vme_addrl, winpars[0].am, winpars[0].sizel);
+   printf("base_address2:0x%06x am2:0x%02X size2:0x%04X\n",winpars[1].vme_addrl, winpars[1].am, winpars[1].sizel);
 
    return arg;
 }
