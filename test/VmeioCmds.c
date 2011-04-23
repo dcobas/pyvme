@@ -559,7 +559,7 @@ int n, radix, nadr;
 
 void get_window_parameters(int tlun) {
 
-   if (__vsl_get_mapping(vmeio[tlun], win, &winpars[0]))
+   if (__vsl_get_mapping(vmeio[tlun], win, &winpars[win-1]))
       dwd = winpars[win-1].data_width;
 }
 
