@@ -91,16 +91,18 @@ class TestProgram(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.fd = None
-        self.do_open(0)
+        self.do_lun(0)
 
-    def do_open(self, arg, device_name=device_name):
+    def do_lun(self, arg, device_name=device_name):
+        """lun [lun number]     open a LUN"""
+
         if arg == '':
             print 'open: lun = %d, fd = %d' % (self.lun, self.fd)
             return
         try:
             lun = int(arg)
         except:
-            print 'please provide a valid LUN'
+            print 'lun must be an integer'
             return
 
         devname = device_name % lun
