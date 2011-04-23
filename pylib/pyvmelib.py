@@ -11,7 +11,7 @@ class vme_mapping(Structure):
 	("*kernel_va",		c_void_p),
 
 	# Reserved for userspace
-	("*user_va",		c_void_p),
+	("user_va",		    c_void_p),
 	("fd",		        c_int),
 
 	# Window settings
@@ -140,6 +140,10 @@ VME_A24_SUP_BLT        =  0x3f
     VME_DMA_BACKOFF_32,
     VME_DMA_BACKOFF_64 ) = range(8)
 
+# DMA transfer direction vme_dma_dir
+VME_DMA_TO_DEVICE = 1
+VME_DMA_FROM_DEVICE = 2
+
 def swap32be(value):
     tmp = struct.pack('>L', value)
     return struct.unpack('<L', tmp)[0]
@@ -148,12 +152,109 @@ def swap16be(value):
     tmp = struct.pack('>H', value)
     return struct.unpack('<H', tmp)[0]
 
+width2type = {
+    VME_D32 : c_uint,
+    VME_D16 : c_ushort,
+    VME_D8  : c_ubyte,
+}
+
+class Mapping(object):
+
+    def __init__(self, am, data_width, base_address, size):
+        self.am = am
+        self.base_address = base_address
+        self.data_width = data_width
+        self.size = size
+
+        self.mapping = vme_mapping()
+        self.mapping.am                     =  am
+        self.mapping.data_width             =  data_width
+        self.mapping.vme_addru              =  0
+        self.mapping.vme_addrl              =  base_address
+        self.mapping.sizeu                  =  0
+        self.mapping.sizel                  =  size
+        self.mapping.read_prefetch_enabled  =  0
+        self.mapping.bcast_select           =  0
+        self.mapping.window_num             =  0
+
+    def map(self):
+        self.vaddr = vme_map(byref(self.mapping), 1)
+        return self.vaddr
+
+    def unmap(self):
+        self.vaddr = None
+        return vme_unmap(self.mapping)
+
+    def read(self, offset, num=1):
+        width = self.data_width
+        read_ctype = width2type[self.data_width]
+        addr = cast(self.vaddr + offset, POINTER(read_ctype))
+        values = [addr[i] for i in range(num)]
+        return values
+
+    def write(self, offset, values):
+        if type(values) != list:
+            values = [ values ]
+        width = self.data_width
+        read_ctype = width2type[self.data_width]
+        addr = cast(self.vaddr + offset, POINTER(read_ctype))
+        for i in range(len(values)):
+            addr[i] = values[i]
+
+def dma_default_descriptor():
+    desc = vme_dma()
+
+    desc.src.addru = 0
+    desc.src.addrl = 0
+    desc.dst.addru = 0
+    desc.dst.addrl = 0
+
+    desc.ctrl.pci_block_size = VME_DMA_BSIZE_4096
+    desc.ctrl.pci_backoff_time = VME_DMA_BACKOFF_0
+    desc.ctrl.vme_block_size = VME_DMA_BSIZE_4096
+    desc.ctrl.vme_backoff_time = VME_DMA_BACKOFF_0
+
+    return desc
+
+def dma_read(am, address, data_width, size):
+
+    buffer = create_string_buffer(size+1)
+
+    desc = dma_default_descriptor()
+
+    desc.src.am = am
+    desc.src.data_width = data_width
+    desc.length = size
+
+    desc.src.addrl = address
+    desc.dst.addrl = addressof(buffer)
+    desc.dir = VME_DMA_FROM_DEVICE
+
+    ret = vme_dma_read(byref(desc))
+    if not ret:
+        return buffer[:-1]
+    else:
+        return None
+
+def dma_write(am, address, data_width, buffer):
+
+    desc = dma_default_descriptor()
+
+    desc.dst.am = am
+    desc.dst.data_width = data_width
+    desc.length = size
+
+    desc.src.addrl = addressof(buffer)
+    desc.dst.addrl = address
+    desc.dir = VME_DMA_TO_DEVICE
+
+    return vme_dma_write(byref(desc))
+
 if __name__ == '__main__':
 
-    lib = CDLL('./libvmebus.so')
 
     def vme_map(am, data_width, base_address, size):
-        
+
         mapping = vme_mapping()
         mapping.am                     =  am
         mapping.data_width             =  data_width
@@ -165,12 +266,10 @@ if __name__ == '__main__':
         mapping.bcast_select           =  0
         mapping.window_num             =  0
 
-        return lib.vme_map(byref(mapping), 1)
+        return vme_map(byref(mapping), 1)
 
     addr = vme_map(am=0x9, data_width=VME_D32, base_address=0x10000000, size=0x10000)
     print 'Mapped at userspace vaddr 0x%08x' % addr
     p = cast(addr, POINTER(c_uint))
     for i in range(20):
         print 'register[%2d] = 0x%08x' % (i, swap32be(p[i]),)
-    
-
