@@ -10,7 +10,14 @@ import csv
 from os.path import join
 from optparse import OptionParser
 
-field_list = [
+db_am_translate = {
+    2 : 0x39,
+    4 : 0x2f,
+    5 : 0x29,
+    7 : 0x9,
+}
+
+register_field_list = [
     'name',
     'rwmode',
     'block',
@@ -43,6 +50,32 @@ where moduletype_id = (
 order by block, block_offsetval, register_offset
 '''
 
+module_field_list = [
+    'name',
+    'description',
+    'level',
+    'data_width1',
+    'data_width2',
+    'size1',
+    'size2',
+    'am1',
+    'am2'
+]
+
+module_query = '''
+select hwtype as name,
+    description,
+    ilevel,
+    initdsize as data_width1,
+    nextdsize as data_width2,
+    initrangeval as size1,
+    nextrangeval as size2,
+    initasize as am1,
+    nextasize as am2
+from hard_types ht
+where ht.hwtype = :hwtype
+'''
+
 def get_register_data(module_name):
     """get a list of dicts containing register attributes"""
 
@@ -50,14 +83,24 @@ def get_register_data(module_name):
     cur = cx_Oracle.connect(user='copub', password='co').cursor()
     cur.execute(query, hwtype=module_name)
 
-    return [ dict(zip(field_list, row)) for row in cur ]
+    return [ dict(zip(register_field_list, row)) for row in cur ]
+
+def get_module_data(module_name):
+    """get module data not specific to registers
+    """
+
+    import cx_Oracle
+    cur = cx_Oracle.connect(user='copub', password='co').cursor()
+    cur.execute(module_query, hwtype=module_name)
+
+    return [ dict(zip(module_field_list, row)) for row in cur ]
 
 def gen_plain_file(register_list, filename):
     """given a list of dicts with registers, construct a columnated file"""
 
     out = open(filename, 'wb')
     for reg in register_list:
-        for key in field_list:
+        for key in register_field_list:
             out.write('%s\t' % reg[key])
         out.write('\n')
     out.close()
@@ -65,7 +108,7 @@ def gen_plain_file(register_list, filename):
 def gen_csv_file(register_list, filename):
     """given a list of dicts with registers, construct a CSV file"""
 
-    out = csv.DictWriter(open(filename, 'wb'), field_list)
+    out = csv.DictWriter(open(filename, 'wb'), register_field_list)
     for reg in register_list:
         out.writerow(reg)
 
@@ -286,9 +329,11 @@ def main():
         sys.exit(1)
 
     register_list = get_register_data(module_name)
+    module_data   = get_module_data(module_name)
     if not register_list:
         print 'no data for module %s in CCDB, exiting' % module_name
         sys.exit(1)
+    print module_data
 
     # optional data files generation
     registers = dict([ (regdata['name'], regdata)
