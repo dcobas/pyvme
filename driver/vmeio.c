@@ -513,44 +513,6 @@ static int get_mapping(struct vmeio_device *dev, struct vmeio_get_mapping *mappi
 	return 0;
 }
 
-#if 0
-static void vmeio_get_device(struct vmeio_device *dev,
-		struct vmeio_get_mapping_s *mapping)
-{
-	struct vmeio_map *map0 = &dev->maps[0];
-	struct vmeio_map *map1 = &dev->maps[1];
-
-	mapping->lun	= dev->lun;
-	mapping->level	= dev->level;
-	mapping->vector	= dev->vector;
-	mapping->isrc	= dev->isrc;
-
-	mapping->am1	= map0->address_modifier;
-	mapping->data_width1	= map0->data_width;
-	mapping->base_address1	= map0->base_address;
-	mapping->size1	= map0->mapping_size;
-
-	mapping->am2	= map1->address_modifier;
-	mapping->data_width2	= map1->data_width;
-	mapping->base_address2	= map1->base_address;
-	mapping->size2	= map1->mapping_size;
-}
-
-static void vmeio_set_device(struct vmeio_device *dev,
-		struct vmeio_get_mapping_s *mapping)
-{
-	struct vmeio_map *map0 = &dev->maps[0];
-	struct vmeio_map *map1 = &dev->maps[1];
-
-	vmeio_map_unregister(map0);
-	vmeio_map_init(map0, mapping->base_address1, mapping->size1, mapping->am1, mapping->data_width1);
-	vmeio_map_unregister(map1);
-	vmeio_map_init(map1, mapping->base_address2, mapping->size2, mapping->am2, mapping->data_width2);
-	vmeio_map_register(map0);
-	vmeio_map_register(map1);
-}
-#endif
-
 static int do_raw_dma(struct vmeio_dma_op *request)
 {
 	struct vme_dma dma_desc;
@@ -761,28 +723,13 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		vmeio_get_timeout(dev, arb);
 		break;
 
-#if 0
-	case VMEIO_GET_DEVICE:	   /** Get the device described in struct vmeio_get_device_s */
-		vmeio_get_device(dev, arb);
-		break;
-
-	case VMEIO_SET_DEVICE:     /** Changes the device memory map */
-				  /** Super dangerous, experts only */
-		vmeio_set_device(dev, arb);
-		if (dev->maps[0].vaddr == NULL && dev->maps[1].vaddr == NULL)
-			goto out;
-		break;
-#endif
-
 	case VMEIO_RAW_READ_DMA:
-
 		cc = raw_dma(dev, arb, VME_DMA_FROM_DEVICE);
 		if (cc < 0)
 			goto out;
 		break;
 
 	case VMEIO_RAW_WRITE_DMA:
-
 		cc = raw_dma(dev, arb, VME_DMA_TO_DEVICE);
 		if (cc < 0)
 			goto out;
@@ -790,14 +737,12 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 
 	case VMEIO_READ_DMA:
 	case VMEIO_WRITE_DMA:
-
 		cc = do_raw_dma(arb);
 		if (cc < 0)
 			goto out;
 		break;
 
 	case VMEIO_RAW_READ:
-
 		cc = raw_read(dev, arb);
 		if (cc < 0)
 			goto out;
