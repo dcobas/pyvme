@@ -79,22 +79,22 @@ where ht.hwtype = :hwtype
 
 cursor = cx_Oracle.connect(user='copub', password='co').cursor()
 
-def get_register_data(module_name):
-    """get a list of dicts containing register attributes"""
-
-    cursor.execute(register_query, hwtype=module_name)
-
-    return [ dict(zip(register_field_list, row)) for row in cursor ]
 
 def get_module_data(module_name):
-    """get module data not specific to registers
+    """get module data
+
+    Return a dictionary with module data, and a list of dicts
+    with register properties
     """
 
-    import cx_Oracle
-    cursor = cx_Oracle.connect(user='copub', password='co').cursor()
     cursor.execute(module_query, hwtype=module_name)
+    modtuple = cursor.fetchone()
+    module_data = dict(zip(module_field_list, modtuple))
 
-    return [ dict(zip(module_field_list, row)) for row in cursor ]
+    cursor.execute(register_query, hwtype=module_name)
+    register_data = [ dict(zip(register_field_list, row)) for row in cursor ]
+
+    return module_data, register_data
 
 def gen_plain_file(register_list, filename):
     """given a list of dicts with registers, construct a columnated file"""
@@ -373,8 +373,7 @@ def main():
         print 'could not make output dir ' + output_dir
         sys.exit(1)
 
-    register_list = get_register_data(module_name)
-    module_data   = get_module_data(module_name)
+    module_data, register_list  = get_module_data(module_name)
     if not register_list:
         print 'no data for module %s in CCDB, exiting' % module_name
         sys.exit(1)
