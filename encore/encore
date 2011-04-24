@@ -483,7 +483,8 @@ def main():
     gen_install_script(module_name, driver_name, install_sh)
 
     # copy verbatim files
-    templates_dir = '../driver'
+    cwd = os.path.dirname(sys.argv[0])
+    templates_dir = os.path.joing(cwd, 'templates')
     verbatim_files = [
         'vmeio.c',
         'vmeio.h',
