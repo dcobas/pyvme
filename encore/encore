@@ -496,15 +496,15 @@ def main():
     ]
     for f in verbatim_files:
         from_ = os.path.join(templates_dir, f)
-	to    = os.path.join(output_dir, f)
-	if f == 'vmeio.c':
-	    to = os.path.join(output_dir, driver_name + '.c')
+        to    = os.path.join(output_dir, f)
+        if f == 'vmeio.c':
+            to = os.path.join(output_dir, driver_name + '.c')
 	os.system('cp "%s" "%s"' % (from_, to))
 
 
     # optional data files generation
     registers = dict([ (regdata['name'], regdata)
-        for regdata in register_list ])
+                        for regdata in register_list ])
     if options.plain:
         plain_filename =join(output_dir, options.plain)
         gen_plain_file(register_list, plain_filename)
