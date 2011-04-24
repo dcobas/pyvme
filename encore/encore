@@ -157,6 +157,12 @@ struct encore_reginfo {
 		module_name, module_name, module_name))
     return ''.join(cstruct)
 
+def gen_register_struct_file(register_list, module_name, outfile):
+    """generate a C file with struct encore definitions"""
+    out = file(outfile, 'w')
+    out.write(gen_register_struct(register_list, module_name))
+    out.close()
+
 def gen_offsets(register_list):
     """generate offset list #define's"""
 
@@ -360,11 +366,14 @@ def main():
     module_name = args[1].upper()
 
     # prepare output paths
-    output_dir = module_name.lower()
-    libname = 'lib%s' % module_name.lower()
-    lib_filename = join(output_dir, libname + '.h')
-    c_filename = join(output_dir, libname + '.c')
-    make_filename = join(output_dir, 'Makefile')
+    driver_name   = module_name.lower()
+    output_dir    = driver_name
+    libname       = 'lib%s' % driver_name
+    lib_h         = join(output_dir, libname + '.h')
+    lib_c         = join(output_dir, libname + '.c')
+    makefile      = join(output_dir, 'Makefile')
+    regs_csv      = join(output_dir, driver_name + '.csv')
+    regs_c	  = join(output_dir, driver_name + '_regs.c')
 
     if make_out_dir(output_dir, options.kill):
         print 'could not make output dir ' + output_dir
@@ -393,10 +402,6 @@ def main():
         regs_filename = join(output_dir, module_name)
         gen_regs_file(register_list, regs_filename)
 
-    # library generation
-    gen_h_file(register_list, libname, lib_filename)
-    gen_c_file(register_list, libname, c_filename)
-    gen_makefile(libname, module_name, make_filename)
 
 if __name__ == '__main__':
 
