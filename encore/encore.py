@@ -7,6 +7,7 @@ import errno
 import stat
 import datetime
 import csv
+import cx_Oracle
 from os.path import join
 from optparse import OptionParser
 
@@ -30,7 +31,7 @@ register_field_list = [
     'description',
     ]
 
-query = '''
+register_query = '''
 select name,
     rwmode,
     block,
@@ -76,24 +77,24 @@ from hard_types ht
 where ht.hwtype = :hwtype
 '''
 
+cursor = cx_Oracle.connect(user='copub', password='co').cursor()
+
 def get_register_data(module_name):
     """get a list of dicts containing register attributes"""
 
-    import cx_Oracle
-    cur = cx_Oracle.connect(user='copub', password='co').cursor()
-    cur.execute(query, hwtype=module_name)
+    cursor.execute(register_query, hwtype=module_name)
 
-    return [ dict(zip(register_field_list, row)) for row in cur ]
+    return [ dict(zip(register_field_list, row)) for row in cursor ]
 
 def get_module_data(module_name):
     """get module data not specific to registers
     """
 
     import cx_Oracle
-    cur = cx_Oracle.connect(user='copub', password='co').cursor()
-    cur.execute(module_query, hwtype=module_name)
+    cursor = cx_Oracle.connect(user='copub', password='co').cursor()
+    cursor.execute(module_query, hwtype=module_name)
 
-    return [ dict(zip(module_field_list, row)) for row in cur ]
+    return [ dict(zip(module_field_list, row)) for row in cursor ]
 
 def gen_plain_file(register_list, filename):
     """given a list of dicts with registers, construct a columnated file"""
