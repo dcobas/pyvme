@@ -42,13 +42,16 @@ select name,
     mr.offsetval + nvl(mb.offsetval,0) as offset,
     wordsize,
     depthval as depth,
-    mr.description as description
+    mr.description as description,
+    case mb.address
+    	when 1 then ht.initdsize
+	when 2 then ht.nextdsize
+    end as data_width
 from moduleregisters mr join moduleblocks mb
-    using (block, moduletype_id)
-where moduletype_id = (
-    select hwtype_id
-    from hard_types
-    where hwtype = :hwtype )
+        using (block, moduletype_id)
+    join hard_types ht
+        on moduletype_id = ht.hwtype_id
+where ht.hwtype = :hwtype
 order by block, block_offsetval, register_offset
 '''
 
@@ -93,14 +96,7 @@ def get_module_data(module_name):
     module_data = dict(zip(module_field_list, modtuple))
 
     cursor.execute(register_query, hwtype=module_name)
-    register_data = []
-    for row in cursor:
-        block_address_space = row[3]
-        if block_address_space == 1:
-            dw = module_data['data_width1']
-        elif block_address_space == 2:
-            dw = module_data['data_width2']
-        register_data.append(dict(zip(register_field_list, list(row) + [dw])))
+    register_data = [ dict(zip(register_field_list, row)) for row in cursor ]
 
     return module_data, register_data
 
