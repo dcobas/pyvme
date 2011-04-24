@@ -29,6 +29,7 @@ register_field_list = [
     'wordsize',
     'depth',
     'description',
+    'data_width',
     ]
 
 register_query = '''
@@ -92,7 +93,14 @@ def get_module_data(module_name):
     module_data = dict(zip(module_field_list, modtuple))
 
     cursor.execute(register_query, hwtype=module_name)
-    register_data = [ dict(zip(register_field_list, row)) for row in cursor ]
+    register_data = []
+    for row in cursor:
+        block_address_space = row[3]
+        if block_address_space == 1:
+            dw = module_data['data_width1']
+        elif block_address_space == 2:
+            dw = module_data['data_width2']
+        register_data.append(dict(zip(register_field_list, list(row) + [dw])))
 
     return module_data, register_data
 
@@ -128,6 +136,7 @@ struct encore_reginfo {
 	char	wordsize[7];
 	int	depth;
 	char	description[81];
+	int data_width;
 };
 
 ''' ]
@@ -138,16 +147,17 @@ struct encore_reginfo {
     for reg in register_list:
         cstruct.append('    [%d] = {\n' % i)
         cstruct.append('''\
-       .name	        	= "%(name)s",
-       .rwmode      		= "%(rwmode)s",
-       .block       		= %(block)d,
-       .block_address_space	= %(block_address_space)d,
-       .block_offset		= 0x%(block_offset)x,
-       .register_offset		= 0x%(register_offset)x,
-       .offset			= 0x%(offset)x,
-       .wordsize	    	= "%(wordsize)s",
-       .depth       		= 0x%(depth)x,
-       .description		= "%(description)s",'''
+\t.name	        	= "%(name)s",
+\t.rwmode      		= "%(rwmode)s",
+\t.block       		= %(block)d,
+\t.block_address_space	= %(block_address_space)d,
+\t.block_offset		= 0x%(block_offset)x,
+\t.register_offset	= 0x%(register_offset)x,
+\t.offset			= 0x%(offset)x,
+\t.wordsize	    	= "%(wordsize)s",
+\t.depth       		= 0x%(depth)x,
+\t.description		= "%(description)s",
+\t.data_width      	= %(data_width)d,'''
 			       '\n    },\n\n''' % reg )
         i += 1
     cstruct.append('};\n\n')
