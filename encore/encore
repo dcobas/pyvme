@@ -285,68 +285,10 @@ def gen_regs_file(register_list, module_name):
 def gen_makefile(driver_name, module_name, filename):
     """produce a Makefile for the library"""
 
-    makefile_template = """\
-# generated automatically by encore, date %(date)s
-
-CPU=L865
-KVER=2.6.24.7-rt27
-KERNELSRC=/acc/sys/$(CPU)/usr/src/kernels/$(KVER)
-include /acc/dsc/src/co/Make.auto
-
-DRIVER = %(driver_name)s
-DRIVER_NAME = "$(DRIVER)"
-LIBNAME = lib$(DRIVER)
-
-COMPILE_TIME = $(shell date +%%s)
-CFLAGS= -g -Wall -I. -I ../../driver
-CFLAGS += -I /acc/local/$(CPU)/include/
-CFLAGS += -DCOMPILE_TIME=$(COMPILE_TIME) -g -Wall -fPIC
-
-MODLIBS = $(LIBNAME).$(CPU).a $(LIBNAME).$(CPU).so
-VMELIBS = vmeio_support.$(CPU).so vmeio_support.$(CPU).a libencore.$(CPU).o
-
-SRCS=$(LIBNAME).c $(LIBNAME).h
-
-all: modules libs
-libs: $(MODLIBS) $(VMELIBS)
-modules:
-	cp Module.symvers.vmebus Module.symvers
-	make -C $(KERNELSRC) M=`pwd` KVER=$(KVER) 'DRIVER_NAME=$(DRIVER_NAME)' modules
-clean:
-	rm -f *.o *.a *.so
-	make -C $(KERNELSRC) M=`pwd` clean
-
-$(LIBNAME).$(CPU).o: $(SRCS)
-
-$(LIBNAME).$(CPU).a: $(LIBNAME).$(CPU).o
-	-$(RM) $@
-	$(AR) $(ARFLAGS) $@ $^
-	$(RANLIB) $@
-
-$(LIBNAME).$(CPU).so: $(LIBNAME).$(CPU).o
-	-$(RM) $@
-	$(CC) $(CFLAGS) -o $@ -shared $^
-
-lib$(DRIVER).$(CPU).so: lib$(DRIVER).$(CPU).o
-	$(CC) -shared -o $@ $^
-
-vmeio_support.$(CPU).so: vmeio_support.$(CPU).o
-	-$(RM) $@
-	$(CC) $(CFLAGS) -o $@ -shared $^
-
-vmeio_support.$(CPU).a: vmeio_support.$(CPU).o
-	-$(RM) $@
-	$(AR) $(ARFLAGS) $@ $^
-	$(RANLIB) $@
-
-libencore.$(CPU).a: libencore.$(CPU).o
-	-$(RM) $@
-	$(AR) $(ARFLAGS) $@ $^
-	$(RANLIB) $@
-"""
+    template = file(makefile_template).read()
 
     date = datetime.datetime.now().isoformat(' ')
-    makefile = makefile_template % locals()
+    makefile = template % locals()
     out = open(filename, 'wb')
     out.write(makefile)
     out.close()
@@ -354,18 +296,10 @@ libencore.$(CPU).a: libencore.$(CPU).o
 def gen_kbuild(driver_name, module_name, filename):
     """produce a Kbuild for the driver"""
 
-    kbuild_template = """\
-# generated automatically by encore, date %(date)s
-
-EXTRA_CFLAGS += -DCOMPILE_TIME=$(shell date +%%s) -g -Wall \\
-	'-DDRIVER_NAME=$(DRIVER_NAME)' \\
-	-I/acc/src/dsc/drivers/vmebridge/driver
-
-obj-m := %(driver_name)s.o
-"""
+    template = file(kbuild_template).read()
 
     date = datetime.datetime.now().isoformat(' ')
-    kbuild = kbuild_template % locals()
+    kbuild = template % locals()
     out = open(filename, 'wb')
     out.write(kbuild)
     out.close()
@@ -373,39 +307,11 @@ obj-m := %(driver_name)s.o
 def gen_install_script(device_name, driver_name,
 	output_file, transfer='/etc/transfer.ref'):
 
-    instprog_template = r'''#!/bin/sh
-
-# Generated automatically by install.py at %(date)s"
-echo "Installing %(device_name)s driver..."
-
-INSMOD_ARGS=`awk -f transfer2insmod.awk %(device_name)s %(transfer)s`
-
-if [ x"$INSMOD_ARGS" == x"luns=" ] ; then
-    echo "No %(device_name)s declared in %(transfer)s, exiting"
-    exit 1
-fi
-
-echo "installing %(driver_name)s by insmod $INSMOD_ARGS"
-insmod %(driver_name)s.ko "$INSMOD_ARGS"
-
-MAJOR=`cat /proc/devices | awk '$2 == "%(driver_name)s" {print $1}' %(transfer)s`
-if [ -z "$MAJOR" ]; then
-	echo "driver %(driver_name)s not installed!"
-	exit 1
-fi
-
-MINORS=`awk '/^#+#/ && $6 == "%(device_name)s" { print $7, }' %(transfer)s`
-echo "creating device nodes for driver %(driver_name)s, major $MAJOR, minors $MINORS"
-for MINOR in $MINORS; do
-    rm -f /dev/%(driver_name)s.$MINOR
-    mknod /dev/%(driver_name)s.$MINOR c $MAJOR $MINOR
-done
-'''
+    template = file(instprog_template).read()
 
     date = datetime.datetime.now().isoformat(' ')
-
     out = file(output_file, 'w')
-    out.write(instprog_template % locals())
+    out.write(template % locals())
     out.close()
 
 def make_out_dir(dirname, kill=False):
@@ -460,7 +366,7 @@ def main():
     makefile      = join(output_dir, 'Makefile')
     kbuild        = join(output_dir, 'Kbuild')
     regs_csv      = join(output_dir, driver_name + '.csv')
-    regs_c	  = join(output_dir, driver_name + '_regs.c')
+    regs_c	      = join(output_dir, driver_name + '_regs.c')
     install_sh	  = join(output_dir, 'install_' + driver_name + '.sh')
 
     if make_out_dir(output_dir, options.kill):
@@ -473,6 +379,15 @@ def main():
         print 'no data for module %s in CCDB, exiting' % module_name
         sys.exit(1)
 
+    # copy verbatim files and locate templates
+    # cwd = os.path.dirname(sys.argv[0])
+    for f in verbatim_files:
+        from_ = os.path.join(templates_dir, f)
+        to    = os.path.join(output_dir, f)
+        if f == 'vmeio.c':
+            to = os.path.join(output_dir, driver_name + '.c')
+	os.system('cp "%s" "%s"' % (from_, to))
+
     # driver fileset generation
     gen_csv_file(register_list, regs_csv)
     gen_register_struct_file(register_list, driver_name, regs_c)
@@ -481,26 +396,6 @@ def main():
     gen_makefile(driver_name, module_name, makefile)
     gen_kbuild(driver_name, module_name, kbuild)
     gen_install_script(module_name, driver_name, install_sh)
-
-    # copy verbatim files
-    cwd = os.path.dirname(sys.argv[0])
-    templates_dir = os.path.joing(cwd, 'templates')
-    verbatim_files = [
-        'vmeio.c',
-        'vmeio.h',
-        'Module.symvers.vmebus',
-        'libencore.c',
-        'libencore.h',
-        'vmeio_support.c',
-        'vmeio_support.h',
-    ]
-    for f in verbatim_files:
-        from_ = os.path.join(templates_dir, f)
-        to    = os.path.join(output_dir, f)
-        if f == 'vmeio.c':
-            to = os.path.join(output_dir, driver_name + '.c')
-	os.system('cp "%s" "%s"' % (from_, to))
-
 
     # optional data files generation
     registers = dict([ (regdata['name'], regdata)
@@ -512,6 +407,22 @@ def main():
         regs_filename = join(output_dir, module_name)
         gen_regs_file(register_list, regs_filename)
 
+# verbatim files and templates
+cwd = '.'
+templates_dir = os.path.join(cwd, 'templates')
+makefile_template = os.path.join(templates_dir, 'Makefile')
+kbuild_template = os.path.join(templates_dir, 'Kbuild')
+instprog_template = os.path.join(templates_dir, 'install.sh')
+verbatim_files = [
+    'vmeio.c',
+    'vmeio.h',
+    'Module.symvers.vmebus',
+    'libencore.c',
+    'libencore.h',
+    'vmeio_support.c',
+    'vmeio_support.h',
+    'transfer2insmod.awk',
+]
 
 if __name__ == '__main__':
 
