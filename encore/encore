@@ -25,7 +25,7 @@ register_field_list = [
     'block_address_space',
     'block_offset',
     'register_offset',
-    'total_offset',
+    'offset',
     'wordsize',
     'depth',
     'description',
@@ -38,7 +38,7 @@ select name,
     mb.address as block_address_space,
     nvl(mb.offsetval,0) as block_offsetval,
     mr.offsetval as register_offset,
-    mr.offsetval + nvl(mb.offsetval,0) as total_offset,
+    mr.offsetval + nvl(mb.offsetval,0) as offset,
     wordsize,
     depthval as depth,
     mr.description as description
@@ -124,7 +124,7 @@ struct encore_reginfo {
 	int	block_address_space;
 	int	block_offset;
 	int	register_offset;
-	int	total_offset;
+	int	offset;
 	char	wordsize[7];
 	int	depth;
 	char	description[81];
@@ -144,7 +144,7 @@ struct encore_reginfo {
        .block_address_space	= %(block_address_space)d,
        .block_offset		= 0x%(block_offset)x,
        .register_offset		= 0x%(register_offset)x,
-       .total_offset		= 0x%(total_offset)x,
+       .offset			= 0x%(offset)x,
        .wordsize	    	= "%(wordsize)s",
        .depth       		= 0x%(depth)x,
        .description		= "%(description)s",'''
@@ -165,7 +165,7 @@ def gen_offsets(register_list):
     defines = []
     for register in register_list:
         name = register['name']
-        offset = int(register['total_offset'])
+        offset = int(register['offset'])
         offset_name = 'OFFSET_%s' % name
         define = define_template % locals()
         defines.append(define)
@@ -252,7 +252,7 @@ def gen_regs(register_list, module_name):
     for register in register_list:
         register_name = register['name']
         rwflags = rwmode_translate[register['rwmode']]
-        offset = int(register['total_offset'])
+        offset = int(register['offset'])
         size = int(size_translate[register['wordsize']])
         window = 1
         depth = int(register['depth'])
