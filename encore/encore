@@ -342,9 +342,6 @@ def main():
     parser.add_option("--plain", dest="plain", action="store",
                         help="create a plaintext file with register data",
                         metavar="FILE")
-    parser.add_option("--csv", dest="csv", action="store",
-                        help="create a CSV file with register data",
-                        metavar="FILE")
     parser.add_option("--regs", action="store_true", dest="regs",
                         help="create a .regs file for encore v1.0 compat",
                         metavar="FILE")
@@ -378,15 +375,17 @@ def main():
     if not register_list:
         print 'no data for module %s in CCDB, exiting' % module_name
         sys.exit(1)
-    # print module_data
-    print gen_register_struct(register_list, module_name.lower())
+
+    # library generation
+    gen_csv_file(register_list, regs_csv)
+    gen_register_struct_file(register_list, driver_name, regs_c)
+    gen_h_file(register_list, libname, lib_h)
+    gen_c_file(register_list, libname, lib_c)
+    gen_makefile(libname, module_name, makefile)
 
     # optional data files generation
     registers = dict([ (regdata['name'], regdata)
         for regdata in register_list ])
-    if options.csv:
-        csv_filename = join(output_dir, options.csv)
-        gen_csv_file(register_list, csv_filename)
     if options.plain:
         plain_filename =join(output_dir, options.plain)
         gen_plain_file(register_list, plain_filename)
