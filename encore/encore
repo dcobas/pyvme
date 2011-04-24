@@ -282,38 +282,67 @@ def gen_regs_file(register_list, module_name):
     out.write(gen_regs(register_list, upper_name))
     out.close()
 
-def gen_makefile(lib_name, module_name, filename):
+def gen_makefile(driver_name, module_name, filename):
     """produce a Makefile for the library"""
 
-    makefile_template = """
+    makefile_template = """\
 # generated automatically by encore, date %(date)s
 
-LIBNAME = %(lib_name)s
-REGFILE = %(module_name)s.regs
-
 CPU=L865
+KVER=2.6.24.7-rt27
+KERNELSRC=/acc/sys/$(CPU)/usr/src/kernels/$(KVER)
 include /acc/dsc/src/co/Make.auto
 
+DRIVER = %(driver_name)s
+DRIVER_NAME = "$(DRIVER)"
+LIBNAME = lib$(DRIVER)
+
+COMPILE_TIME = $(shell date +%%s)
 CFLAGS= -g -Wall -I. -I ../../driver
+CFLAGS += -I /acc/local/$(CPU)/include/
+CFLAGS += -DCOMPILE_TIME=$(COMPILE_TIME) -g -Wall -fPIC
+
+MODLIBS = $(LIBNAME).$(CPU).a $(LIBNAME).$(CPU).so
+VMELIBS = vmeio_support.$(CPU).so vmeio_support.$(CPU).a libencore.$(CPU).o
+
 SRCS=$(LIBNAME).c $(LIBNAME).h
 
-all: $(LIBNAME).$(CPU).a $(LIBNAME).$(CPU).so
+all: modules libs
+libs: $(MODLIBS) $(VMELIBS)
+modules:
+	cp Module.symvers.vmebus Module.symvers
+	make -C $(KERNELSRC) M=`pwd` KVER=$(KVER) 'DRIVER_NAME=$(DRIVER_NAME)' modules
+clean:
+	rm -f *.o *.a *.so
+	make -C $(KERNELSRC) M=`pwd` clean
 
 $(LIBNAME).$(CPU).o: $(SRCS)
 
 $(LIBNAME).$(CPU).a: $(LIBNAME).$(CPU).o
-\t-$(RM) $@
-\t$(AR) $(ARFLAGS) $@ $^
-\t$(RANLIB) $@
+	-$(RM) $@
+	$(AR) $(ARFLAGS) $@ $^
+	$(RANLIB) $@
 
 $(LIBNAME).$(CPU).so: $(LIBNAME).$(CPU).o
-\t-$(RM) $@
-\t$(CC) $(CFLAGS) -o $@ -shared $^
+	-$(RM) $@
+	$(CC) $(CFLAGS) -o $@ -shared $^
 
-clean:
-\trm -f $(LIBNAME).$(CPU).o
-\trm -f $(LIBNAME).$(CPU).a
-\trm -f $(LIBNAME).$(CPU).so
+lib$(DRIVER).$(CPU).so: lib$(DRIVER).$(CPU).o
+	$(CC) -shared -o $@ $^
+
+vmeio_support.$(CPU).so: vmeio_support.$(CPU).o
+	-$(RM) $@
+	$(CC) $(CFLAGS) -o $@ -shared $^
+
+vmeio_support.$(CPU).a: vmeio_support.$(CPU).o
+	-$(RM) $@
+	$(AR) $(ARFLAGS) $@ $^
+	$(RANLIB) $@
+
+libencore.$(CPU).a: libencore.$(CPU).o
+	-$(RM) $@
+	$(AR) $(ARFLAGS) $@ $^
+	$(RANLIB) $@
 """
 
     date = datetime.datetime.now().isoformat(' ')
@@ -322,8 +351,26 @@ clean:
     out.write(makefile)
     out.close()
 
+def gen_kbuild(driver_name, module_name, filename):
+    """produce a Kbuild for the driver"""
 
-def gen_install_script(device_name, driver_name, 
+    kbuild_template = """\
+# generated automatically by encore, date %(date)s
+
+EXTRA_CFLAGS += -DCOMPILE_TIME=$(shell date +%%s) -g -Wall \\
+	'-DDRIVER_NAME=$(DRIVER_NAME)' \\
+	-I/acc/src/dsc/drivers/vmebridge/driver
+
+obj-m := %(driver_name)s.o
+"""
+
+    date = datetime.datetime.now().isoformat(' ')
+    kbuild = kbuild_template % locals()
+    out = open(filename, 'wb')
+    out.write(kbuild)
+    out.close()
+
+def gen_install_script(device_name, driver_name,
 	output_file, transfer='/etc/transfer.ref'):
 
     instprog_template = r'''#!/bin/sh
@@ -411,6 +458,7 @@ def main():
     lib_h         = join(output_dir, libname + '.h')
     lib_c         = join(output_dir, libname + '.c')
     makefile      = join(output_dir, 'Makefile')
+    kbuild        = join(output_dir, 'Kbuild')
     regs_csv      = join(output_dir, driver_name + '.csv')
     regs_c	  = join(output_dir, driver_name + '_regs.c')
     install_sh	  = join(output_dir, 'install_' + driver_name + '.sh')
@@ -425,13 +473,33 @@ def main():
         print 'no data for module %s in CCDB, exiting' % module_name
         sys.exit(1)
 
-    # library generation
+    # driver fileset generation
     gen_csv_file(register_list, regs_csv)
     gen_register_struct_file(register_list, driver_name, regs_c)
     gen_h_file(register_list, libname, lib_h)
     gen_c_file(register_list, libname, lib_c)
-    gen_makefile(libname, module_name, makefile)
+    gen_makefile(driver_name, module_name, makefile)
+    gen_kbuild(driver_name, module_name, kbuild)
     gen_install_script(module_name, driver_name, install_sh)
+
+    # copy verbatim files
+    templates_dir = '../driver'
+    verbatim_files = [
+        'vmeio.c',
+        'vmeio.h',
+        'Module.symvers.vmebus',
+        'libencore.c',
+        'libencore.h',
+        'vmeio_support.c',
+        'vmeio_support.h',
+    ]
+    for f in verbatim_files:
+        from_ = os.path.join(templates_dir, f)
+	to    = os.path.join(output_dir, f)
+	if f == 'vmeio.c':
+	    to = os.path.join(output_dir, driver_name + '.c')
+	os.system('cp "%s" "%s"' % (from_, to))
+
 
     # optional data files generation
     registers = dict([ (regdata['name'], regdata)
