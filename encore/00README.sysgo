@@ -1,8 +1,0 @@
-To execute sysgo for each installed logical unit on a dsc
-type: dosysgo <name>
-for example: dosysgo rf_vtu
-
-sysgo gets called for each logical unit number with the name, lun, level and vector
-You can add your own commands to this script or modify it
-
-callsysgo.awk just parses transfer.ref to call sysgo with the correct arguments
