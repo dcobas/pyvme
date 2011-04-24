@@ -157,7 +157,7 @@ struct encore_reginfo {
 \t.wordsize	    	= "%(wordsize)s",
 \t.depth       		= 0x%(depth)x,
 \t.description		= "%(description)s",
-\t.data_width      	= %(data_width)d,'''
+\t.data_width		= %(data_width)d,'''
 			       '\n    },\n\n''' % reg )
         i += 1
     cstruct.append('};\n\n')
