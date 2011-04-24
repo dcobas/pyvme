@@ -322,6 +322,45 @@ clean:
     out.write(makefile)
     out.close()
 
+
+def gen_install_script(device_name, driver_name, 
+	output_file, transfer='/etc/transfer.ref'):
+
+    instprog_template = r'''#!/bin/sh
+
+# Generated automatically by install.py at %(date)s"
+echo "Installing %(device_name)s driver..."
+
+INSMOD_ARGS=`awk -f transfer2insmod.awk %(device_name)s %(transfer)s`
+
+if [ x"$INSMOD_ARGS" == x"luns=" ] ; then
+    echo "No %(device_name)s declared in %(transfer)s, exiting"
+    exit 1
+fi
+
+echo "installing %(driver_name)s by insmod $INSMOD_ARGS"
+insmod %(driver_name)s.ko "$INSMOD_ARGS"
+
+MAJOR=`cat /proc/devices | awk '$2 == "%(driver_name)s" {print $1}' %(transfer)s`
+if [ -z "$MAJOR" ]; then
+	echo "driver %(driver_name)s not installed!"
+	exit 1
+fi
+
+MINORS=`awk '/^#+#/ && $6 == "%(device_name)s" { print $7, }' %(transfer)s`
+echo "creating device nodes for driver %(driver_name)s, major $MAJOR, minors $MINORS"
+for MINOR in $MINORS; do
+    rm -f /dev/%(driver_name)s.$MINOR
+    mknod /dev/%(driver_name)s.$MINOR c $MAJOR $MINOR
+done
+'''
+
+    date = datetime.datetime.now().isoformat(' ')
+
+    out = file(output_file, 'w')
+    out.write(instprog_template % locals())
+    out.close()
+
 def make_out_dir(dirname, kill=False):
     try:
         isdir = stat.S_ISDIR(os.stat(dirname).st_mode)
@@ -374,6 +413,7 @@ def main():
     makefile      = join(output_dir, 'Makefile')
     regs_csv      = join(output_dir, driver_name + '.csv')
     regs_c	  = join(output_dir, driver_name + '_regs.c')
+    install_sh	  = join(output_dir, 'install_' + driver_name + '.sh')
 
     if make_out_dir(output_dir, options.kill):
         print 'could not make output dir ' + output_dir
@@ -391,6 +431,7 @@ def main():
     gen_h_file(register_list, libname, lib_h)
     gen_c_file(register_list, libname, lib_c)
     gen_makefile(libname, module_name, makefile)
+    gen_install_script(module_name, driver_name, install_sh)
 
     # optional data files generation
     registers = dict([ (regdata['name'], regdata)
