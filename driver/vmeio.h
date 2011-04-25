@@ -72,6 +72,21 @@ struct vmeio_dma_op {
    enum vme_dma_dir direction;	/** from/to device */
 };
 
+/* register data for encore - blatant abstraction leakage */
+struct encore_reginfo {
+	char	name[17];
+	char	rwmode[5];
+	int	block;
+	int	block_address_space;
+	int	block_offset;
+	int	register_offset;
+	int	offset;
+	char	wordsize[7];
+	int	depth;
+	char	description[81];
+	int	data_width;
+};
+
 /*
  * Enumerate IOCTL functions
  */
@@ -101,6 +116,10 @@ typedef enum {
    vmeioWRITE_DMA,     /** Direct interface to DMA */
    vmeioGET_MAPPING,   /** Obtain mapping properties */
 
+   /* encore only */
+   vmeioGET_NREGS,     /** Obtain number or registers */
+   vmeioGET_REGINFO,   /** Obtain register properties */
+
    vmeioLAST           /** For range checking (LAST - FIRST) */
 
 } vmeio_ioctl_function_t;
@@ -125,5 +144,7 @@ typedef enum {
 #define  VMEIO_READ_DMA       _IOW(MAGIC,   vmeioREAD_DMA,       struct	 vmeio_dma_op)
 #define  VMEIO_WRITE_DMA      _IOW(MAGIC,   vmeioWRITE_DMA,      struct  vmeio_dma_op)
 #define  VMEIO_GET_MAPPING    _IOWR(MAGIC,  vmeioGET_MAPPING,    struct  vme_mapping)
+#define  VMEIO_GET_NREGS      _IOR(MAGIC,   vmeioGET_MAPPING,    int)
+#define  VMEIO_GET_REGINFO    _IOW(MAGIC,   vmeioGET_REGINFO,    void *)
 
 #endif

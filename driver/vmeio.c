@@ -12,6 +12,10 @@
 #include "vmebus.h"
 #include "vmeio.h"
 
+#ifdef ENCORE_DAL
+#include "%(driver_name)s_regs.c"
+#endif
+
 #define PFX DRIVER_NAME ": "
 
 MODULE_AUTHOR("Julian Lewis BE/CO/HT CERN");
@@ -693,6 +697,27 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob *riob)
 	return 0;
 }
 
+#ifdef ENCORE_DAL
+static int nregs = %(driver_name)s_nregs;
+static struct encore_reginfo *reginfo = &%(driver_name)s_registers;
+
+static void get_nregs(int *nregs)
+{
+	*nregs = nregs;
+}
+
+static int get_reginfo(struct encore_reginfo **array)
+{
+	int cc;
+
+	cc = copy_to_user(*array, reginfo, sizeof(nregs*sizeof(*reginfo)));
+	if (cc != 0)
+		return -EACCES;
+	else
+		return 0;
+}
+#endif
+
 int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		unsigned long arg)
 {
@@ -786,6 +811,21 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		if (cc < 0)
 			goto out;
 		break;
+
+#ifdef ENCORE_DAL
+	case VMEIO_GET_NREGS:
+		get_nregs(arb);
+		break;
+	case VMEIO_GET_REGINFO:
+		cc = get_reginfo(arb);
+		break;
+#else
+	case VMEIO_GET_NREGS:
+	case VMEIO_GET_REGINFO:
+		cc = -ENOENT;
+		break;
+#endif
+
 	default:
 		cc = -ENOENT;
 		goto out;
