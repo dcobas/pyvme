@@ -581,6 +581,21 @@ union vmeio_word {
 	unsigned char	width1;
 };
 
+static unsigned int sing_ioread32be(void __iomem *addr)
+{
+	unsigned int u1 = ioread16be(addr);
+	unsigned int u2 = ioread16be(addr + sizeof(short));
+
+	/* the first register is assumed to be the most significant */
+	return (u1<<16) | u2;
+}
+
+static void sing_iowrite32be(u32 val, void __iomem *addr)
+{
+	/* the first register is assumed to be the most significant */
+	iowrite16be(val>>16, addr);
+	iowrite16be(val & 0x0000ffff, addr + sizeof(short));
+}
 
 static int raw_read(struct vmeio_device *dev, struct vmeio_riob *riob)
 {
@@ -608,8 +623,11 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob *riob)
 
 	for (i = 0, j = riob->offset; i < bsize; i += byte_dwidth, j += byte_dwidth) {
 		union vmeio_word *dst = (void *)&iob[i];
-		if (dwidth == VME_D32)
+		if (dwidth == VME_D32 && mapx->data_width == VME_D32)
 			dst->width4 = ioread32be(&map[j]);
+		else if (dwidth == VME_D32 && mapx->data_width == VME_D16)
+			/* drivergenic singular registers, deh! */
+			dst->width4 = sing_ioread32be(&map[j]);
 		else if (dwidth == VME_D16)
 			dst->width2 = ioread16be(&map[j]);
 		else if (dwidth == VME_D8)
@@ -659,6 +677,11 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob *riob)
 		union vmeio_word *src = (void *)&iob[i];
 		if (dwidth == VME_D32)
 			iowrite32be(src->width4, &map[j]);
+		if (dwidth == VME_D32 && mapx->data_width == VME_D32)
+			iowrite32be(src->width4, &map[j]);
+		else if (dwidth == VME_D32 && mapx->data_width == VME_D16)
+			/* drivergenic singular registers, deh! */
+			sing_iowrite32be(src->width4, &map[j]);
 		else if (dwidth == VME_D16)
 			iowrite16be(src->width2, &map[j]);
 		else if (dwidth == VME_D8)
