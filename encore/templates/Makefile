@@ -15,7 +15,7 @@ CFLAGS += -I /acc/local/$(CPU)/include/
 CFLAGS += -DCOMPILE_TIME=$(COMPILE_TIME) -g -Wall -fPIC
 
 MODLIBS = $(LIBNAME).$(CPU).a $(LIBNAME).$(CPU).so
-VMELIBS = vmeio_support.$(CPU).so vmeio_support.$(CPU).a libencore.$(CPU).o
+MODLIBOBJS = $(LIBNAME).$(CPU).o $(DRIVER)_regs.$(CPU).o
 
 SRCS=$(LIBNAME).c $(LIBNAME).h
 
@@ -30,28 +30,14 @@ clean:
 
 $(LIBNAME).$(CPU).o: $(SRCS)
 
-$(LIBNAME).$(CPU).a: $(LIBNAME).$(CPU).o
+$(LIBNAME).$(CPU).a: $(MODLIBOBJS)
 	-$(RM) $@
 	$(AR) $(ARFLAGS) $@ $^
 	$(RANLIB) $@
 
-$(LIBNAME).$(CPU).so: $(LIBNAME).$(CPU).o
+$(LIBNAME).$(CPU).so: $(MODLIBOBJS)
 	-$(RM) $@
 	$(CC) $(CFLAGS) -o $@ -shared $^
 
 lib$(DRIVER).$(CPU).so: lib$(DRIVER).$(CPU).o
 	$(CC) -shared -o $@ $^
-
-vmeio_support.$(CPU).so: vmeio_support.$(CPU).o
-	-$(RM) $@
-	$(CC) $(CFLAGS) -o $@ -shared $^
-
-vmeio_support.$(CPU).a: vmeio_support.$(CPU).o
-	-$(RM) $@
-	$(AR) $(ARFLAGS) $@ $^
-	$(RANLIB) $@
-
-libencore.$(CPU).a: libencore.$(CPU).o
-	-$(RM) $@
-	$(AR) $(ARFLAGS) $@ $^
-	$(RANLIB) $@
