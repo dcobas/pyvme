@@ -137,11 +137,16 @@ struct encore_reginfo {
 
 ''' ]
 
+    cstruct.append('enum %s_register_id {\n' % module_name)
+    for reg in register_list:
+        cstruct.append('\t%(name)s,\n' % reg)
+    cstruct.append('};\n')
+
     cstruct.append(
     	'\nstruct encore_reginfo %s_registers[] = {\n' % module_name)
     i = 0
     for reg in register_list:
-        cstruct.append('    [%d] = {\n' % i)
+        cstruct.append('    [%(name)s] = {\n' % reg)
         cstruct.append('''\
 \t.name	        	= "%(name)s",
 \t.rwmode      		= "%(rwmode)s",
