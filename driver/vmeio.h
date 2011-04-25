@@ -60,6 +60,7 @@ struct vmeio_riob {
    int offset;   /** Byte offset in map */
    int wsize;    /** The number of words to read */
    void *buffer; /** Pointer to data area */
+   int data_width;	/** optional data width */
 };
 
 struct vmeio_dma_op {

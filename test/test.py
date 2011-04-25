@@ -148,7 +148,8 @@ class TestProgram(cmd.Cmd):
         data_width =  self.data_width[mapnum-1]
         byte_width = data_width / 8
         buf = create_string_buffer(byte_width*items+1)
-        s = vmeio_riob(mapnum=mapnum, offset=offset, wsize=items, buffer=addressof(buf))
+        s = vmeio_riob(mapnum=mapnum, 
+            offset=offset, wsize=items, buffer=addressof(buf), data_width=0)
         if libc.ioctl(self.fd, VMEIO_RAW_READ, byref(s)) < 0:
             print 'VMEIO_RAW_READ failed!'
             return

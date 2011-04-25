@@ -68,6 +68,7 @@ static int do_io(HANDLE handle, int *offset, int *data, int flag)
 	buf.offset = (int) offset;
 	buf.bsize  = 4;
 	buf.buffer = data;
+	buf.data_width = 0;
 
 	if (!RAW(handle,&buf,flag))
 		return 0;

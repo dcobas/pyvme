@@ -33,6 +33,7 @@ static int encore_raw(int fd, int map, unsigned offset, unsigned words, void *bu
 	cb.offset = offset;
 	cb.wsize = words;
 	cb.buffer = buffer;
+	cb.data_width = 0;
 
 	if (write)
 		return ioctl(fd, VMEIO_RAW_WRITE, &cb);

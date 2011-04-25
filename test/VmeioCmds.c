@@ -927,6 +927,7 @@ int items, start, len;
    iob.offset = start*dwd;
    iob.wsize  = items;
    iob.buffer = mem;
+   iob.data_width = 0;
 
    if (dma) {
       if (__vsl_dma(vmeio[lun],&iob,0)) printf("Read:DMA:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.wsize);
@@ -975,6 +976,7 @@ int items, start;
    iob.offset = start*dwd;
    iob.wsize  = items;
    iob.buffer = mem;
+   iob.data_width = 0;
 
    if (dma) {
       if (__vsl_dma(vmeio[lun],&iob,1)) printf("Write:DMA:[Ad:0x%X,Sz:0x%X]-OK\n",iob.offset,iob.wsize);

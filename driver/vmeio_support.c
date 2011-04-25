@@ -220,6 +220,7 @@ int __vsl_raw(struct __vsl_device *h, struct vmeio_riob *buf, int flag)
 	cb.offset = buf->offset;
 	cb.wsize = buf->wsize;
 	cb.buffer = buf->buffer;
+	cb.data_width = 0;
 
 	if (flag) {
 		if (ioctl(h->file, VMEIO_RAW_WRITE, &cb) < 0)
@@ -244,6 +245,8 @@ static void __vsl_swap_buf(struct __vsl_device * h, struct vmeio_riob *buf)
 		dwd = h->mapping2.data_width;
 	else
 		dwd = h->mapping1.data_width;
+	if (buf->data_width != 0)
+		dwd = buf->data_width;
 
 	bp = buf->buffer;
 
@@ -294,6 +297,7 @@ int __vsl_dma(struct __vsl_device *h, struct vmeio_riob *buf, int flag)
 	cb.offset = buf->offset;
 	cb.wsize = buf->wsize;
 	cb.buffer = buf->buffer;
+	cb.data_width = 0;
 
 	if (flag) {
 		if (h->dmaswap)
@@ -380,6 +384,7 @@ int __vsl_read_reg(struct __vsl_device *h, int reg_num, int *reg_val)
 	buf.offset = reg_num * dwd;
 	buf.wsize = 1;
 	buf.buffer = &value;
+	buf.data_width = 0;
 
 	if (h->dmaflag)
 		cc = __vsl_dma(h, &buf, 0);
@@ -418,6 +423,7 @@ int __vsl_write_reg(struct __vsl_device *h, int reg_num, int *reg_val)
 	buf.offset = reg_num * dwd;
 	buf.wsize = 1;
 	buf.buffer = &value;
+	buf.data_width = 0;
 
 	if (h->dmaflag)
 		cc = __vsl_dma(h, &buf, 1);

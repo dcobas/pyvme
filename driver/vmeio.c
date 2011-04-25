@@ -565,6 +565,8 @@ static int raw_dma(struct vmeio_device *dev,
 
 	req.am = map->am;
 	req.data_width = map->data_width;
+	if (riob->data_width != 0)
+		req.data_width = riob->data_width;
 	req.address = map->vme_addrl + riob->offset;
 	req.byte_length = riob->wsize * req.data_width/8;
 	req.buffer = riob->buffer;
@@ -583,7 +585,7 @@ union vmeio_word {
 static int raw_read(struct vmeio_device *dev, struct vmeio_riob *riob)
 {
 	struct vme_mapping *mapx = &dev->maps[riob->mapnum-1];
-	int dwidth = mapx->data_width;
+	int dwidth = riob->data_width ? riob->data_width : mapx->data_width;
 	int byte_dwidth = dwidth/8;
 	int bsize = riob->wsize * byte_dwidth;
 	int i, j, cc;
@@ -625,7 +627,7 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob *riob)
 static int raw_write(struct vmeio_device *dev, struct vmeio_riob *riob)
 {
 	struct vme_mapping *mapx = &dev->maps[riob->mapnum-1];	
-	int dwidth = mapx->data_width;
+	int dwidth = riob->data_width ? riob->data_width : mapx->data_width;
 	int byte_dwidth = dwidth/8;
 	int bsize = riob->wsize * byte_dwidth;
 	int i, j, cc;
