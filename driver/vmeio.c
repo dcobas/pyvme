@@ -115,7 +115,7 @@ static struct vmeio_device devices[DRV_MAX_DEVICES];
 static dev_t vmeio_major;
 struct file_operations vmeio_fops;
 
-int check_minor(long num)
+int minor_ok(long num)
 {
 	if (num < 0 || num >= DRV_MAX_DEVICES) {
 		printk(PFX "minor:%d ", (int) num);
@@ -308,7 +308,7 @@ int vmeio_open(struct inode *inode, struct file *filp)
 	int i;
 
 	minor = MINOR(inode->i_rdev);
-	if (!check_minor(minor))
+	if (!minor_ok(minor))
 		return -EACCES;
 	for (i = 0; i < lun_num; i++) {
 		if (devices[i].lun == minor) {
@@ -324,7 +324,7 @@ int vmeio_close(struct inode *inode, struct file *filp)
 	long num;
 
 	num = MINOR(inode->i_rdev);
-	if (!check_minor(num))
+	if (!minor_ok(num))
 		return -EACCES;
 	filp->private_data = NULL;
 
@@ -344,7 +344,7 @@ ssize_t vmeio_read(struct file * filp, char *buf, size_t count,
 
 	inode = filp->f_dentry->d_inode;
 	minor = MINOR(inode->i_rdev);
-	if (!check_minor(minor))
+	if (!minor_ok(minor))
 		return -EACCES;
 	dev = filp->private_data;
 
@@ -408,7 +408,7 @@ ssize_t vmeio_write(struct file * filp, const char *buf, size_t count,
 
 	inode = filp->f_dentry->d_inode;
 	minor = MINOR(inode->i_rdev);
-	if (!check_minor(minor))
+	if (!minor_ok(minor))
 		return -EACCES;
 	dev = filp->private_data;
 
@@ -685,7 +685,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 	iosz = _IOC_SIZE(cmd);
 
 	minor = MINOR(inode->i_rdev);
-	if (!check_minor(minor))
+	if (!minor_ok(minor))
 		return -EACCES;
 	dev = filp->private_data;
 
