@@ -1,6 +1,6 @@
 #include <sys/ioctl.h>
 #include <errno.h>
-#include "../../driver/vmeio.h"
+#include "vmeio.h"
 #include "%(driver_name)s_regs.h"
 
 enum encore_direction {
@@ -45,7 +45,7 @@ static int get_set_register(int fd,
 		return -EINVAL;
 }
 
-static int get_set_register_window(int fd, 
+static int get_set_window(int fd, 
 	struct encore_reginfo *reg,
 	void *buffer, int from, int to, 
 	enum encore_direction direction)
