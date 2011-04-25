@@ -163,74 +163,76 @@ def gen_register_struct_file(register_list, module_name, hname, cname):
     outc.write(c)
     outc.close()
 
-def gen_offsets(register_list):
-    """generate offset list #define's"""
+def gen_lib_module(register_list, driver_name):
+    """generate declarations of module lib API"""
 
-    define_template = "#define\t%(offset_name)-16s\t0x%(offset)08x\n"
+    get_proto_template = (
+        'int %(driver_name)s_get_%(name)s(int fd, %(wordsize)s *buf);\n' )
+    set_proto_template = (
+		'int %(driver_name)s_set_%(name)s(int fd, %(wordsize)s buf);\n' )
+    get_window_proto_template = (
+		'int %(driver_name)s_get_%(name)s_window(int fd, %(wordsize)s buf[], int from, int to);\n' )
+    set_window_proto_template = (
+		'int %(driver_name)s_set_%(name)s_window(int fd, %(wordsize)s buf[], int from, int to);\n' )
 
-    defines = []
-    for register in register_list:
-        name = register['name']
-        offset = int(register['offset'])
-        offset_name = 'OFFSET_%s' % name
-        define = define_template % locals()
-        defines.append(define)
-    return ''.join(defines)
-
-def gen_lib_decls(register_list, prefix="vmeio"):
-    """produce declarations for the get/set user lib functions"""
-    decl_template = """
-int %(driver_name)s_set_%(register_name)s (struct __vsl_device *handle, %(argtype)s value);
-int %(driver_name)s_get_%(register_name)s (struct __vsl_device *handle, %(argtype)s *value);"""
-    decls = []
-    for register in register_list:
-        driver_name = prefix
-        register_name = register['name']
-        argtype = register['wordsize']
-        decl = decl_template % locals()
-        decls.append(decl)
-    return ''.join(decls)
-
-def gen_lib_calls(register_list, prefix="vmeio"):
-    """produce code for the get/set user lib functions"""
-    call_template = """
-int %(driver_name)s_set_%(register_name)s(struct __vsl_device *handle, %(argtype)s value) {
-    return usr_raw_write(%(offset_name)s, value);
-}
-
-int %(driver_name)s_get_%(register_name)s(struct __vsl_device *handle, %(argtype)s *value) {
-    return usr_raw_read(%(offset_name)s, *value);
+    get_template = """
+int %(driver_name)s_get_%(name)s(int fd, %(wordsize)s *buf)
+{
+	struct encore_reginfo *reg = &%(driver_name)s_registers[%(name)s];
+	return get_set_register(fd, reg, buf, READ);
 }
 """
-    calls = []
-    for register in register_list:
-        driver_name = prefix
-        register_name = register['name']
-        argtype = register['wordsize']
-        offset_name = 'OFFSET_%s' % register_name
-        call = call_template % locals()
-        calls.append(call)
-    return ''.join(calls)
+    set_template = """
+int %(driver_name)s_set_%(name)s(int fd, %(wordsize)s buf)
+{
+	struct encore_reginfo *reg = &%(driver_name)s_registers[%(name)s];
+	return get_set_register(fd, reg, &buf, WRITE);
+}
+"""
+    get_window_template = """
+int %(driver_name)s_get_%(name)s_window(int fd, %(wordsize)s buf[], int from, int to)
+{
+	struct encore_reginfo *reg = &%(driver_name)s_registers[%(name)s];
+	return get_set_window(fd, reg, buf, from, to, READ);
+}
+"""
+    set_window_template = """
+int %(driver_name)s_set_%(name)s_window(int fd, %(wordsize)s buf[], int from, int to)
+{
+	struct encore_reginfo *reg = &%(driver_name)s_registers[%(name)s];
+	return get_set_window(fd, reg, buf, from, to, WRITE);
+}
+"""
 
-def gen_h_file(register_list, libname, filename):
-    """produce a lib<module>.h user library header"""
-    h_file_header = """#include "vmeio_support.h"\n\n"""
+    lib = [ ]
+    h   = [ ]
+    lib.append(file(lib_module_c_template).read() % locals())
+    h.append(file(lib_module_h_template).read() % locals())
+    for reg in register_list:
+        reg['driver_name'] = driver_name
+        if 'r' in reg['rwmode']:
+            lib.append(get_template % reg)
+            h.append(get_proto_template % reg)
+            if reg['depth'] > 1:
+                lib.append(get_window_template % reg)
+                lib.append(get_window_proto_template % reg)
+        if 'w' in reg['rwmode']:
+            lib.append(set_template % reg)
+            h.append(set_proto_template % reg)
+            if reg['depth'] > 1:
+                lib.append(set_window_template % reg)
+                h.append(set_proto_template % reg)
+    return ''.join(h), ''.join(lib)
 
-    out = open(filename, 'wb')
-    out.write(h_file_header)
-    out.write(gen_offsets(register_list))
-    out.write('\n')
-    out.write(gen_lib_decls(register_list))
-    out.close()
+def gen_lib_module_file(register_list, driver_name, lib_c, lib_h):
+    h, lib  = gen_lib_module(register_list, driver_name)
+    hfile = file(lib_h, 'w')
+    hfile.write(h)
+    hfile.close()
+    cfile = file(lib_c, 'w')
+    cfile.write(lib)
+    cfile.close()
 
-def gen_c_file(register_list, libname, filename):
-    """produce a lib<module>.c user library module"""
-    c_file_header = """#include "%s.h"\n\n""" % libname
-
-    out = open(filename, 'wb')
-    out.write(c_file_header)
-    out.write(gen_lib_calls(register_list))
-    out.close()
 
 def gen_regs(register_list, module_name):
 
@@ -360,14 +362,14 @@ def main():
     # prepare output paths
     driver_name   = module_name.lower()
     output_dir    = driver_name
-    libname       = 'lib%s' % driver_name
-    lib_h         = join(output_dir, libname + '.h')
-    lib_c         = join(output_dir, libname + '.c')
+    libname       = 'lib_%s' % driver_name
     makefile      = join(output_dir, 'Makefile')
     kbuild        = join(output_dir, 'Kbuild')
     regs_csv      = join(output_dir, driver_name + '.csv')
     regs_h	      = join(output_dir, driver_name + '_regs.h')
     regs_c	      = join(output_dir, driver_name + '_regs.c')
+    lib_h	      = join(output_dir, libname + '.h')
+    lib_c	      = join(output_dir, libname + '.c')
     install_sh	  = join(output_dir, 'install_' + driver_name + '.sh')
 
     if make_out_dir(output_dir, options.kill):
@@ -391,11 +393,10 @@ def main():
     # driver fileset generation
     gen_csv_file(register_list, regs_csv)
     gen_register_struct_file(register_list, driver_name, regs_h, regs_c)
-    gen_h_file(register_list, libname, lib_h)
-    gen_c_file(register_list, libname, lib_c)
     gen_makefile(driver_name, module_name, makefile)
     gen_kbuild(driver_name, module_name, kbuild)
     gen_install_script(module_name, driver_name, install_sh)
+    gen_lib_module_file(register_list, driver_name, lib_c, lib_h)
 
     # optional data files generation
     registers = dict([ (regdata['name'], regdata)
@@ -409,11 +410,13 @@ def main():
 
 # verbatim files and templates
 cwd = '.'
-templates_dir = os.path.join(cwd, 'templates')
-makefile_template = os.path.join(templates_dir, 'Makefile')
-kbuild_template = os.path.join(templates_dir, 'Kbuild')
-instprog_template = os.path.join(templates_dir, 'install.sh')
-regs_h_template = os.path.join(templates_dir, 'rf_vtu_regs.h')
+templates_dir         = os.path.join(cwd, 'templates')
+makefile_template     = os.path.join(templates_dir, 'Makefile')
+kbuild_template       = os.path.join(templates_dir, 'Kbuild')
+instprog_template     = os.path.join(templates_dir, 'install.sh')
+regs_h_template       = os.path.join(templates_dir, 'module_regs.h')
+lib_module_h_template = os.path.join(templates_dir, 'lib_module.h')
+lib_module_c_template = os.path.join(templates_dir, 'lib_module.c')
 verbatim_files = [
     'vmeio.c',
     'vmeio.h',

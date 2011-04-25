@@ -7,7 +7,7 @@ include /acc/dsc/src/co/Make.auto
 
 DRIVER = %(driver_name)s
 DRIVER_NAME = "$(DRIVER)"
-LIBNAME = lib$(DRIVER)
+LIBNAME = lib_$(DRIVER)
 
 COMPILE_TIME = $(shell date +%%s)
 CFLAGS= -g -Wall -I. -I ../../driver
