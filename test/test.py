@@ -61,20 +61,37 @@ class vmeio_dma_op(Structure):
     ('direction', c_int),		# from/to device
     ]
 
+class encore_reginfo(Structure):
+    _fields_ = [
+	('name',			c_char*17),
+	('rwmode',			c_char*5),
+	('block',			c_int),
+	('block_address_space',			c_int),
+	('block_offset',	c_int),
+	('register_offset',	c_int),
+	('offset',			c_int),
+	('wordsize',		c_char*7),
+	('depth',			c_int),
+	('description',		c_char*81),
+	('data_width',		c_int),
+    ]
+
 # define ioctl numbers here
 
-VMEIO_GET_DEBUG     = 0x80045602
-VMEIO_SET_DEBUG     = 0x40045601
+VMEIO_GET_DEBUG 	= 0x80045602
+VMEIO_SET_DEBUG 	= 0x40045601
 VMEIO_GET_VERSION   = 0x80045603
 VMEIO_GET_TIMEOUT   = 0x80045605
 VMEIO_SET_TIMEOUT   = 0x40045604
-VMEIO_RAW_READ      = 0xc0105607
-VMEIO_RAW_WRITE     = 0xc0105608
-VMEIO_RAW_READ_DMA  = 0xc0105609
-VMEIO_RAW_WRITE_DMA = 0xc010560a
-VMEIO_READ_DMA      = 0x4018560c
-VMEIO_WRITE_DMA     = 0x4018560d
-VMEIO_GET_MAPPING   = 0xc044560e
+VMEIO_RAW_READ  	= 0xc0145607
+VMEIO_RAW_WRITE 	= 0xc0145608
+VMEIO_RAW_READ_DMA  = 0xc0145609
+VMEIO_RAW_WRITE_DMA = 0xc014560a
+VMEIO_READ_DMA  	= 0x4018560c
+VMEIO_WRITE_DMA 	= 0x4018560d
+VMEIO_GET_MAPPING  	= 0xc044560e
+VMEIO_GET_NREGS 	= 0x8004560e
+VMEIO_GET_REGINFO  	= 0x40045610
 
 libc = CDLL('/lib/libc.so.6')
 
