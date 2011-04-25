@@ -1,11 +1,11 @@
 #!/bin/sh
 
-# Generated automatically by install.py at %(date)s"
+# Generated automatically by encore at %(date)s"
 echo "Installing %(device_name)s driver..."
 
 INSMOD_ARGS=`awk -f transfer2insmod.awk %(device_name)s %(transfer)s`
 
-if [ x"$INSMOD_ARGS" == x"luns=" ] ; then
+if [ x"$INSMOD_ARGS" == x"" ] ; then
     echo "No %(device_name)s declared in %(transfer)s, exiting"
     exit 1
 fi
