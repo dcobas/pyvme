@@ -316,6 +316,15 @@ def gen_install_script(device_name, driver_name,
     out.write(template % locals())
     out.close()
 
+def gen_delivery_script(driver_name, output_file):
+
+    template = file(deliver_template).read()
+
+    date = datetime.datetime.now().isoformat(' ')
+    out = file(output_file, 'w')
+    out.write(template % locals())
+    out.close()
+
 def make_out_dir(dirname, kill=False):
     try:
         isdir = stat.S_ISDIR(os.stat(dirname).st_mode)
@@ -371,6 +380,7 @@ def main():
     lib_h	      = join(output_dir, libname + '.h')
     lib_c	      = join(output_dir, libname + '.c')
     install_sh	  = join(output_dir, 'install_' + driver_name + '.sh')
+    deliver_sh	  = join(output_dir, 'deliver.sh')
 
     if make_out_dir(output_dir, options.kill):
         print 'could not make output dir ' + output_dir
@@ -396,6 +406,7 @@ def main():
     gen_makefile(driver_name, module_name, makefile)
     gen_kbuild(driver_name, module_name, kbuild)
     gen_install_script(module_name, driver_name, install_sh)
+    gen_delivery_script(driver_name, deliver_sh)
     gen_lib_module_file(register_list, driver_name, lib_c, lib_h)
 
     # optional data files generation
@@ -413,6 +424,7 @@ cwd = '.'
 templates_dir         = os.path.join(cwd, 'templates')
 makefile_template     = os.path.join(templates_dir, 'Makefile')
 kbuild_template       = os.path.join(templates_dir, 'Kbuild')
+deliver_template      = os.path.join(templates_dir, 'deliver.sh')
 instprog_template     = os.path.join(templates_dir, 'install.sh')
 regs_h_template       = os.path.join(templates_dir, 'module_regs.h')
 lib_module_h_template = os.path.join(templates_dir, 'lib_module.h')
