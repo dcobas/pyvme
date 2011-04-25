@@ -888,7 +888,7 @@ int DisplayDevicePars(int arg) {
 int RawRead(int arg) {  /* Start, Item count */
 ArgVal   *v;
 AtomType  at;
-struct vmeio_riob_s iob;
+struct vmeio_riob iob;
 int items, start, len;
 
    arg++;
@@ -943,7 +943,7 @@ int items, start, len;
 int RawWrite(int arg) {
 ArgVal   *v;
 AtomType  at;
-struct vmeio_riob_s iob;
+struct vmeio_riob iob;
 int items, start;
 
    arg++;

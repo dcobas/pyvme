@@ -27,7 +27,7 @@ int encore_close(int fd)
 
 static int encore_raw(int fd, int map, unsigned offset, unsigned words, void *buffer, int write)
 {
-	struct vmeio_riob_s cb;
+	struct vmeio_riob cb;
 
 	cb.mapnum = map;
 	cb.offset = offset;

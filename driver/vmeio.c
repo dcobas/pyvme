@@ -558,7 +558,7 @@ static int do_raw_dma(struct vmeio_dma_op *request)
 }
 
 static int raw_dma(struct vmeio_device *dev,
-	struct vmeio_riob_s *riob, enum vme_dma_dir direction)
+	struct vmeio_riob *riob, enum vme_dma_dir direction)
 {
 	struct vme_mapping *map = &dev->maps[riob->mapnum];
 	struct vmeio_dma_op req;
@@ -580,7 +580,7 @@ union vmeio_word {
 };
 
 
-static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
+static int raw_read(struct vmeio_device *dev, struct vmeio_riob *riob)
 {
 	struct vme_mapping *mapx = &dev->maps[riob->mapnum-1];
 	int dwidth = mapx->data_width;
@@ -622,7 +622,7 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob_s *riob)
 	return 0;
 }
 
-static int raw_write(struct vmeio_device *dev, struct vmeio_riob_s *riob)
+static int raw_write(struct vmeio_device *dev, struct vmeio_riob *riob)
 {
 	struct vme_mapping *mapx = &dev->maps[riob->mapnum-1];	
 	int dwidth = mapx->data_width;

@@ -62,7 +62,7 @@ int ctc_lib_glob_dbg_flag = 0;
 
 static int do_io(HANDLE handle, int *offset, int *data, int flag)
 {
-	struct vmeio_riob_s buf;
+	struct vmeio_riob buf;
 
 	buf.winum  = 1;
 	buf.offset = (int) offset;

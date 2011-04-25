@@ -212,9 +212,9 @@ int __vsl_get_mapping(struct __vsl_device *h, int mapnum, struct vme_mapping *ma
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_raw(struct __vsl_device *h, struct vmeio_riob_s *buf, int flag)
+int __vsl_raw(struct __vsl_device *h, struct vmeio_riob *buf, int flag)
 {
-	struct vmeio_riob_s cb;
+	struct vmeio_riob cb;
 
 	cb.mapnum = buf->mapnum;
 	cb.offset = buf->offset;
@@ -235,7 +235,7 @@ int __vsl_raw(struct __vsl_device *h, struct vmeio_riob_s *buf, int flag)
  * ============================================
  */
 
-static void __vsl_swap_buf(struct __vsl_device * h, struct vmeio_riob_s *buf)
+static void __vsl_swap_buf(struct __vsl_device * h, struct vmeio_riob *buf)
 {
 	int i, dwd;
 	char *cp, *bp, c;
@@ -286,9 +286,9 @@ static void __vsl_swap_buf(struct __vsl_device * h, struct vmeio_riob_s *buf)
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_dma(struct __vsl_device *h, struct vmeio_riob_s *buf, int flag)
+int __vsl_dma(struct __vsl_device *h, struct vmeio_riob *buf, int flag)
 {
-	struct vmeio_riob_s cb;
+	struct vmeio_riob cb;
 
 	cb.mapnum = buf->mapnum;
 	cb.offset = buf->offset;
@@ -365,7 +365,7 @@ int __vsl_set_params(struct __vsl_device *h, int mapnum, int dmaflag, int dmaswa
 
 int __vsl_read_reg(struct __vsl_device *h, int reg_num, int *reg_val)
 {
-	struct vmeio_riob_s buf;
+	struct vmeio_riob buf;
 
 	int cc;
 	long value = 0;
@@ -401,7 +401,7 @@ int __vsl_read_reg(struct __vsl_device *h, int reg_num, int *reg_val)
 
 int __vsl_write_reg(struct __vsl_device *h, int reg_num, int *reg_val)
 {
-	struct vmeio_riob_s buf;
+	struct vmeio_riob buf;
 
 	int cc;
 	long value = 0;

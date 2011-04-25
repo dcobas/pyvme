@@ -43,7 +43,7 @@ class vmeio_get_mapping(Structure):
 
 vmeioMAX_BUF = 8192
 
-class vmeio_riob_s(Structure):
+class vmeio_riob(Structure):
     _fields_ = [
     ('mapnum', c_int),	   	# Mapping number 1..2
     ('offset', c_int),	   	# Byte offset in map
@@ -148,7 +148,7 @@ class TestProgram(cmd.Cmd):
         data_width =  self.data_width[mapnum-1]
         byte_width = data_width / 8
         buf = create_string_buffer(byte_width*items+1)
-        s = vmeio_riob_s(mapnum=mapnum, offset=offset, wsize=items, buffer=addressof(buf))
+        s = vmeio_riob(mapnum=mapnum, offset=offset, wsize=items, buffer=addressof(buf))
         if libc.ioctl(self.fd, VMEIO_RAW_READ, byref(s)) < 0:
             print 'VMEIO_RAW_READ failed!'
             return

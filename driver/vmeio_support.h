@@ -123,7 +123,7 @@ int __vsl_get_mapping(struct __vsl_device *h, int mapnum, struct vme_mapping *wi
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_raw(struct __vsl_device *h, struct vmeio_riob_s *buf, int flag);
+int __vsl_raw(struct __vsl_device *h, struct vmeio_riob *buf, int flag);
 
 /**
  * @brief Transfer data via DMA, WARNING byte swapping is your problem
@@ -133,7 +133,7 @@ int __vsl_raw(struct __vsl_device *h, struct vmeio_riob_s *buf, int flag);
  * @return 1 = OK 0 = FAIL
  */
 
-int __vsl_dma(struct __vsl_device *h, struct vmeio_riob_s *buf, int flag);
+int __vsl_dma(struct __vsl_device *h, struct vmeio_riob *buf, int flag);
 
 /**
  * ============================================
