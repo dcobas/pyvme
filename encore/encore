@@ -433,8 +433,6 @@ verbatim_files = [
     'vmeio.c',
     'vmeio.h',
     'Module.symvers.vmebus',
-    'vmeio_support.c',
-    'vmeio_support.h',
     'transfer2insmod.awk',
 ]
 
