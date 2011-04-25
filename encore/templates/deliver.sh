@@ -8,16 +8,36 @@ DRIVER = %(driver_name)s
 CPU=L865
 KVER=2.6.24.7-rt27
 
+# get arguments
+while [ $# != 0 ] ; do
+    echo $1
+    case $1 in
+	ACC=*)  ACC=`echo $1 | sed 's!ACC=!!'` ;;
+	CPU=*)  CPU=`echo $1 | sed 's!CPU=!!'`  ; ;;
+	KVER=*) KVER=`echo $1 | sed 's!KVER=!!'` ;;
+    esac
+    shift
+done
+
+if [ x$ACC == x"" -o x$CPU == x"" -o KVER == x"" ] ; then
+	echo "please specify ACC, CPU and KVER"
+	echo "usage: deliver.sh ACC=<accel> CPU=<cpu> KVER=<kver>"
+	echo "    default CPU=L865, default KVER=2.6.24.7-rt27"
+	exit
+fi
+
+echo "delivering to ACC=$ACC CPU=$CPU KVER=$KVER"
+
 # delivery paths
 DRIVER_PATH=/acc/dsc/$ACC/$CPU/$KVER/$DRIVER/
 LIB_PATH=/acc/local/$CPU/dg/$DRIVER/
 
 # deliverable items
-LIBS=lib_$DRIVER.$CPU.a lib_$DRIVER.h ${DRIVER}_regs.h vmeio.h
-INSTPROGS=install_$DRIVER.sh transfer2insmod.awk
-DRIVER_OBJECT=$DRIVER.ko
-SOLIBS=$DRIVER.$CPU.so
+LIBS="lib_$DRIVER.$CPU.a lib_$DRIVER.h ${DRIVER}_regs.h vmeio.h"
+INSTPROGS="install_$DRIVER.sh transfer2insmod.awk"
+DRIVER_OBJECT="$DRIVER.ko"
+SOLIBS="$DRIVER.$CPU.so"
 
-dsc_install $INSTPROGS $DRIVER_OBJECT $SOLIBS $DRIVER_PATH
-dsc_install $LIBS $LIB_PATH
+echo dsc_install $INSTPROGS $DRIVER_OBJECT $SOLIBS $DRIVER_PATH
+echo dsc_install $LIBS $LIB_PATH
 
