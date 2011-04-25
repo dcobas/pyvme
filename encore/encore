@@ -122,7 +122,7 @@ def gen_register_struct(register_list, module_name):
 
     # generate include file
     template = file(regs_h_template).read()
-    register_names = [ reg['name'] + ',\n' for reg in register_list ]
+    register_names = [ '\t' + reg['name'] + ',\n' for reg in register_list ]
     register_names = ''.join(register_names)
     driver_name = module_name
     device_name = driver_name.upper()
