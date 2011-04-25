@@ -120,33 +120,18 @@ def gen_csv_file(register_list, filename):
 def gen_register_struct(register_list, module_name):
     """create a C structure definition for this register list"""
 
-    cstruct = ['''
-struct encore_reginfo {
-	char	name[17];
-	char	rwmode[5];
-	int	block;
-	int	block_address_space;
-	int	block_offset;
-	int	register_offset;
-	int	offset;
-	char	wordsize[7];
-	int	depth;
-	char	description[81];
-	int data_width;
-};
+    # generate include file
+    template = file(regs_h_template).read()
+    register_names = [ reg['name'] + ',\n' for reg in register_list ]
+    register_names = ''.join(register_names)
+    driver_name = module_name
+    device_name = driver_name.upper()
+    include_file = template % locals()
 
-''' ]
-
-    cstruct.append('enum %s_register_id {\n' % module_name)
+    cstruct = [ '#include "rf_vtu_regs.h"\n\n',
+        'struct encore_reginfo %s_registers[] = {\n\n' % module_name ]
     for reg in register_list:
-        cstruct.append('\t%(name)s,\n' % reg)
-    cstruct.append('};\n')
-
-    cstruct.append(
-    	'\nstruct encore_reginfo %s_registers[] = {\n' % module_name)
-    i = 0
-    for reg in register_list:
-        cstruct.append('    [%(name)s] = {\n' % reg)
+        cstruct.append('[%(name)s] = {\n' % reg)
         cstruct.append('''\
 \t.name	        	= "%(name)s",
 \t.rwmode      		= "%(rwmode)s",
@@ -159,20 +144,24 @@ struct encore_reginfo {
 \t.depth       		= 0x%(depth)x,
 \t.description		= "%(description)s",
 \t.data_width		= %(data_width)d,'''
-			       '\n    },\n\n''' % reg )
-        i += 1
+                       '\n    },\n\n''' % reg )
     cstruct.append('};\n\n')
     cstruct.append(
 	'int %s_nregs = '
 	'sizeof(%s_registers)/sizeof(%s_registers[0]);\n' % (
 		module_name, module_name, module_name))
-    return ''.join(cstruct)
+    c_file =  ''.join(cstruct)
+    return include_file, c_file
 
-def gen_register_struct_file(register_list, module_name, outfile):
+def gen_register_struct_file(register_list, module_name, hname, cname):
     """generate a C file with struct encore definitions"""
-    out = file(outfile, 'w')
-    out.write(gen_register_struct(register_list, module_name))
-    out.close()
+    h, c = gen_register_struct(register_list, module_name)
+    outh = file(hname, 'w')
+    outh.write(h)
+    outh.close()
+    outc = file(cname, 'w')
+    outc.write(c)
+    outc.close()
 
 def gen_offsets(register_list):
     """generate offset list #define's"""
@@ -377,6 +366,7 @@ def main():
     makefile      = join(output_dir, 'Makefile')
     kbuild        = join(output_dir, 'Kbuild')
     regs_csv      = join(output_dir, driver_name + '.csv')
+    regs_h	      = join(output_dir, driver_name + '_regs.h')
     regs_c	      = join(output_dir, driver_name + '_regs.c')
     install_sh	  = join(output_dir, 'install_' + driver_name + '.sh')
 
@@ -400,7 +390,7 @@ def main():
 
     # driver fileset generation
     gen_csv_file(register_list, regs_csv)
-    gen_register_struct_file(register_list, driver_name, regs_c)
+    gen_register_struct_file(register_list, driver_name, regs_h, regs_c)
     gen_h_file(register_list, libname, lib_h)
     gen_c_file(register_list, libname, lib_c)
     gen_makefile(driver_name, module_name, makefile)
@@ -423,6 +413,7 @@ templates_dir = os.path.join(cwd, 'templates')
 makefile_template = os.path.join(templates_dir, 'Makefile')
 kbuild_template = os.path.join(templates_dir, 'Kbuild')
 instprog_template = os.path.join(templates_dir, 'install.sh')
+regs_h_template = os.path.join(templates_dir, 'rf_vtu_regs.h')
 verbatim_files = [
     'vmeio.c',
     'vmeio.h',
