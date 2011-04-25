@@ -18,7 +18,7 @@ struct encore_reginfo {
 extern struct encore_reginfo %(driver_name)s_registers[];
 extern int %(driver_name)s_nregs;
 
-enum rf_vtu_register_id {
+enum %(driver_name)s_register_id {
 	%(register_names)s
 };
 

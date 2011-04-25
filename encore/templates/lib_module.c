@@ -1,38 +1,7 @@
-struct encore_reginfo {
-	char	name[17];
-	char	rwmode[5];
-	int	block;
-	int	block_address_space;
-	int	block_offset;
-	int	register_offset;
-	int	offset;
-	char	wordsize[7];
-	int	depth;
-	char	description[81];
-	int	data_width;
-};
-
 #include <sys/ioctl.h>
 #include <errno.h>
 #include "../../driver/vmeio.h"
-
-extern struct encore_reginfo rf_vtu_registers[];
-
-/* get/set for single r/w register */
-int rf_vtu_get_Control_1(int fd, short *buf);
-int rf_vtu_set_Control_1(int fd, short value);
-
-/* get for single ro register */
-int rf_vtu_get_Status(int fd, short *buf);
-
-/* set for single wo register */
-int rf_vtu_set_TDC11(int fd, short value);
-
-/* get/set and window for array r/w register */
-int rf_vtu_get_B_Offline(int fd, short buf[]);
-int rf_vtu_set_B_Offline(int fd, short buf[]);
-int rf_vtu_get_B_Offline_window(int fd, short buf[], int from, int to);
-int rf_vtu_set_B_Offline_window(int fd, short buf[], int from, int to);
+#include "%(driver_name)s_regs.h"
 
 enum encore_direction {
 	READ,
@@ -99,32 +68,3 @@ static int get_set_register_window(int fd,
 		return -EINVAL;
 }
 
-int rf_vtu_get_Control_1(int fd, short *buf)
-{
-	struct encore_reginfo *reg = &rf_vtu_registers[0];
-	return get_set_register(fd, reg, buf, READ);
-}
-
-int rf_vtu_set_Control_1(int fd, short buf)
-{
-	struct encore_reginfo *reg = &rf_vtu_registers[0];
-	return get_set_register(fd, reg, &buf, WRITE);
-}
-
-int rf_vtu_get_B_Offline(int fd, short buf[])
-{
-	struct encore_reginfo *reg = &rf_vtu_registers[58];
-	return get_set_register(fd, reg, buf, READ);
-}
-
-int rf_vtu_get_B_Offline_window(int fd, short buf[], int from, int to)
-{
-	struct encore_reginfo *reg = &rf_vtu_registers[58];
-	return module_get_set_window(fd, reg, buf, from, to, READ);
-}
-
-int rf_vtu_set_B_Offline_window(int fd, short buf[], int from, int to)
-{
-	struct encore_reginfo *reg = &rf_vtu_registers[58];
-	return module_get_set_window(fd, reg, buf, from, to, WRITE);
-}

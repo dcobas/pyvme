@@ -128,7 +128,7 @@ def gen_register_struct(register_list, module_name):
     device_name = driver_name.upper()
     include_file = template % locals()
 
-    cstruct = [ '#include "rf_vtu_regs.h"\n\n',
+    cstruct = [ '#include "%s_regs.h"\n\n' % driver_name,
         'struct encore_reginfo %s_registers[] = {\n\n' % module_name ]
     for reg in register_list:
         cstruct.append('[%(name)s] = {\n' % reg)
