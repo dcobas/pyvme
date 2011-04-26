@@ -50,6 +50,7 @@ class vmeio_riob(Structure):
     ('offset', c_int),	   	# Byte offset in map
     ('wsize', c_int),	   	# The number of bytes to read
     ('buffer', c_void_p),	# Pointer to data area
+    ('data_width', c_int),	# optional data width, 0 if default
     ]
 
 class vmeio_dma_op(Structure):
@@ -118,6 +119,12 @@ data_width_format = {
     32 : 'I',
     16 : 'H',
      8 : 'B',
+}
+
+wordsize_to_data_width = {
+    'char'  :  8,
+    'short' : 16,
+    'long'  : 32,
 }
 
 device_name = '/dev/vmeio.%d'
@@ -272,11 +279,32 @@ class TestProgram(cmd.Cmd):
             s.map.sizel,
             s.map.am, )
 
+    def do_read(self, arg):
+        """read a register given by name
+        """
+
+        regdata = reg_data(self.fd)     # cache this
+        found = [ reg for reg in regdata if reg.name == arg ]
+        if not found:
+            print 'no register ' + arg
+            return
+        found = found[0]
+        regval = read_register(self.fd, found)
+        if not regval:
+            print 'could not read register ' + arg
+            return
+
+        data_width = wordsize_to_data_width[found.wordsize]
+        format = '0x%%0%dx' % (data_width/4)
+        for word in regval:
+            print format % word
+
     def do_regdata(self, arg):
         """regdata      show register attributes
         """
 
         regdata = reg_data(self.fd)
+        print regdata
         if not regdata:
             'could not get register data'
             return
