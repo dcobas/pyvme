@@ -127,7 +127,7 @@ wordsize_to_data_width = {
     'long'  : 32,
 }
 
-device_name = '/dev/vmeio.%d'
+device_name = '/dev/fake_sis3320_250.%d'
 
 def reg_data(fd):
     """get register data from a file descriptor
@@ -165,6 +165,7 @@ def read_register(fd, reg):
 
     cc = libc.ioctl(fd, VMEIO_RAW_READ, byref(riob))
     if cc != 0:
+        print 'Failed RAW_READ %d' % cc
         return None
     else:
         format = depth * data_width_format[data_width]
@@ -295,9 +296,10 @@ class TestProgram(cmd.Cmd):
             return
 
         data_width = wordsize_to_data_width[found.wordsize]
-        format = '0x%%0%dx' % (data_width/4)
-        for word in regval:
-            print format % word
+        format = '0x%08x: ' + ('0x%%0%dx' % (data_width/4))
+        for i, word in enumerate(regval):
+            offset = found.offset + i * data_width
+            print format % (i, word)
 
     def do_regdata(self, arg):
         """regdata      show register attributes
@@ -317,6 +319,7 @@ class TestProgram(cmd.Cmd):
     def do_EOF(self, arg):
         print
         return 1
+
 
 if __name__ == '__main__':
     tp = TestProgram()
