@@ -76,6 +76,24 @@ class encore_reginfo(Structure):
 	('data_width',		c_int),
     ]
 
+    # data width is ignored
+    field_format = ('%-16s %4s %3d %3d '
+            '%8x %8x %8x %6s %8x %s')
+    @classmethod
+    def pprint_header(cls):
+        return ('register name    mode blk  as '
+        'blk_offs reg_offs totl_off  wdsiz    depth description')
+            
+    def pprint(self):
+        """pretty print a register
+        """
+        tuple = ()
+        for field in self._fields_[:-1]:
+            name = field[0]
+            value = self.__getattribute__(name)
+            tuple = tuple + (value, )
+        return self.field_format % tuple
+
 # define ioctl numbers here
 
 VMEIO_GET_DEBUG 	= 0x80045602
@@ -102,6 +120,24 @@ data_width_format = {
 }
 
 device_name = '/dev/vmeio.%d'
+
+def reg_data(fd):
+    """get register data from a file descriptor
+    """
+
+    nregs = c_int()
+    cc = libc.ioctl(fd, VMEIO_GET_NREGS, byref(nregs))
+    nregs = nregs.value
+    if cc != 0:
+        return None
+
+    regdata = (nregs * encore_reginfo)()
+    cc = libc.ioctl(fd, VMEIO_GET_REGINFO, byref(pointer(regdata)))
+    if cc != 0:
+        return None
+
+    return regdata
+
 
 class TestProgram(cmd.Cmd):
 
@@ -202,6 +238,18 @@ class TestProgram(cmd.Cmd):
             s.map.data_width,
             s.map.sizel,
             s.map.am, )
+
+    def do_regdata(self, arg):
+        """regdata      show register attributes
+        """
+
+        regdata = reg_data(self.fd)
+        if not regdata:
+            'could not get register data'
+            return
+        print encore_reginfo.pprint_header()
+        for reg in regdata:
+            print reg.pprint()
 
     def do_EOF(self, arg):
         print
