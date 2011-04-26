@@ -2,6 +2,7 @@
 #    coding: utf8
 
 from ctypes import *
+import sys
 import os
 import cmd
 import readline
@@ -138,13 +139,43 @@ def reg_data(fd):
 
     return regdata
 
+def read_register(fd, reg):
+    """read value of register described in reg
+    """
+
+    depth = 1
+    if reg.depth > 1: depth = reg.depth
+
+    data_width = wordsize_to_data_width[reg.wordsize]
+    byte_size = data_width/8 * depth
+    buffer = create_string_buffer(byte_size+1)
+
+    riob = vmeio_riob()
+    riob.mapnum = reg.block_address_space
+    riob.offset = reg.offset
+    riob.buffer = addressof(buffer)
+    riob.wsize = depth
+
+    cc = libc.ioctl(fd, VMEIO_RAW_READ, byref(riob))
+    if cc != 0:
+        return None
+    else:
+        format = depth * data_width_format[data_width]
+        return struct.unpack(format, buffer[:-1])
+
 
 class TestProgram(cmd.Cmd):
 
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.fd = None
-        self.do_lun(0)
+        self.lun = None
+        self.devname = None
+
+        self.do_q    = self.do_quit
+        self.do_exit = self.do_quit
+        self.do_h    = self.do_help
+        self.onecmd('lun 0')
 
     def do_lun(self, arg, device_name=device_name):
         """lun [lun number]     open a LUN"""
@@ -161,9 +192,11 @@ class TestProgram(cmd.Cmd):
         devname = device_name % lun
         fd = libc.open(devname, os.O_RDWR)
         if fd < 0:
-            print 'could not open %s' % self.devname
+            print 'could not open %s' % devname
             if not self.fd:
-                return 1
+                print 'Exiting...'
+                # why? cmd misbehaves with return True...
+                sys.exit(1)
             else:
                 return
         self.fd = fd
@@ -251,6 +284,8 @@ class TestProgram(cmd.Cmd):
         for reg in regdata:
             print reg.pprint()
 
+    def do_quit(self, arg):
+        return 1
     def do_EOF(self, arg):
         print
         return 1
