@@ -679,8 +679,6 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob *riob)
 
 	for (i = 0, j = riob->offset; i < bsize; i += byte_dwidth, j += byte_dwidth) {
 		union vmeio_word *src = (void *)&iob[i];
-		if (dwidth == VME_D32)
-			iowrite32be(src->width4, &map[j]);
 		if (dwidth == VME_D32 && mapx->data_width == VME_D32)
 			iowrite32be(src->width4, &map[j]);
 		else if (dwidth == VME_D32 && mapx->data_width == VME_D16)
@@ -698,19 +696,19 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob *riob)
 }
 
 #ifdef ENCORE_DAL
-static int nregs = ${driver_name}_nregs;
-static struct encore_reginfo *reginfo = &${driver_name}_registers;
+static int *nregs = &${driver_name}_nregs;
+static struct encore_reginfo *reginfo = ${driver_name}_registers;
 
-static void get_nregs(int *nregs)
+static void get_nregs(int *n)
 {
-	*nregs = nregs;
+	*n = *nregs;
 }
 
 static int get_reginfo(struct encore_reginfo **array)
 {
 	int cc;
 
-	cc = copy_to_user(*array, reginfo, sizeof(nregs*sizeof(*reginfo)));
+	cc = copy_to_user(*array, reginfo, *nregs*sizeof(*reginfo));
 	if (cc != 0)
 		return -EACCES;
 	else
