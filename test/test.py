@@ -85,7 +85,7 @@ class encore_reginfo(Structure):
     def pprint_header(cls):
         return ('register name    mode blk  as '
         'blk_offs reg_offs totl_off  wdsiz    depth description')
-            
+
     def pprint(self):
         """pretty print a register
         """
@@ -241,7 +241,7 @@ class TestProgram(cmd.Cmd):
         data_width =  self.data_width[mapnum-1]
         byte_width = data_width / 8
         buf = create_string_buffer(byte_width*items+1)
-        s = vmeio_riob(mapnum=mapnum, 
+        s = vmeio_riob(mapnum=mapnum,
             offset=offset, wsize=items, buffer=addressof(buf), data_width=0)
         if libc.ioctl(self.fd, VMEIO_RAW_READ, byref(s)) < 0:
             print 'VMEIO_RAW_READ failed!'
@@ -267,7 +267,7 @@ class TestProgram(cmd.Cmd):
             mapnum = int(arg)
         except:
             print 'please provide a valid mapnum'
-            return 
+            return
 
         s = vmeio_get_mapping(mapnum=mapnum, map=vme_mapping())
         if 0 > libc.ioctl(self.fd, VMEIO_GET_MAPPING, byref(s)):
