@@ -42,7 +42,7 @@ select name,
     mr.offsetval as register_offset,
     mr.offsetval + nvl(mb.offsetval,0) as offset,
     wordsize,
-    depthval as depth,
+    nvl(depthval, 1) as depth,
     mr.description as description,
     case mb.address
     	when 1 then ht.initdsize
