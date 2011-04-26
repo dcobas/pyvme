@@ -13,13 +13,13 @@ fi
 echo "installing %(driver_name)s by insmod $INSMOD_ARGS"
 insmod %(driver_name)s.ko "$INSMOD_ARGS"
 
-MAJOR=`cat /proc/devices | awk '$2 == "%(driver_name)s" {print $1}' %(transfer)s`
+MAJOR=`cat /proc/devices | awk '$2 == "%(driver_name)s" {print $1}'`
 if [ -z "$MAJOR" ]; then
 	echo "driver %(driver_name)s not installed!"
 	exit 1
 fi
 
-MINORS=`awk '/^#+#/ && $6 == "%(device_name)s" { print $7, }' %(transfer)s`
+MINORS=`awk '/^#\+#/ && $6 == "%(device_name)s" { printf("%%s", $7) }' %(transfer)s`
 echo "creating device nodes for driver %(driver_name)s, major $MAJOR, minors $MINORS"
 for MINOR in $MINORS; do
     rm -f /dev/%(driver_name)s.$MINOR

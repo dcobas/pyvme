@@ -43,9 +43,9 @@ BEGIN	{
 
 END	{ 
 	if (luns)
-	    insmod_params = "luns=" substr(luns, 2)
+	    insmod_params = "lun=" substr(luns, 2)
 	if (level) {
-	    insmod_params = insmod_params " vectors=" substr(vectors, 2)
+	    insmod_params = insmod_params " vector=" substr(vectors, 2)
 	    insmod_params = insmod_params " level=" level
 	}
 	if (am1) {
