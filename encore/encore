@@ -383,7 +383,7 @@ def main():
     module_name = args[1].upper()
 
     # prepare output paths
-    driver_name   = module_name.lower()
+    driver_name   = module_name.lower().replace('-', '_')
     output_dir    = driver_name
     libname       = 'lib_%s' % driver_name
     makefile      = join(output_dir, 'Makefile')
