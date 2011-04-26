@@ -6,6 +6,7 @@ import os
 import errno
 import stat
 import datetime
+import string
 import csv
 import cx_Oracle
 from os.path import join
@@ -286,6 +287,17 @@ def gen_regs_file(register_list, module_name):
     out.write(gen_regs(register_list, upper_name))
     out.close()
 
+def gen_driver(driver_name, filename):
+    """produce a driver with register data"""
+
+    template = file(driver_template).read()
+    template = string.Template(template)
+    date = datetime.datetime.now().isoformat(' ')
+    driver = template.substitute(locals())
+    out = open(filename, 'wb')
+    out.write(driver)
+    out.close()
+
 def gen_makefile(driver_name, module_name, filename):
     """produce a Makefile for the library"""
 
@@ -376,6 +388,7 @@ def main():
     libname       = 'lib_%s' % driver_name
     makefile      = join(output_dir, 'Makefile')
     kbuild        = join(output_dir, 'Kbuild')
+    driver_c      = join(output_dir, driver_name + '.c')
     regs_csv      = join(output_dir, driver_name + '.csv')
     regs_h	      = join(output_dir, driver_name + '_regs.h')
     regs_c	      = join(output_dir, driver_name + '_regs.c')
@@ -404,6 +417,7 @@ def main():
 
     # driver fileset generation
     gen_csv_file(register_list, regs_csv)
+    gen_driver(driver_name, driver_c)
     gen_register_struct_file(register_list, driver_name, regs_h, regs_c)
     gen_makefile(driver_name, module_name, makefile)
     gen_kbuild(driver_name, module_name, kbuild)
@@ -424,6 +438,7 @@ def main():
 # verbatim files and templates
 cwd = '.'
 templates_dir         = os.path.join(cwd, 'templates')
+driver_template       = os.path.join(templates_dir, 'vmeio.c')
 makefile_template     = os.path.join(templates_dir, 'Makefile')
 kbuild_template       = os.path.join(templates_dir, 'Kbuild')
 deliver_template      = os.path.join(templates_dir, 'deliver.sh')
@@ -432,7 +447,6 @@ regs_h_template       = os.path.join(templates_dir, 'module_regs.h')
 lib_module_h_template = os.path.join(templates_dir, 'lib_module.h')
 lib_module_c_template = os.path.join(templates_dir, 'lib_module.c')
 verbatim_files = [
-    'vmeio.c',
     'vmeio.h',
     'Module.symvers.vmebus',
     'transfer2insmod.awk',

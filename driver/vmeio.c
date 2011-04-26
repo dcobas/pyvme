@@ -13,7 +13,7 @@
 #include "vmeio.h"
 
 #ifdef ENCORE_DAL
-#include "%(driver_name)s_regs.c"
+#include "${driver_name}_regs.c"
 #endif
 
 #define PFX DRIVER_NAME ": "
@@ -698,8 +698,8 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob *riob)
 }
 
 #ifdef ENCORE_DAL
-static int nregs = %(driver_name)s_nregs;
-static struct encore_reginfo *reginfo = &%(driver_name)s_registers;
+static int nregs = ${driver_name}_nregs;
+static struct encore_reginfo *reginfo = &${driver_name}_registers;
 
 static void get_nregs(int *nregs)
 {
