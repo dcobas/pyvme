@@ -218,13 +218,13 @@ int %(driver_name)s_set_%(name)s_window(int fd, %(wordsize)s buf[], int from, in
             h.append(get_proto_template % reg)
             if reg['depth'] > 1:
                 lib.append(get_window_template % reg)
-                lib.append(get_window_proto_template % reg)
+                h.append(get_window_proto_template % reg)
         if 'w' in reg['rwmode']:
             lib.append(set_template % reg)
             h.append(set_proto_template % reg)
             if reg['depth'] > 1:
                 lib.append(set_window_template % reg)
-                h.append(set_proto_template % reg)
+                h.append(set_window_proto_template % reg)
     return ''.join(h), ''.join(lib)
 
 def gen_lib_module_file(register_list, driver_name, lib_c, lib_h):
