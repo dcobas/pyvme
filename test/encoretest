@@ -181,7 +181,6 @@ def write_register(fd, reg, data):
     data_width = wordsize_to_data_width[reg.wordsize]
     byte_size = data_width/8 * depth
     format = depth * data_width_format[data_width]
-    print depth, data
     buffer = struct.pack(format, *data)
     buffer = create_string_buffer(buffer)
 
@@ -191,7 +190,6 @@ def write_register(fd, reg, data):
     riob.buffer = addressof(buffer)
     riob.wsize = depth
 
-    print riob.mapnum, riob.offset, riob.buffer, riob.wsize , buffer.value
     cc = libc.ioctl(fd, VMEIO_RAW_WRITE, byref(riob))
     if cc != 0:
         print 'Failed RAW_WRITE %d' % cc
@@ -354,7 +352,6 @@ class TestProgram(cmd.Cmd):
         """
 
         regdata = reg_data(self.fd)
-        print regdata
         if not regdata:
             'could not get register data'
             return
