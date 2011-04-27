@@ -171,6 +171,34 @@ def read_register(fd, reg):
         format = depth * data_width_format[data_width]
         return struct.unpack(format, buffer[:-1])
 
+def write_register(fd, reg, data):
+    """write value of register described in reg
+    """
+
+    depth = 1
+    if reg.depth > 1: depth = reg.depth
+
+    data_width = wordsize_to_data_width[reg.wordsize]
+    byte_size = data_width/8 * depth
+    format = depth * data_width_format[data_width]
+    print depth, data
+    buffer = struct.pack(format, *data)
+    buffer = create_string_buffer(buffer)
+
+    riob = vmeio_riob()
+    riob.mapnum = reg.block_address_space
+    riob.offset = reg.offset
+    riob.buffer = addressof(buffer)
+    riob.wsize = depth
+
+    print riob.mapnum, riob.offset, riob.buffer, riob.wsize , buffer.value
+    cc = libc.ioctl(fd, VMEIO_RAW_WRITE, byref(riob))
+    if cc != 0:
+        print 'Failed RAW_WRITE %d' % cc
+        return None
+    else:
+        return True
+
 
 class TestProgram(cmd.Cmd):
 
@@ -300,6 +328,26 @@ class TestProgram(cmd.Cmd):
         for i, word in enumerate(regval):
             offset = found.offset + i * data_width
             print format % (i, word)
+
+    def do_write(self, arg):
+        """write a register by name
+        """
+
+        regdata = reg_data(self.fd)     # cache this
+        try:
+            regname, value = arg.split()
+            value = int(value, 16)
+        except ValueError:
+            print 'Invalid arguments'
+            return
+        found = [ reg for reg in regdata if reg.name == regname ]
+        if not found:
+            return
+        found = found[0]
+        if not write_register(self.fd, found, [value]):
+            print 'could not write register'
+            return
+
 
     def do_regdata(self, arg):
         """regdata      show register attributes
