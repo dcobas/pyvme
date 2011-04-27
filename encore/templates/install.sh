@@ -10,8 +10,9 @@ if [ x"$INSMOD_ARGS" == x"" ] ; then
     exit 1
 fi
 
-echo "installing %(driver_name)s by insmod $INSMOD_ARGS"
-insmod %(driver_name)s.ko "$INSMOD_ARGS"
+INSMOD_CMD="insmod %(driver_name)s.ko $INSMOD_ARGS"
+echo "installing %(driver_name)s by insmod %(driver_name)s $INSMOD_ARGS"
+sh -c "$INSMOD_CMD"
 
 MAJOR=`cat /proc/devices | awk '$2 == "%(driver_name)s" {print $1}'`
 if [ -z "$MAJOR" ]; then
