@@ -1,0 +1,39 @@
+Deployment places for encore objects.  
+All user-space products under
+/acc/local/$(CPU)/lib/encore/<module_name>
+    lib<module_name>.a
+    lib<module_name>.h
+    other aux. includes 
+
+All driver-related products under
+/acc/dsc/$(ACC)/$(CPU)/$(KVER)/<module_name>
+    <module_name>.ko
+    install_<module_name_.sh
+    auxiliary install scripts
+    test_<module_name> script (*)
+    generic test script (*)
+
+Generic encore libs (this is the infamous DAL, refurbished) under
+/acc/local/$(CPU)/lib/encore/
+    libencore.a
+    libencore.h
+
+
+Symlinks:
+    /acc/local/$(CPU)/include/<module_name> ---> /acc/local/$(CPU)/lib/encore/<module_name>
+    /acc/local/$(CPU)/include/encore ---> /acc/local/$(CPU)/lib/encore
+    so that the user #include's are
+    #include <module_name/libmodule_name.h>
+    #include <encore/libencore.h>
+
+    No symlinks under ./lib; if a library is required, the specific 
+    LDFLAGS += -L /acc/.../lib/encore/<module_name> 
+    LDLIBS += -l<module_name> 
+    have to be added to Makefile's.
+
+    Only exceptions: 
+    /acc/local/$(CPU)/include/libencore.h ---> /acc/local/$(CPU)/lib/encore/libencore.h
+    /acc/local/$(CPU)/lib/libencore.a ---> /acc/local/$(CPU)/lib/encore/libencore.a
+
+(*) the test programs are actually Python scripts; to be determined what the
+    proper delivery place is for them
