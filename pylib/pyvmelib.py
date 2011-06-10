@@ -194,6 +194,8 @@ class Mapping(object):
         self.mapping.bcast_select           =  0
         self.mapping.window_num             =  0
 
+        self.vaddr = vme_map(byref(self.mapping), 1)
+
     def map(self):
         """map the address space
 
