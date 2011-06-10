@@ -159,8 +159,22 @@ width2type = {
 }
 
 class Mapping(object):
+    """a VME mapping as provided by the tsi148 bridge driver
+    """
 
     def __init__(self, am, data_width, base_address, size):
+        """map a VME address space area
+
+        am          address modifier (e.g., VME_A24_USER_DATA_SCT or 0x39)
+        data_width  16 or 32
+        base_address, size
+                    base address and size of the requested address space
+
+        example:
+            map = Mapping(am=0x9, base_address=0x10000000, size=0x80000, data_width=32)
+        provides access to (part of) the address space of a sis33 board
+        """
+
         self.am = am
         self.base_address = base_address
         self.data_width = data_width
@@ -178,21 +192,46 @@ class Mapping(object):
         self.mapping.window_num             =  0
 
     def map(self):
+        """map the address space
+
+        Normally not needed, as the Mapping object maps itself at the
+        outset
+        """
+
         self.vaddr = vme_map(byref(self.mapping), 1)
         return self.vaddr
 
     def unmap(self):
+        """unmap the address space
+        """
         self.vaddr = None
         return vme_unmap(self.mapping)
 
-    def read(self, offset, num=1):
-        width = self.data_width
+    def read(self, offset, num=1, width=None):
+        """read from a VME address space
+
+        offset is the address within the mapping. Optionally,
+        a width different from the default data width of the mapping can
+        be specified. If num is provided and greater than 1, a list of
+        values is returned instead of a single integer\
+        """
+
+        if not width:
+            width = self.data_width
         read_ctype = width2type[self.data_width]
         addr = cast(self.vaddr + offset, POINTER(read_ctype))
         values = [addr[i] for i in range(num)]
         return values
 
     def write(self, offset, values):
+        """write to a VME address space
+
+        values can be a single integer or a list to be
+        written in sequence. An optional width can be provided
+        (e.g., 8-bit accesses can be done on a 16-bit access
+        address space by write(offset, value, width=8)
+        """
+
         if type(values) != list:
             values = [ values ]
         width = self.data_width
@@ -217,6 +256,14 @@ def dma_default_descriptor():
     return desc
 
 def dma_read(am, address, data_width, size):
+    """perform a block transfer from the VME bus
+
+    size is the length (in bytes) of the
+    requested transfer
+
+    returns a string of values transferred from
+    the VME bus
+    """
 
     buffer = create_string_buffer(size+1)
 
@@ -237,6 +284,13 @@ def dma_read(am, address, data_width, size):
         return None
 
 def dma_write(am, address, data_width, buffer):
+    """perform a block transfer to the VME bus
+
+    address is the VME address to write to
+
+    buffer is a string of (byte) values to be transferred, so the size
+    of the transfer is implicitly given by len(buffer)
+    """
 
     desc = dma_default_descriptor()
 
