@@ -302,7 +302,7 @@ def dma_write(am, address, data_width, buffer):
 
     desc.dst.am = am
     desc.dst.data_width = data_width
-    desc.length = size
+    desc.length = len(buffer)
 
     desc.src.addrl = addressof(buffer)
     desc.dst.addrl = address
@@ -310,26 +310,28 @@ def dma_write(am, address, data_width, buffer):
 
     return vme_dma_write(byref(desc))
 
+
 if __name__ == '__main__':
 
-
-    def vme_map(am, data_width, base_address, size):
-
-        mapping = vme_mapping()
-        mapping.am                     =  am
-        mapping.data_width             =  data_width
-        mapping.vme_addru              =  0
-        mapping.vme_addrl              =  base_address
-        mapping.sizeu                  =  0
-        mapping.sizel                  =  size
-        mapping.read_prefetch_enabled  =  0
-        mapping.bcast_select           =  0
-        mapping.window_num             =  0
-
-        return vme_map(byref(mapping), 1)
-
-    addr = vme_map(am=0x9, data_width=VME_D32, base_address=0x10000000, size=0x10000)
-    print 'Mapped at userspace vaddr 0x%08x' % addr
-    p = cast(addr, POINTER(c_uint))
+    # reading the 20 first regiters of the second sis33
+    map = Mapping(am=0x9, data_width=VME_D32, base_address=0x20000000, size=0x10000)
+    print 'Mapped at userspace vaddr 0x%08x' % int(map.vaddr)
+    registers = map.read(0, 20)
     for i in range(20):
-        print 'register[%2d] = 0x%08x' % (i, swap32be(p[i]),)
+        print 'register[%2d] = 0x%08x' % (i, registers[i])
+
+    # writing the interrupt configuration register (offset 0x8)
+    map.write(0x8, 0xffffffff)
+    reg = map.read(0x8)
+    print 'wrote 0xffffffff, register = 0x%08x' % reg
+    map.write(0x8, 0xa5a5a5a5)
+    reg = map.read(0x8)
+    print 'wrote 0xa5a5a5a5, register = 0x%08x' % reg
+    print 'only 16 bits are writable'
+
+    # same story via BLT
+    nregs = 1
+    buf = dma_read(am=0x8, address=0x20000004, data_width=32, size=4*nregs)
+    registers = struct.unpack('>%dI' % nregs, buf)
+    for i in range(nregs):
+        print 'register[%2d] = 0x%08x' % (i, registers[i])
