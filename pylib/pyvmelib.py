@@ -158,6 +158,9 @@ width2type = {
     VME_D8  : c_ubyte,
 }
 
+class PyVmeExcept(Exception):
+    pass
+
 class Mapping(object):
     """a VME mapping as provided by the tsi148 bridge driver
     """
