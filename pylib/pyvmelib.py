@@ -228,7 +228,7 @@ class Mapping(object):
         values = [addr[i] for i in range(num)]
         return values
 
-    def write(self, offset, values):
+    def write(self, offset, values, width=None):
         """write to a VME address space
 
         values can be a single integer or a list to be
@@ -239,7 +239,8 @@ class Mapping(object):
 
         if type(values) != list:
             values = [ values ]
-        width = self.data_width
+        if not width:
+            width = self.data_width
         read_ctype = width2type[self.data_width]
         addr = cast(self.vaddr + offset, POINTER(read_ctype))
         for i in range(len(values)):
