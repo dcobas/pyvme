@@ -392,17 +392,24 @@ class TestProgram(cmd.Cmd):
         print 'fd', self.fd
 
     def do_open(self, arg):
+        """open a device node
+
+        syntax: open [device] [lun]
+
+        With no arguments, open shows the currently open device,
+        or a diagnostic if there is none
+
+        With more arguments, one can specify the device name and/or the
+        lun. The lun defaults to 0. The device name defaults to the
+        latest specified one"""
+
         if not arg:
             if self.fd > 0:
-                libc.close(self.fd)
-            self.fd = libc.open(self.devname, os.O_RDWR)
-            if self.fd < 0:
-                print 'error: could not open', self.devname
-                self.fd = None
-                return
+                print self.device, self.lun,
+                print self.devname,
+                print 'fd', self.fd
             else:
-                print 'open %s with file descriptor %d' % (
-                        self.devname, self.fd)
+                print 'no device open'
             return
         args = arg.split()
         if len(args) >= 2:
@@ -426,6 +433,7 @@ class TestProgram(cmd.Cmd):
                 return
         elif re.match(re_devname, arg):
             self.device = arg
+            self.lun = 0
             self.devnode()
         else:
             try:
@@ -434,7 +442,12 @@ class TestProgram(cmd.Cmd):
             except:
                 print 'error: invalid argument', arg
                 return
-        self.do_open('')
+        fd = libc.open(self.devname, os.O_RDWR)
+        if fd < 0:
+            print 'error: cannot open', self.devname
+            return
+        self.fd = fd
+        print 'open', self.devname, 'with fd', self.fd
 
     def do_close(self, arg):
         """close currently open file descriptor"""
