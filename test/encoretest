@@ -384,7 +384,6 @@ class TestProgram(cmd.Cmd):
             self.devname = '/dev/%s.%d' % (self.device, self.lun)
         except:
             print 'error: cannot set device node'
-            raise
             return
 
     def do_open(self, arg):
