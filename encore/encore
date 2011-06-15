@@ -401,7 +401,10 @@ def main():
         print 'could not make output dir ' + output_dir
         sys.exit(1)
 
-    module_data, register_list  = get_module_data(module_name)
+    try:
+        module_data, register_list  = get_module_data(module_name)
+    except TypeError:
+        register_list = None
     if not register_list:
         print 'no data for module %s in CCDB, exiting' % module_name
         sys.exit(1)
