@@ -213,7 +213,7 @@ class TestProgram(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.fd = None
-        self.lun = None
+        self.lun = 0
         self.device = None
         self.devname = None
         self.fname = None
