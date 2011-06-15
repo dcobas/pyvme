@@ -11,30 +11,30 @@ import struct
 
 class vmeio_read_buf_s(Structure):
     _fields_ = [
-    ('logical_unit', c_int),
-    ('interrupt_mask', c_int),
-    ('interrupt_count', c_int),
+        ('logical_unit', 	c_int),
+        ('interrupt_mask', 	c_int),
+        ('interrupt_count', 	c_int),
     ]
 
 class vme_mapping(Structure):
     _fields_ = [
-	('window_num', c_int),
-	('kernel_va', c_void_p),
-	('user_va', c_void_p),
-	('fd', c_int),
-	('window_enabled', c_int),
-	('data_width', c_int),
-	('am', c_int),
-	('read_prefetch_enabled', c_int),
-	('read_prefetch_size', c_int),
-	('v2esst_mode', c_int),
-	('bcast_select', c_int),
-	('pci_addru', c_int),
-	('pci_addrl', c_int),
-	('sizeu', c_int),
-	('sizel', c_int),
-	('vme_addru', c_int),
-	('vme_addrl', c_int),
+	('window_num', 		c_int),
+	('kernel_va', 		c_void_p),
+	('user_va', 		c_void_p),
+	('fd',  		c_int),
+	('window_enabled',	c_int),
+	('data_width', 		c_int),
+	('am', 	        	c_int),
+	('read_prefetch_enabled',	c_int),
+	('read_prefetch_size', 	c_int),
+	('v2esst_mode', 	c_int),
+	('bcast_select', 	c_int),
+	('pci_addru', 		c_int),
+	('pci_addrl', 		c_int),
+	('sizeu', 		c_int),
+	('sizel', 		c_int),
+	('vme_addru', 		c_int),
+	('vme_addrl', 		c_int),
     ]
 
 class vmeio_get_mapping(Structure):
@@ -47,34 +47,34 @@ vmeioMAX_BUF = 8192
 
 class vmeio_riob(Structure):
     _fields_ = [
-    ('mapnum', c_int),	   	# Mapping number 1..2
-    ('offset', c_int),	   	# Byte offset in map
-    ('wsize', c_int),	   	# The number of bytes to read
-    ('buffer', c_void_p),	# Pointer to data area
-    ('data_width', c_int),	# optional data width, 0 if default
+    ('mapnum', 		c_int),	   	# Mapping number 1..2
+    ('offset', 		c_int),	   	# Byte offset in map
+    ('wsize', 		c_int),	   	# The number of bytes to read
+    ('buffer', 		c_void_p),	# Pointer to data area
+    ('data_width', 	c_int),	        # optional data width, 0 if default
     ]
 
 class vmeio_dma_op(Structure):
     _fields_ = [
-    ('am', c_int),				# address modifier, defines transfer mode
-    ('data_width', c_int),		# transfer data width
-    ('address', c_int),			# vme address of start transfer
-    ('byte_length', c_int),		# transfer length in bytes
-    ('buffer', c_void_p),		# pointer to transfer to/from
-    ('direction', c_int),		# from/to device
+    ('am', 		c_int),		# address modifier, defines transfer mode
+    ('data_width', 	c_int),		# transfer data width
+    ('address', 	c_int),		# vme address of start transfer
+    ('byte_length', 	c_int),		# transfer length in bytes
+    ('buffer', 		c_void_p),	# pointer to transfer to/from
+    ('direction', 	c_int),		# from/to device
     ]
 
 class encore_reginfo(Structure):
     _fields_ = [
-	('name',			c_char*17),
-	('rwmode',			c_char*5),
-	('block',			c_int),
-	('block_address_space',			c_int),
+	('name',		c_char*17),
+	('rwmode',		c_char*5),
+	('block',		c_int),
+	('block_address_space',	c_int),
 	('block_offset',	c_int),
 	('register_offset',	c_int),
-	('offset',			c_int),
+	('offset',		c_int),
 	('wordsize',		c_char*7),
-	('depth',			c_int),
+	('depth',		c_int),
 	('description',		c_char*81),
 	('data_width',		c_int),
     ]
