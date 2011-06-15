@@ -439,8 +439,8 @@ def main():
         gen_regs_file(register_list, regs_filename)
 
 # verbatim files and templates
-cwd = '.'
-templates_dir         = os.path.join(cwd, 'templates')
+prog_dir              = os.path.dirname(sys.argv[0])
+templates_dir         = os.path.join(prog_dir, 'templates')
 driver_template       = os.path.join(templates_dir, 'vmeio.c')
 makefile_template     = os.path.join(templates_dir, 'Makefile')
 kbuild_template       = os.path.join(templates_dir, 'Kbuild')
