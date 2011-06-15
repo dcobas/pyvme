@@ -386,6 +386,11 @@ class TestProgram(cmd.Cmd):
             print 'error: cannot set device node'
             return
 
+    def do_lun(self, arg):
+        print self.device, self.lun,
+        print self.devname,
+        print 'fd', self.fd
+
     def do_open(self, arg):
         if not arg:
             if self.fd:
