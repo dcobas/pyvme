@@ -371,7 +371,6 @@ class TestProgram(cmd.Cmd):
     def do_EOF(self, arg):
         print
         return 1
-    do_q = do_quit
 
     def do_shell(self, arg):
         """open a subshell"""
