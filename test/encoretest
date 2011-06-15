@@ -393,28 +393,33 @@ class TestProgram(cmd.Cmd):
 
     def do_open(self, arg):
         if not arg:
-            if self.fd:
-                print 'open %s with file descriptor %d' % (
-                    self.devname, self.fd)
+            if self.fd > 0:
+                libc.close(self.fd)
+            self.fd = libc.open(self.devname, os.O_RDWR)
+            if self.fd < 0:
+                print 'error: could not open', self.devname
+                self.fd = None
+                return
             else:
-                print 'no device open'
+                print 'open %s with file descriptor %d' % (
+                        self.devname, self.fd)
             return
         args = arg.split()
         if len(args) >= 2:
             if not re.match(re_devname, args[0]):
                 print 'error: invalid device name', args[0]
-                return
+            else:
+                self.device = args[0]
             try:
                 self.lun = int(args[1])
             except:
                 print 'error: invalid lun', args[1]
-                return
-            self.device = args[0]
+            self.devnode()
         elif len(args) == 1 and arg[0] == '/':
             try:
                 m = re.match(re_devnode, arg)
                 self.device = m.group(1)
-                self.lun    = m.group(2)
+                self.lun    = int(m.group(2))
                 self.devname = arg
             except:
                 print 'error: invalid device name', arg
@@ -429,18 +434,12 @@ class TestProgram(cmd.Cmd):
             except:
                 print 'error: invalid argument', arg
                 return
-        self.fd = libc.open(self.devname, os.O_RDWR)
-        if self.fd < 0:
-            print 'error: could not open', self.devname
-            self.fd = None
-            return
-        else:
-            print 'open %s with file descriptor %d' % (
-                    self.devname, self.fd)
+        self.do_open('')
 
     def do_close(self, arg):
         """close currently open file descriptor"""
-        libc.close(self.fd)
+        if self.fd > 0:
+            libc.close(self.fd)
         self.fd = None
 
     def do_version(self, arg):
