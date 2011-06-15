@@ -11,6 +11,7 @@ import re
 import cmd
 import readline
 import struct
+import csv
 
 class vmeio_read_buf_s(Structure):
     _fields_ = [
@@ -99,6 +100,15 @@ class encore_reginfo(Structure):
             value = self.__getattribute__(name)
             tuple = tuple + (value, )
         return self.field_format % tuple
+
+    def from_tuple(self, t):
+        for i in range(len(self._fields_)):
+            attrname = self._fields_[i][0]
+            value = t[i]
+            if self._fields_[i][1] == c_int:
+                value = int(value)
+            setattr(self, attrname, value)
+        return self
 
 # ioctls ever used in vmeio
 
@@ -217,6 +227,7 @@ class TestProgram(cmd.Cmd):
         self.device = None
         self.devname = None
         self.fname = None
+        self.regdata = None
 
         self.do_q    = self.do_quit
         self.do_exit = self.do_quit
@@ -332,12 +343,20 @@ class TestProgram(cmd.Cmd):
         """regdata      show register attributes
         """
 
-        regdata = reg_data(self.fd)
-        if not regdata:
-            'could not get register data'
+        if not arg:
+            self.regdata = reg_data(self.fd)
+        else:
+            try:
+                csvfile = csv.reader(file(arg))
+                self.regdata = [ encore_reginfo().from_tuple(t) for t in csvfile ]
+            except IOError:
+                print 'error: cannot open', arg
+                return
+        if not self.regdata:
+            print 'error: no register data found'
             return
         print encore_reginfo.pprint_header()
-        for reg in regdata:
+        for reg in self.regdata:
             print reg.pprint()
 
     def do_quit(self, arg):
