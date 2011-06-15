@@ -222,6 +222,9 @@ class TestProgram(cmd.Cmd):
         self.do_exit = self.do_quit
         self.do_h    = self.do_help
 
+    def emptyline(self):
+        return
+
     def do_raw_read(self, arg):
         """raw_read mapnum offset nitems
 
