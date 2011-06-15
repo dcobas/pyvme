@@ -3,6 +3,8 @@
 #    vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 from ctypes import *
+from subprocess import Popen
+import shlex
 import sys
 import os
 import cmd
@@ -369,7 +371,63 @@ class TestProgram(cmd.Cmd):
     def do_EOF(self, arg):
         print
         return 1
+    do_q = do_quit
 
+    def do_shell(self, arg):
+        """open a subshell"""
+        if arg:
+            args = shlex.split(arg)
+        else:
+            args = 'sh'
+        try:
+            p = Popen(args)
+            p.wait()
+        except OSError:
+            print 'error: cannot execute', arg
+    do_sh = do_shell
+
+    def do_edit(self, arg):
+        """edit the (most recently specified) file"""
+        if arg:
+            self.fname = arg
+        try:
+            editcmd = [ 'vi', self.fname ]
+        except:
+            editcmd = 'vi'
+        e = Popen(editcmd)
+        e.wait()
+
+    def do_cd(self, arg):
+        if not arg:
+            print os.getcwd()
+            return
+        try:
+            os.chdir(arg)
+        except OSError:
+            print 'error: cannot chdir to', arg
+
+    def do_device(self, arg):
+        pass
+    def do_lun(self, arg):
+        pass
+    def do_open(self, arg):
+        pass
+    def do_version(self, arg):
+        pass
+    def do_timeout(self, arg):
+        pass
+    def do_wait(self, arg):
+        pass
+    def do_display(self, arg):
+        pass
+    def do_read(self, arg):
+        pass
+    def do_write(self, arg):
+        pass
+    def do_dma_read(self, arg):
+        pass
+    def do_dma_write(self, arg):
+        pass
 
 if __name__ == '__main__':
     tp = TestProgram()
