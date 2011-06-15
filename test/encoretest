@@ -7,6 +7,7 @@ from subprocess import Popen
 import shlex
 import sys
 import os
+import re
 import cmd
 import readline
 import struct
@@ -211,45 +212,13 @@ class TestProgram(cmd.Cmd):
         cmd.Cmd.__init__(self)
         self.fd = None
         self.lun = None
+        self.device = None
         self.devname = None
+        self.fname = None
 
         self.do_q    = self.do_quit
         self.do_exit = self.do_quit
         self.do_h    = self.do_help
-        self.onecmd('lun 0')
-
-    def do_lun(self, arg, device_name=device_name):
-        """lun [lun number]     open a LUN"""
-
-        if arg == '':
-            print 'open: lun = %d, fd = %d' % (self.lun, self.fd)
-            return
-        try:
-            lun = int(arg)
-        except:
-            print 'lun must be an integer'
-            return
-
-        devname = device_name % lun
-        fd = libc.open(devname, os.O_RDWR)
-        if fd < 0:
-            print 'could not open %s' % devname
-            if not self.fd:
-                print 'Exiting...'
-                # why? cmd misbehaves with return True...
-                sys.exit(1)
-            else:
-                return
-        self.fd = fd
-        self.lun = lun
-        self.devname = devname
-        print 'open: lun %d, fd %d' % (self.lun, self.fd)
-
-        self.data_width = [ 0, 0 ]
-        for mapnum in [ 1, 2 ]:
-            gm = vmeio_get_mapping(mapnum=mapnum, map=vme_mapping())
-            libc.ioctl(self.fd, VMEIO_GET_MAPPING, byref(gm))
-            self.data_width[mapnum-1] = gm.map.data_width
 
     def do_raw_read(self, arg):
         """raw_read mapnum offset nitems
@@ -405,12 +374,66 @@ class TestProgram(cmd.Cmd):
         except OSError:
             print 'error: cannot chdir to', arg
 
-    def do_device(self, arg):
-        pass
-    def do_lun(self, arg):
-        pass
+    def devnode(self):
+        try:
+            self.devname = '/dev/%s.%d' % (self.device, self.lun)
+        except:
+            print 'error: cannot set device node'
+            raise
+            return
+
     def do_open(self, arg):
-        pass
+        if not arg:
+            if self.fd:
+                print 'open %s with file descriptor %d' % (
+                    self.devname, self.fd)
+            else:
+                print 'no device open'
+            return
+        args = arg.split()
+        if len(args) >= 2:
+            if not re.match(r'^[a-z_]+$', args[0]):
+                print 'error: invalid device name', args[0]
+                return
+            try:
+                self.lun = int(args[1])
+            except:
+                print 'error: invalid lun', args[1]
+                return
+            self.device = args[0]
+        elif len(args) == 1 and arg[0] == '/':
+            try:
+                m = re.match(r'^/dev/([a-z_]+).([0-9]+)$', arg)
+                self.device = m.group(1)
+                self.lun    = m.group(2)
+                self.devname = arg
+            except:
+                print 'error: invalid device name', arg
+                return
+        elif re.match(r'^[a-z_]+$', arg):
+            self.device = arg
+            self.devnode()
+        else:
+            try:
+                self.lun = int(arg)
+                self.devnode()
+            except:
+                print 'error: invalid argument', arg
+                return
+        self.fd = libc.open(self.devname, os.O_RDWR)
+        if self.fd < 0:
+            print 'error: could not open', self.devname
+            self.fd = None
+            return
+        else:
+            print 'open %s with file descriptor %d' % (
+                    self.devname, self.fd)
+
+    def do_close(self, arg):
+        """close currently open file descriptor"""
+        libc.close(self.fd)
+        self.fd = None
+
     def do_version(self, arg):
         pass
     def do_timeout(self, arg):
