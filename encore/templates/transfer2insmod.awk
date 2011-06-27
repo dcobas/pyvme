@@ -21,8 +21,8 @@ BEGIN	{
 	vectors = ""
 
 	am["EX"] = "0x9"
-	am["SH"] = "0x39"
-	am["ST"] = "0x29"
+	am["SH"] = "0x29"
+	am["ST"] = "0x39"
 	am["CR"] = "0x2F"
 }
 
