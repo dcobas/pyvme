@@ -92,7 +92,7 @@ def nullformat(fmt, val):
 
 class CCDBTuple(dict):
     def __init__(self, *t):
-        if len(t) == 1 and type(t[0]) is type(tuple()):
+        if len(t) == 1 and type(t[0]) in [ type(tuple()), type(list()) ]:
             self.update(zip(self.fields, t[0]))
         else:
             raise ValueError('CCDBTuple must be initialized with a tuple')
@@ -146,24 +146,28 @@ def query_db(module_name):
 
     return module
 
-def query_csv(module_data, register_data):
+def query_csv(modfname, regfname):
     sniff = csv.Sniffer()
 
-    mod = StringIO.StringIO(module_data)
-    if sniff.has_header(module_data):
-        r = csv.DictReader(mod)
+    mod = file(modfname)
+    if sniff.has_header(mod.read()):
+        mod.seek(0)
+        mod.readline()
     else:
-        r = csv.DictReader(mod, fieldnames=module_field_list)
-    ret1 = r.next()
+        mod.seek(0)
+    r = csv.reader(mod)
+    module = Module(r.next())
 
-    reg = StringIO.StringIO(register_data)
-    if sniff.has_header(register_data):
-        r = csv.DictReader(reg)
+    reg = file(regfname)
+    if sniff.has_header(reg.read()):
+        reg.seek(0)
+        reg.readline()
     else:
-        r = csv.DictReader(reg, fieldnames=register_field_list)
-    ret2 = [ datum for datum in r ]
+        reg.seek(0)
+    r = csv.reader(reg)
+    module.registers = [ Register(reg) for reg in r ]
     
-    return ret1, ret2
+    return module
 
 if __name__ == '__main__':
     import pprint
@@ -171,7 +175,8 @@ if __name__ == '__main__':
     if True:
         module_data = query_db('RF_VTU')
         module_data.csv_dump('rf_vtu_mod.csv', 'rf_vtu_reg.csv')
-        pprint.pprint(query_csv(file('rf_vtu_mod.csv').read(), file('rf_vtu_reg.csv').read()))
+        pprint.pprint(query_csv('rf_vtu_mod.csv', 'rf_vtu_reg.csv'))
+        pprint.pprint(query_csv('rf_vtu_mod.csv', 'rf_vtu_reg.csv').registers)
 
 
     if False:
