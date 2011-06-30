@@ -26,6 +26,11 @@ register_field_list = [
     'data_width',
     ]
 
+register_field_formats = [
+    '%s', '%s', '%d', '%d', '0x%x', '0x%x', '0x%x', '%s', '%d', '%s',
+    '%d',
+]
+
 register_query = '''
 select name,
     rwmode,
@@ -61,6 +66,10 @@ module_field_list = [
     'am2'
 ]
 
+module_field_formats = [
+    '%s', '%s', '%d', '%d', '%d', '0x%x', '0x%x', '0x%x', '0x%x',
+]
+
 module_query = '''
 select hwtype as name,
     description,
@@ -75,51 +84,67 @@ from hard_types ht
 where ht.hwtype = :hwtype
 '''
 
-cursor = cx_Oracle.connect(user='copub', password='co').cursor()
+def nullformat(fmt, val):
+    if val is None:
+         return ''
+    else:
+        return fmt % val
+
+class CCDBTuple(dict):
+    def __init__(self, *t):
+        if len(t) == 1 and type(t[0]) is type(tuple()):
+            self.update(zip(self.fields, t[0]))
+        else:
+            raise ValueError('CCDBTuple must be initialized with a tuple')
+
+    def tuple(self):
+        return tuple(self[field] for field in self.fields)
+
+    def csv_tuple(self):
+        return tuple(nullformat(fmt, self[field]) for (fmt, field)
+            in zip(self.formats, self.fields))
+
+class Register(CCDBTuple):
+    fields  = register_field_list
+    formats = register_field_formats
+
+class Module(CCDBTuple):
+    fields = module_field_list
+    formats = module_field_formats
+
+    def csv_dump(self, modfname, regfname, with_header=True):
+        """convert module data to CSV files
+        """
+        out = file(modfname, 'w')
+        c = csv.writer(out)
+        if with_header:
+            c.writerow(self.fields)
+        c.writerow(self.csv_tuple())
+        out.close()
+
+        out = file(regfname, 'w')
+        c = csv.writer(out)
+        if with_header:
+            c.writerow(Register.fields)
+        c.writerows([r.csv_tuple() for r in self.registers])
+        out.close()
+
 
 def query_db(module_name):
     """get module data
 
-    Return a dictionary with module data, and a list of dicts
-    with register properties
+    Return a module object with module data
     """
 
+    cursor = cx_Oracle.connect(user='copub', password='co').cursor()
     cursor.execute(module_query, hwtype=module_name)
     modtuple = cursor.fetchone()
-    module_data = dict(zip(module_field_list, modtuple))
+    module = Module(modtuple)
 
     cursor.execute(register_query, hwtype=module_name)
-    register_data = [ dict(zip(register_field_list, row)) for row in cursor ]
+    module.registers = [ Register(row)  for row in cursor ]
 
-    return module_data, register_data
-
-def csv_module_data(module_data, with_header=True):
-    """convert module_data dict to CSV row
-
-    Return a string with the CSV form of the data
-    """
-    out = StringIO.StringIO()
-    c = csv.DictWriter(out, fieldnames=module_field_list)
-    if with_header:
-        c.writerow(dict(zip(module_field_list, module_field_list)))
-    c.writerow(module_data)
-    ret = out.getvalue()
-    out.close()
-    return ret 
-
-def csv_register_data(register_data, with_header=True):
-    """convert register data of a module into CSV form
-
-    Returns a string with the CSV form of the data
-    """
-    out = StringIO.StringIO()
-    c = csv.DictWriter(out, fieldnames=register_field_list)
-    if with_header:
-        c.writerow(dict(zip(register_field_list, register_field_list)))
-    c.writerows(register_data)
-    ret = out.getvalue()
-    out.close()
-    return ret 
+    return module
 
 def query_csv(module_data, register_data):
     sniff = csv.Sniffer()
@@ -143,11 +168,17 @@ def query_csv(module_data, register_data):
 if __name__ == '__main__':
     import pprint
    
+    if True:
+        module_data = query_db('RF_VTU')
+        module_data.csv_dump('rf_vtu_mod.csv', 'rf_vtu_reg.csv')
+        pprint.pprint(query_csv(file('rf_vtu_mod.csv').read(), file('rf_vtu_reg.csv').read()))
+
+
     if False:
-        module_data, register_data = query_db('RF_VTU')
-        file('rf_vtu_mod.csv', 'w').write(csv_module_data(module_data))
-        file('rf_vtu_reg.csv', 'w').write(csv_register_data(register_data))
-        print query_csv(file('rf_vtu_mod.csv').read(), file('rf_vtu_reg.csv').read())
+        pprint.pprint(query_csv(file('ctc_mod.csv').read(), file('ctc_reg.csv').read()))
 
-
-    pprint.pprint(query_csv(file('ctc_mod.csv').read(), file('ctc_reg.csv').read()))
+    if False:
+        x = Register( ('Control_1','rw',0,1,0,0,0,'short',0,"Control 1, 8 bit Read-Modify-Write",16) )
+        print x
+        print x.tuple()
+        print x.csv_tuple()
