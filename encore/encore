@@ -16,7 +16,7 @@ def gen_register_struct(register_list, module_name):
     """create a C structure definition for this register list"""
 
     # generate include file
-    template = file(regs_h_template).read()
+    template = file(Templates.regs_h).read()
     register_names = [ '\t' + reg['name'] + ',\n' for reg in register_list ]
     register_names = ''.join(register_names)
     driver_name = module_name
@@ -103,8 +103,8 @@ int %(driver_name)s_set_%(name)s_window(int fd, %(wordsize)s buf[], int from, in
 
     lib = [ ]
     h   = [ ]
-    lib.append(file(lib_module_c_template).read() % locals())
-    h.append(file(lib_module_h_template).read() % locals())
+    lib.append(file(Templates.lib_module_c).read() % locals())
+    h.append(file(Templates.lib_module_h).read() % locals())
     for reg in register_list:
         reg['driver_name'] = driver_name
         if 'r' in reg['rwmode']:
@@ -184,7 +184,7 @@ def gen_regs_file(register_list, module_name):
 def gen_driver(driver_name, filename):
     """produce a driver with register data"""
 
-    template = file(driver_template).read()
+    template = file(Templates.driver).read()
     template = string.Template(template)
     date = datetime.datetime.now().isoformat(' ')
     driver = template.substitute(locals())
@@ -195,7 +195,7 @@ def gen_driver(driver_name, filename):
 def gen_makefile(driver_name, module_name, filename):
     """produce a Makefile for the library"""
 
-    template = file(makefile_template).read()
+    template = file(Templates.makefile).read()
 
     date = datetime.datetime.now().isoformat(' ')
     makefile = template % locals()
@@ -206,7 +206,7 @@ def gen_makefile(driver_name, module_name, filename):
 def gen_kbuild(driver_name, module_name, filename):
     """produce a Kbuild for the driver"""
 
-    template = file(kbuild_template).read()
+    template = file(Templates.kbuild).read()
 
     date = datetime.datetime.now().isoformat(' ')
     kbuild = template % locals()
@@ -217,7 +217,7 @@ def gen_kbuild(driver_name, module_name, filename):
 def gen_install_script(device_name, driver_name,
 	output_file, transfer='/etc/transfer.ref'):
 
-    template = file(instprog_template).read()
+    template = file(Templates.instprog).read()
 
     date = datetime.datetime.now().isoformat(' ')
     out = file(output_file, 'w')
@@ -226,7 +226,7 @@ def gen_install_script(device_name, driver_name,
 
 def gen_delivery_script(driver_name, output_file):
 
-    template = file(deliver_template).read()
+    template = file(Templates.deliver).read()
 
     date = datetime.datetime.now().isoformat(' ')
     out = file(output_file, 'w')
@@ -315,12 +315,12 @@ def main():
 
     # copy verbatim files and locate templates
     # cwd = os.path.dirname(sys.argv[0])
-    for f in verbatim_files:
-        from_ = os.path.join(templates_dir, f)
+    for f in Templates.verbatim:
+        from_ = os.path.join(Templates.dir, f)
         to    = os.path.join(output_dir, f)
         if f == 'vmeio.c':
             to = os.path.join(output_dir, driver_name + '.c')
-	os.system('cp "%s" "%s"' % (from_, to))
+        os.system('cp "%s" "%s"' % (from_, to))
 
     # driver fileset generation
     module.csv_dump(mod_csv, regs_csv)
@@ -340,17 +340,19 @@ def main():
         gen_regs_file(register_list, regs_filename)
 
 # verbatim files and templates
-prog_dir              = os.path.dirname(sys.argv[0])
-templates_dir         = os.path.join(prog_dir, 'templates')
-driver_template       = os.path.join(templates_dir, 'vmeio.c')
-makefile_template     = os.path.join(templates_dir, 'Makefile')
-kbuild_template       = os.path.join(templates_dir, 'Kbuild')
-deliver_template      = os.path.join(templates_dir, 'deliver.sh')
-instprog_template     = os.path.join(templates_dir, 'install.sh')
-regs_h_template       = os.path.join(templates_dir, 'module_regs.h')
-lib_module_h_template = os.path.join(templates_dir, 'lib_module.h')
-lib_module_c_template = os.path.join(templates_dir, 'lib_module.c')
-verbatim_files = [
+class Templates(object):
+    program      = os.path.dirname(sys.argv[0])
+    dir          = os.path.join(program, 'templates')
+    driver       = os.path.join(dir, 'vmeio.c')
+    makefile     = os.path.join(dir, 'Makefile')
+    kbuild       = os.path.join(dir, 'Kbuild')
+    deliver      = os.path.join(dir, 'deliver.sh')
+    instprog     = os.path.join(dir, 'install.sh')
+    regs_h       = os.path.join(dir, 'module_regs.h')
+    lib_module_h = os.path.join(dir, 'lib_module.h')
+    lib_module_c = os.path.join(dir, 'lib_module.c')
+
+    verbatim = [
     'vmeio.h',
     'Module.symvers.vmebus',
     'transfer2insmod.awk',
