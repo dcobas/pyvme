@@ -172,15 +172,15 @@ def query_csv(modfname, regfname):
 if __name__ == '__main__':
     import pprint
    
-    if True:
+    if False:
         module_data = query_db('RF_VTU')
         module_data.csv_dump('rf_vtu_mod.csv', 'rf_vtu_reg.csv')
         pprint.pprint(query_csv('rf_vtu_mod.csv', 'rf_vtu_reg.csv'))
         pprint.pprint(query_csv('rf_vtu_mod.csv', 'rf_vtu_reg.csv').registers)
 
-
-    if False:
-        pprint.pprint(query_csv(file('ctc_mod.csv').read(), file('ctc_reg.csv').read()))
+    if True:
+        pprint.pprint(query_csv('ctc_mod.csv', 'ctc_reg.csv'))
+        pprint.pprint(query_csv('ctc_mod.csv', 'ctc_reg.csv').registers)
 
     if False:
         x = Register( ('Control_1','rw',0,1,0,0,0,'short',0,"Control 1, 8 bit Read-Modify-Write",16) )
