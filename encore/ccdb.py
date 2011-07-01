@@ -5,13 +5,6 @@ import csv
 import cx_Oracle
 import StringIO
 
-db_am_translate = {
-    2 : 0x39,
-    4 : 0x2f,
-    5 : 0x29,
-    7 : 0x9,
-}
-
 register_field_list = [
     'name',
     'rwmode',

@@ -12,13 +12,6 @@ import cx_Oracle
 from os.path import join
 from optparse import OptionParser
 
-db_am_translate = {
-    2 : 0x39,
-    4 : 0x2f,
-    5 : 0x29,
-    7 : 0x9,
-}
-
 def gen_plain_file(register_list, filename):
     """given a list of dicts with registers, construct a columnated file"""
 
