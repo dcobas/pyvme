@@ -94,6 +94,16 @@ class CCDBTuple(dict):
     def __init__(self, *t):
         if len(t) == 1 and type(t[0]) in [ type(tuple()), type(list()) ]:
             self.update(zip(self.fields, t[0]))
+            for i in range(len(self.fields)):
+                if self[self.fields[i]] is None:
+                    self[self.fields[i]] = ''
+                    continue
+                if not self[self.fields[i]]:
+                    continue
+                if (self.formats[i][-1] in 'dx' and
+                        type(self[self.fields[i]]) == type('')):
+                    # coerce string into int
+                    self[self.fields[i]] = int(self[self.fields[i]], 0)
         else:
             raise ValueError('CCDBTuple must be initialized with a tuple')
 
