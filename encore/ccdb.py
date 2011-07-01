@@ -84,6 +84,9 @@ from hard_types ht
 where ht.hwtype = :hwtype
 '''
 
+class NoModule(Exception):
+    pass
+
 def nullformat(fmt, val):
     if val is None:
          return ''
@@ -149,6 +152,8 @@ def query_db(module_name):
     cursor = cx_Oracle.connect(user='copub', password='co').cursor()
     cursor.execute(module_query, hwtype=module_name)
     modtuple = cursor.fetchone()
+    if not modtuple:
+        raise NoModule('%s not declared in CCDB' % module_name)
     module = Module(modtuple)
 
     cursor.execute(register_query, hwtype=module_name)

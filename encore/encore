@@ -339,7 +339,9 @@ def main():
         else:
             module = ccdb.query_db(module_name)
             register_list  = module.registers
-    except TypeError:
+    except (TypeError, ValueError):
+        register_list = None
+    except ccdb.NoModule, e:
         register_list = None
     if not register_list:
         print 'no data for module %s in CCDB, exiting' % module_name
