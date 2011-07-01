@@ -88,20 +88,23 @@ def nullformat(fmt, val):
 
 class CCDBTuple(dict):
     def __init__(self, *t):
-        if len(t) == 1 and type(t[0]) in [ type(tuple()), type(list()) ]:
-            self.update(zip(self.fields, t[0]))
-            for i in range(len(self.fields)):
-                if self[self.fields[i]] is None:
-                    self[self.fields[i]] = ''
-                    continue
-                if not self[self.fields[i]]:
-                    continue
-                if (self.formats[i][-1] in 'dx' and
-                        type(self[self.fields[i]]) == type('')):
-                    # coerce string into int
-                    self[self.fields[i]] = int(self[self.fields[i]], 0)
-        else:
+        if len(t) != 1:
             raise ValueError('CCDBTuple must be initialized with a tuple')
+        if not type(t[0]) in [ type(tuple()), type(list()) ]:
+            raise ValueError('CCDBTuple must be initialized with a tuple')
+
+        # constructor called with a single tuple
+        self.update(zip(self.fields, t[0]))
+        for i in range(len(self.fields)):
+            if self[self.fields[i]] is None:
+                self[self.fields[i]] = ''
+                continue
+            if not self[self.fields[i]]:
+                continue
+            if (self.formats[i][-1] in 'dx' and
+                    type(self[self.fields[i]]) == type('')):
+                # coerce string into int
+                self[self.fields[i]] = int(self[self.fields[i]], 0)
 
     def tuple(self):
         return tuple(self[field] for field in self.fields)
@@ -113,6 +116,24 @@ class CCDBTuple(dict):
 class Register(CCDBTuple):
     fields  = register_field_list
     formats = register_field_formats
+
+    def cdecl(self):
+        return (
+            '[%(name)s] = {\n'
+            '	.name			= "%(name)s",\n'
+            '	.rwmode			= "%(rwmode)s",\n'
+            '	.block			= %(block)d,\n'
+            '	.block_address_space	= %(block_address_space)d,\n'
+            '	.block_offset		= 0x%(block_offset)x,\n'
+            '	.register_offset	= 0x%(register_offset)x,\n'
+            '	.offset			= 0x%(offset)x,\n'
+            '	.wordsize		= "%(wordsize)s",\n'
+            '	.depth			= 0x%(depth)x,\n'
+            '	.description		= "%(description)s",\n'
+            '	.data_width		= %(data_width)d,\n'
+            '},\n'
+            '\n'
+            ) % self
 
 class Module(CCDBTuple):
     fields = module_field_list
