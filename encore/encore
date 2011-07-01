@@ -12,16 +12,6 @@ import cx_Oracle
 from os.path import join
 from optparse import OptionParser
 
-def gen_plain_file(register_list, filename):
-    """given a list of dicts with registers, construct a columnated file"""
-
-    out = open(filename, 'wb')
-    for reg in register_list:
-        for key in ccdb.Register.fields:
-            out.write('%s\t' % reg[key])
-        out.write('\n')
-    out.close()
-
 def gen_register_struct(register_list, module_name):
     """create a C structure definition for this register list"""
 
@@ -266,9 +256,6 @@ def main():
     usage = 'usage: dbexctract.py [options] MODULE_NAME'
 
     parser = OptionParser(usage=usage)
-    parser.add_option("--plain", dest="plain", action="store",
-                        help="create a plaintext file with register data",
-                        metavar="FILE")
     parser.add_option("--regs", action="store_true", dest="regs",
                         help="create a .regs file for encore v1.0 compat",
                         metavar="FILE")
@@ -348,9 +335,6 @@ def main():
     # optional data files generation
     registers = dict([ (regdata['name'], regdata)
                         for regdata in register_list ])
-    if options.plain:
-        plain_filename =join(output_dir, options.plain)
-        gen_plain_file(register_list, plain_filename)
     if options.regs:
         regs_filename = join(output_dir, module_name)
         gen_regs_file(register_list, regs_filename)
