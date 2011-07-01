@@ -8,6 +8,7 @@ import stat
 import datetime
 import string
 import csv
+import ccdb
 import cx_Oracle
 from os.path import join
 from optparse import OptionParser
@@ -81,25 +82,6 @@ select hwtype as name,
 from hard_types ht
 where ht.hwtype = :hwtype
 '''
-
-cursor = cx_Oracle.connect(user='copub', password='co').cursor()
-
-
-def get_module_data(module_name):
-    """get module data
-
-    Return a dictionary with module data, and a list of dicts
-    with register properties
-    """
-
-    cursor.execute(module_query, hwtype=module_name)
-    modtuple = cursor.fetchone()
-    module_data = dict(zip(module_field_list, modtuple))
-
-    cursor.execute(register_query, hwtype=module_name)
-    register_data = [ dict(zip(register_field_list, row)) for row in cursor ]
-
-    return module_data, register_data
 
 def gen_plain_file(register_list, filename):
     """given a list of dicts with registers, construct a columnated file"""
@@ -381,7 +363,7 @@ def main():
                       action="store_true", dest="kill", default=False,
                       help="kill destination directory if it exists")
     parser.add_option("--csv",
-                      action="store", dest="csv",
+                      action="store_true", dest="csv",
                       help="do not query the CCSB, read from a CSV file instead")
     (options, args) = parser.parse_args(sys.argv)
 
@@ -398,7 +380,8 @@ def main():
     makefile      = join(output_dir, 'Makefile')
     kbuild        = join(output_dir, 'Kbuild')
     driver_c      = join(output_dir, driver_name + '.c')
-    regs_csv      = join(output_dir, driver_name + '.csv')
+    regs_csv      = join(output_dir, driver_name + '_regs.csv')
+    mod_csv       = join(output_dir, driver_name + '_mod.csv')
     regs_h	      = join(output_dir, driver_name + '_regs.h')
     regs_c	      = join(output_dir, driver_name + '_regs.c')
     lib_h	      = join(output_dir, libname + '.h')
@@ -411,7 +394,14 @@ def main():
         sys.exit(1)
 
     try:
-        module_data, register_list  = get_module_data(module_name)
+        if options.csv:
+            in_regs_csv      = join(driver_name + '_regs.csv')
+            in_mod_csv       = join(driver_name + '_mod.csv')
+            module = ccdb.query_csv(in_mod_csv, in_regs_csv)
+            register_list = module.registers
+        else:
+            module = ccdb.query_db(module_name)
+            register_list  = module.registers
     except TypeError:
         register_list = None
     if not register_list:
