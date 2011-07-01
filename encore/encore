@@ -292,10 +292,6 @@ def main():
     install_sh	  = join(output_dir, 'install_' + driver_name + '.sh')
     deliver_sh	  = join(output_dir, 'deliver.sh')
 
-    if make_out_dir(output_dir, options.kill):
-        print 'could not make output dir ' + output_dir
-        sys.exit(1)
-
     try:
         if options.csv:
             in_regs_csv      = join(driver_name + '_regs.csv')
@@ -311,6 +307,10 @@ def main():
         register_list = None
     if not register_list:
         print 'no data for module %s in CCDB, exiting' % module_name
+        sys.exit(1)
+
+    if make_out_dir(output_dir, options.kill):
+        print 'could not make output dir ' + output_dir
         sys.exit(1)
 
     # copy verbatim files and locate templates
