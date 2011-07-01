@@ -7,7 +7,6 @@ import errno
 import stat
 import datetime
 import string
-import csv
 import ccdb
 import cx_Oracle
 from os.path import join
@@ -29,19 +28,6 @@ def gen_plain_file(register_list, filename):
             out.write('%s\t' % reg[key])
         out.write('\n')
     out.close()
-
-def gen_csv_file(register_list, filename):
-    """given a list of dicts with registers, construct a CSV file"""
-
-    out = csv.DictWriter(open(filename, 'wb'), ccdb.Register.fields)
-    for reg in register_list:
-        out.writerow(reg)
-
-def get_csv_data(register_list, filename):
-    """get register data from a CSV file"""
-
-    inp = csv.DictReader(file(filename), ccdb.Register.fields)
-    return [ reg for reg in inp ]
 
 def gen_register_struct(register_list, module_name):
     """create a C structure definition for this register list"""
@@ -357,7 +343,7 @@ def main():
 	os.system('cp "%s" "%s"' % (from_, to))
 
     # driver fileset generation
-    gen_csv_file(register_list, regs_csv)
+    module.csv_dump(mod_csv, regs_csv)
     gen_driver(driver_name, driver_c)
     gen_register_struct_file(register_list, driver_name, regs_h, regs_c)
     gen_makefile(driver_name, module_name, makefile)

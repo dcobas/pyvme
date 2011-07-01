@@ -88,7 +88,7 @@ class NoModule(Exception):
     pass
 
 def nullformat(fmt, val):
-    if val is None:
+    if val is None or val is '':
          return ''
     else:
         return fmt % val
