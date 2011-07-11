@@ -47,7 +47,7 @@ def gen_register_struct_file(register_list, module_name, hname, cname):
     outc.write(c)
     outc.close()
 
-def gen_lib_module(register_list, driver_name):
+def gen_lib_module(register_list, device_name, driver_name):
     """generate declarations of module lib API"""
 
     get_proto_template = (
@@ -108,8 +108,8 @@ int %(driver_name)s_set_%(name)s_window(int fd, %(wordsize)s buf[], int from, in
                 h.append(set_window_proto_template % reg)
     return ''.join(h), ''.join(lib)
 
-def gen_lib_module_file(register_list, driver_name, lib_c, lib_h):
-    h, lib  = gen_lib_module(register_list, driver_name)
+def gen_lib_module_file(register_list, device_name, driver_name, lib_c, lib_h):
+    h, lib  = gen_lib_module(register_list, device_name, driver_name)
     hfile = file(lib_h, 'w')
     hfile.write(h)
     hfile.close()
@@ -317,7 +317,7 @@ def main():
     gen_kbuild(driver_name, module_name, kbuild)
     gen_install_script(module_name, driver_name, install_sh)
     gen_delivery_script(driver_name, deliver_sh)
-    gen_lib_module_file(register_list, driver_name, lib_c, lib_h)
+    gen_lib_module_file(register_list, module_name, driver_name, lib_c, lib_h)
 
     # optional data files generation
     registers = dict([ (regdata['name'], regdata)
