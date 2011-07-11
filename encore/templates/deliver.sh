@@ -30,7 +30,7 @@ echo "delivering to ACC=$ACC CPU=$CPU KVER=$KVER"
 
 # delivery paths
 DRIVER_PATH=/acc/dsc/$ACC/$CPU/$KVER/$DRIVER/
-LIB_PATH=/acc/local/$CPU/dg/$DRIVER/
+LIB_PATH=/acc/local/$CPU/dg/encore/$DRIVER/
 
 # deliverable items
 LIBS="lib_$DRIVER.$CPU.a lib_$DRIVER.h ${DRIVER}_regs.h vmeio.h"
