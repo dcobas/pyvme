@@ -16,12 +16,14 @@
 #include "${driver_name}_regs.c"
 #endif
 
+${gendata}
+
 #define PFX DRIVER_NAME ": "
 
-MODULE_AUTHOR("Julian Lewis BE/CO/HT CERN");
+MODULE_AUTHOR("${author}");
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("Raw IO to VME");
-MODULE_SUPPORTED_DEVICE("Any VME device");
+MODULE_DESCRIPTION("encore-generated ${driver_name} driver");
+MODULE_SUPPORTED_DEVICE("${driver_name}");
 
 /* vcector parameters, one entry per lun */
 
@@ -261,6 +263,7 @@ int vmeio_install(void)
 {
 	int i, cc;
 
+	printk(KERN_ERR PFX "%s\n", gendata);	/* ACET string */
 	if ((cc = check_module_params()) != 0)
 		return cc;
 

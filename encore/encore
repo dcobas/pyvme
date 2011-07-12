@@ -11,6 +11,7 @@ import ccdb
 import cx_Oracle
 from os.path import join
 from optparse import OptionParser
+import pwd
 
 def gen_register_struct(register_list, module_name):
     """create a C structure definition for this register list"""
@@ -172,12 +173,13 @@ def gen_regs_file(register_list, module_name):
     out.write(gen_regs(register_list, upper_name))
     out.close()
 
-def gen_driver(driver_name, filename):
+def gen_driver(driver_name, author, filename):
     """produce a driver with register data"""
 
     template = file(Templates.driver).read()
     template = string.Template(template)
-    date = datetime.datetime.now().isoformat(' ')
+    date = GenerationData.date
+    gendata = GenerationData.gendata
     driver = template.substitute(locals())
     out = open(filename, 'wb')
     out.write(driver)
@@ -188,7 +190,7 @@ def gen_makefile(driver_name, module_name, filename):
 
     template = file(Templates.makefile).read()
 
-    date = datetime.datetime.now().isoformat(' ')
+    date = GenerationData.date
     makefile = template % locals()
     out = open(filename, 'wb')
     out.write(makefile)
@@ -199,7 +201,7 @@ def gen_kbuild(driver_name, module_name, filename):
 
     template = file(Templates.kbuild).read()
 
-    date = datetime.datetime.now().isoformat(' ')
+    date = GenerationData.date
     kbuild = template % locals()
     out = open(filename, 'wb')
     out.write(kbuild)
@@ -210,7 +212,7 @@ def gen_install_script(device_name, driver_name,
 
     template = file(Templates.instprog).read()
 
-    date = datetime.datetime.now().isoformat(' ')
+    date = GenerationData.date
     out = file(output_file, 'w')
     out.write(template % locals())
     out.close()
@@ -219,7 +221,7 @@ def gen_delivery_script(driver_name, output_file):
 
     template = file(Templates.deliver).read()
 
-    date = datetime.datetime.now().isoformat(' ')
+    date = GenerationData.date
     out = file(output_file, 'w')
     out.write(template % locals())
     out.close()
@@ -315,7 +317,7 @@ def main():
 
     # driver fileset generation
     module.csv_dump(mod_csv, regs_csv)
-    gen_driver(driver_name, driver_c)
+    gen_driver(driver_name, GenerationData.name, driver_c)
     gen_register_struct_file(register_list, driver_name, regs_h, regs_c)
     gen_makefile(driver_name, module_name, makefile)
     gen_kbuild(driver_name, module_name, kbuild)
@@ -348,6 +350,19 @@ class Templates(object):
     'Module.symvers.vmebus',
     'transfer2insmod.awk',
 ]
+
+class GenerationData(object):
+    pwentry  =  pwd.getpwuid(os.getuid())
+    login    =  pwentry[0]
+    gecos    =  pwentry[4]
+    name     =  gecos.split(',')[0]
+    date     =  datetime.datetime.now().isoformat(' ')
+
+    gendata  = string.Template(
+        'static char *gendata = '
+        '"gendata:${login}|${name}|{date}"'
+        ';\n')
+    gendata = gendata.substitute(locals())
 
 if __name__ == '__main__':
 
