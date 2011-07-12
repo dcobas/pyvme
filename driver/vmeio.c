@@ -254,7 +254,7 @@ out_map2:
 	vme_release_mapping(&dev->maps[0], 1);
 out_map1:
 	return -ENODEV;
-	
+
 }
 
 int vmeio_install(void)
@@ -648,7 +648,7 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob *riob)
 
 static int raw_write(struct vmeio_device *dev, struct vmeio_riob *riob)
 {
-	struct vme_mapping *mapx = &dev->maps[riob->mapnum-1];	
+	struct vme_mapping *mapx = &dev->maps[riob->mapnum-1];
 	int dwidth = riob->data_width ? riob->data_width : mapx->data_width;
 	int byte_dwidth = dwidth/8;
 	int bsize = riob->wsize * byte_dwidth;
