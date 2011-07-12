@@ -349,6 +349,7 @@ class Templates(object):
     'vmeio.h',
     'Module.symvers.vmebus',
     'transfer2insmod.awk',
+    'libencore.c',
 ]
 
 class GenerationData(object):

@@ -1,4 +1,4 @@
-# generated automatically by encore, date 2011-07-11 10:31:44.393437
+# generated automatically by encore, date 2011-07-12 12:08:15.210834
 
 CPU=L865
 KVER=2.6.24.7-rt27
@@ -15,7 +15,6 @@ CFLAGS += -I /acc/local/$(CPU)/include/
 CFLAGS += -DCOMPILE_TIME=$(COMPILE_TIME) -g -Wall -fPIC
 
 MODLIBS = $(LIBNAME).$(CPU).a $(LIBNAME).$(CPU).so
-# MODLIBOBJS = $(LIBNAME).$(CPU).o $(DRIVER)_regs.$(CPU).o vmeio_support.$(CPU).o
 MODLIBOBJS = $(LIBNAME).$(CPU).o $(DRIVER)_regs.$(CPU).o
 ENCORELIBS = libencore.$(CPU).a
 
@@ -43,11 +42,6 @@ $(LIBNAME).$(CPU).so: $(MODLIBOBJS)
 
 lib$(DRIVER).$(CPU).so: lib$(DRIVER).$(CPU).o
 	$(CC) -shared -o $@ $^
-
-vmeio_support.$(CPU).o: vmeio_support.c
-vmeio_support.$(CPU).so: vmeio_support.$(CPU).o
-	-$(RM) $@
-	$(CC) $(CFLAGS) -o $@ -shared $^
 
 libencore.$(CPU).o: libencore.c
 libencore.$(CPU).a: libencore.$(CPU).o

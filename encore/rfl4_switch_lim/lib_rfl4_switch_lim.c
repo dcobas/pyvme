@@ -37,12 +37,12 @@ enum encore_direction {
 	ENCORE_WRITE = 1,
 };
 
-int rfl4_switch_lim_raw(int fd, int mapping, 
+int rfl4_switch_lim_raw(int fd, int mapping,
 	unsigned offset, unsigned items, unsigned data_width,
 	void *buffer, enum encore_direction write)
 {
 	struct vmeio_riob riob, *riobp = &riob;
-	
+
 	riobp->mapnum = mapping;
 	riobp->offset = offset;
 	riobp->wsize  = items;
@@ -51,7 +51,7 @@ int rfl4_switch_lim_raw(int fd, int mapping,
 
 	if (write)
 		return ioctl(fd, VMEIO_RAW_WRITE, riobp);
-	else 
+	else
 		return ioctl(fd, VMEIO_RAW_READ, riobp);
 }
 
@@ -71,21 +71,21 @@ static int reg_wnum(struct encore_reginfo *reg)
 	}
 }
 
-static int get_set_register(int fd, 
+static int get_set_register(int fd,
 	struct encore_reginfo *reg, void *buffer,
 	enum encore_direction direction)
 {
 	int data_width = reg_wnum(reg);
 
-	return rfl4_switch_lim_raw(fd, 
+	return rfl4_switch_lim_raw(fd,
 		reg->block_address_space,
 		reg->offset, reg->depth,
 		data_width, buffer, direction);
 }
 
-static int get_set_window(int fd, 
+static int get_set_window(int fd,
 	struct encore_reginfo *reg,
-	void *buffer, int from, int to, 
+	void *buffer, int from, int to,
 	enum encore_direction direction)
 {
 	int data_width = reg_wnum(reg);
@@ -97,6 +97,7 @@ static int get_set_window(int fd,
 		to - from,
 		data_width, buffer, direction);
 }
+
 
 int rfl4_switch_lim_get_control1(int fd, short *buf)
 {
@@ -1027,3 +1028,5 @@ int rfl4_switch_lim_get_memViewport_window(int fd, short buf[], int from, int to
 	struct encore_reginfo *reg = &rfl4_switch_lim_registers[memViewport];
 	return get_set_window(fd, reg, buf, from, to, ENCORE_READ);
 }
+
+

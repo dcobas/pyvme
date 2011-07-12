@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Generated automatically by encore at 2011-07-11 10:31:44.403161"
+# Generated automatically by encore at 2011-07-12 12:08:15.210834"
 echo "Installing RFL4_SWITCH_LIM driver..."
 
 INSMOD_ARGS=`awk -f transfer2insmod.awk RFL4_SWITCH_LIM /etc/transfer.ref`

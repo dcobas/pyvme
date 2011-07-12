@@ -16,12 +16,15 @@
 #include "rfl4_switch_lim_regs.c"
 #endif
 
+static char *gendata = "gendata:dcobas|Juan David Gonzalez Cobas|{date}";
+
+
 #define PFX DRIVER_NAME ": "
 
-MODULE_AUTHOR("Julian Lewis BE/CO/HT CERN");
+MODULE_AUTHOR("Juan David Gonzalez Cobas");
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("Raw IO to VME");
-MODULE_SUPPORTED_DEVICE("Any VME device");
+MODULE_DESCRIPTION("encore-generated rfl4_switch_lim driver");
+MODULE_SUPPORTED_DEVICE("rfl4_switch_lim");
 
 /* vcector parameters, one entry per lun */
 
@@ -254,13 +257,14 @@ out_map2:
 	vme_release_mapping(&dev->maps[0], 1);
 out_map1:
 	return -ENODEV;
-	
+
 }
 
 int vmeio_install(void)
 {
 	int i, cc;
 
+	printk(KERN_ERR PFX "%s\n", gendata);	/* ACET string */
 	if ((cc = check_module_params()) != 0)
 		return cc;
 
@@ -648,7 +652,7 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob *riob)
 
 static int raw_write(struct vmeio_device *dev, struct vmeio_riob *riob)
 {
-	struct vme_mapping *mapx = &dev->maps[riob->mapnum-1];	
+	struct vme_mapping *mapx = &dev->maps[riob->mapnum-1];
 	int dwidth = riob->data_width ? riob->data_width : mapx->data_width;
 	int byte_dwidth = dwidth/8;
 	int bsize = riob->wsize * byte_dwidth;

@@ -1,8 +1,8 @@
-# generated automatically by encore, date %(date)s
+# generated automatically by encore, date 2011-07-12 12:08:15.210834
 
 EXTRA_CFLAGS += -DCOMPILE_TIME=$(shell date +%s) -g -Wall \
 	'-DDRIVER_NAME=$(DRIVER_NAME)' \
 	-DENCORE_DAL \
 	-I/acc/src/dsc/drivers/vmebridge/driver
 
-obj-m := %(driver_name)s.o
+obj-m := rfl4_switch_lim.o

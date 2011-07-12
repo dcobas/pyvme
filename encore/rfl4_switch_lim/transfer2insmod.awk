@@ -26,8 +26,8 @@ BEGIN	{
 	am["CR"] = "0x2F"
 }
 
-/^#\+#/ && $6 == device_name { 
-	# decode transfer.ref line 
+/^#\+#/ && $6 == device_name {
+	# decode transfer.ref line
 	luns =  luns "," $7
 	base_address1 =  base_address1 "," "0x" $11
 	base_address2 =  base_address2 "," "0x" $16
@@ -41,7 +41,7 @@ BEGIN	{
 	level = $22
 }
 
-END	{ 
+END	{
 	if (luns)
 	    insmod_params = "lun=" substr(luns, 2)
 	if (level) {
