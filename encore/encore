@@ -47,7 +47,7 @@ def gen_register_struct_file(register_list, module_name, hname, cname):
     outc.write(c)
     outc.close()
 
-def gen_lib_module(register_list, device_name, driver_name):
+def gen_lib_module(register_list, driver_name):
     """generate declarations of module lib API"""
 
     get_proto_template = (
@@ -63,35 +63,33 @@ def gen_lib_module(register_list, device_name, driver_name):
 int %(driver_name)s_get_%(name)s(int fd, %(wordsize)s *buf)
 {
 	struct encore_reginfo *reg = &%(driver_name)s_registers[%(name)s];
-	return get_set_register(fd, reg, buf, READ);
+	return get_set_register(fd, reg, buf, ENCORE_READ);
 }
 """
     set_template = """
 int %(driver_name)s_set_%(name)s(int fd, %(wordsize)s buf)
 {
 	struct encore_reginfo *reg = &%(driver_name)s_registers[%(name)s];
-	return get_set_register(fd, reg, &buf, WRITE);
+	return get_set_register(fd, reg, &buf, ENCORE_WRITE);
 }
 """
     get_window_template = """
 int %(driver_name)s_get_%(name)s_window(int fd, %(wordsize)s buf[], int from, int to)
 {
 	struct encore_reginfo *reg = &%(driver_name)s_registers[%(name)s];
-	return get_set_window(fd, reg, buf, from, to, READ);
+	return get_set_window(fd, reg, buf, from, to, ENCORE_READ);
 }
 """
     set_window_template = """
 int %(driver_name)s_set_%(name)s_window(int fd, %(wordsize)s buf[], int from, int to)
 {
 	struct encore_reginfo *reg = &%(driver_name)s_registers[%(name)s];
-	return get_set_window(fd, reg, buf, from, to, WRITE);
+	return get_set_window(fd, reg, buf, from, to, ENCORE_WRITE);
 }
 """
 
     lib = [ ]
     h   = [ ]
-    lib.append(file(Templates.lib_module_c).read() % locals())
-    h.append(file(Templates.lib_module_h).read() % locals())
     for reg in register_list:
         reg['driver_name'] = driver_name
         if 'r' in reg['rwmode']:
@@ -109,14 +107,20 @@ int %(driver_name)s_set_%(name)s_window(int fd, %(wordsize)s buf[], int from, in
     return ''.join(h), ''.join(lib)
 
 def gen_lib_module_file(register_list, device_name, driver_name, lib_c, lib_h):
-    h, lib  = gen_lib_module(register_list, device_name, driver_name)
+
+    get_set_prototypes, get_set_routines = gen_lib_module(register_list, driver_name)
+    module_name = device_name
+    htemplate = string.Template(file(Templates.lib_module_h).read())
+    ctemplate = string.Template(file(Templates.lib_module_c).read())
+    h = htemplate.substitute(locals())
+    c = ctemplate.substitute(locals())
+
     hfile = file(lib_h, 'w')
     hfile.write(h)
     hfile.close()
     cfile = file(lib_c, 'w')
-    cfile.write(lib)
+    cfile.write(c)
     cfile.close()
-
 
 def gen_regs(register_list, module_name):
 

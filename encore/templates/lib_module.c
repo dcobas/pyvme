@@ -1,12 +1,59 @@
 #include <sys/ioctl.h>
 #include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdio.h>
 #include "vmeio.h"
-#include "%(driver_name)s_regs.h"
+#include "${driver_name}_regs.h"
+
+#define MAX_DEVNAME	256
+
+int ${driver_name}_open(int lun)
+{
+	char devname[MAX_DEVNAME];
+	static char devnamefmt[] = "/dev/${driver_name}.%d";
+	int cc;
+
+	cc = snprintf(devname, MAX_DEVNAME, devnamefmt, lun);
+	if (cc < 0 || cc >= MAX_DEVNAME)
+		return -EINVAL;
+	return open(devname, O_RDWR);
+}
+
+int ${driver_name}_close(int fd)
+{
+	return close(fd);
+}
+
+int ${driver_name}_wait(int fd)
+{
+	struct vmeio_read_buf_s rb;
+
+	return read(fd, &rb, sizeof(rb));
+}
 
 enum encore_direction {
-	READ,
-	WRITE,
+	ENCORE_READ = 0,
+	ENCORE_WRITE = 1,
 };
+
+int ${driver_name}_raw(int fd, int mapping,
+	unsigned offset, unsigned items, unsigned data_width,
+	void *buffer, enum encore_direction write)
+{
+	struct vmeio_riob riob, *riobp = &riob;
+
+	riobp->mapnum = mapping;
+	riobp->offset = offset;
+	riobp->wsize  = items;
+	riobp->buffer = buffer;
+	riobp->data_width = data_width;
+
+	if (write)
+		return ioctl(fd, VMEIO_RAW_WRITE, riobp);
+	else
+		return ioctl(fd, VMEIO_RAW_READ, riobp);
+}
 
 static int reg_wnum(struct encore_reginfo *reg)
 {
@@ -24,47 +71,32 @@ static int reg_wnum(struct encore_reginfo *reg)
 	}
 }
 
-static int get_set_register(int fd, 
+static int get_set_register(int fd,
 	struct encore_reginfo *reg, void *buffer,
 	enum encore_direction direction)
 {
-	struct vmeio_riob riob, *riobp = &riob;
-	int wordsize = reg_wnum(reg);
+	int data_width = reg_wnum(reg);
 
-	riobp->mapnum = reg->block_address_space;
-	riobp->offset = reg->offset;
-	riobp->wsize  = reg->depth;
-	riobp->buffer = buffer;
-	riobp->data_width = wordsize;
-
-	if (direction == WRITE)
-		return ioctl(fd, VMEIO_RAW_WRITE, riobp);
-	else if (direction == READ)
-		return ioctl(fd, VMEIO_RAW_READ, riobp);
-	else
-		return -EINVAL;
+	return ${driver_name}_raw(fd,
+		reg->block_address_space,
+		reg->offset, reg->depth,
+		data_width, buffer, direction);
 }
 
-static int get_set_window(int fd, 
+static int get_set_window(int fd,
 	struct encore_reginfo *reg,
-	void *buffer, int from, int to, 
+	void *buffer, int from, int to,
 	enum encore_direction direction)
 {
-	struct vmeio_riob riob, *riobp = &riob;
-	int wordsize = reg_wnum(reg);
-	int bytesize = wordsize/8;
+	int data_width = reg_wnum(reg);
+	int bytesize = data_width/8;
 
-	riobp->mapnum = reg->block_address_space;
-	riobp->offset = reg->offset + from * bytesize;
-	riobp->wsize  = to-from;
-	riobp->buffer = buffer;
-	riobp->data_width = wordsize;
-
-	if (direction == WRITE)
-		return ioctl(fd, VMEIO_RAW_WRITE, riobp);
-	else if (direction == READ)
-		return ioctl(fd, VMEIO_RAW_READ, riobp);
-	else
-		return -EINVAL;
+	return ${driver_name}_raw(fd,
+		reg->block_address_space,
+		reg->offset + from*bytesize,
+		to - from,
+		data_width, buffer, direction);
 }
+
+${get_set_routines}
 
