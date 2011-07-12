@@ -1,6 +1,6 @@
-/* lib_%(driver_name)s API */
-#ifndef _LIB_${module_name}_H
-#define _LIB_${module_name}_H
+/* lib_${driver_name} API */
+#ifndef _LIB_${device_name}_H
+#define _LIB_${device_name}_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,6 +13,7 @@ int ${driver_name}_close(int fd);
 int ${driver_name}_raw(int fd, int mapping,
 	unsigned offset, unsigned items, unsigned data_width,
 	void *buffer, int write);
+int ${driver_name}_wait(int fd);
 
 /* accessor prototypes */
 ${get_set_prototypes}
@@ -20,4 +21,4 @@ ${get_set_prototypes}
 #ifdef __cplusplus
 }
 #endif
-#endif /* _%(device_name)s_REGS_H */
+#endif /* _${device_name}_REGS_H */

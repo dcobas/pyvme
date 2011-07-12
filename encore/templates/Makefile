@@ -16,11 +16,12 @@ CFLAGS += -DCOMPILE_TIME=$(COMPILE_TIME) -g -Wall -fPIC
 
 MODLIBS = $(LIBNAME).$(CPU).a $(LIBNAME).$(CPU).so
 MODLIBOBJS = $(LIBNAME).$(CPU).o $(DRIVER)_regs.$(CPU).o
+ENCORELIBS = libencore.$(CPU).a
 
 SRCS=$(LIBNAME).c $(LIBNAME).h
 
 all: modules libs
-libs: $(MODLIBS) $(VMELIBS)
+libs: $(MODLIBS) $(ENCORELIBS)
 modules:
 	cp Module.symvers.vmebus Module.symvers
 	make -C $(KERNELSRC) M=`pwd` KVER=$(KVER) 'DRIVER_NAME=$(DRIVER_NAME)' modules
@@ -41,3 +42,10 @@ $(LIBNAME).$(CPU).so: $(MODLIBOBJS)
 
 lib$(DRIVER).$(CPU).so: lib$(DRIVER).$(CPU).o
 	$(CC) -shared -o $@ $^
+
+libencore.$(CPU).o: libencore.c
+libencore.$(CPU).a: libencore.$(CPU).o
+	$(AR) $(ARFLAGS) $@ $^
+libencore.$(CPU).so: libencore.$(CPU).o
+	-$(RM) $@
+	$(CC) $(CFLAGS) -o $@ -shared $^
