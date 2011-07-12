@@ -1,0 +1,64 @@
+Control_1,rw,0,1,0,0,0,short,0,"Control 1, 8 bit Read-Modify-Write",16
+VMEIRQStatID,rw,0,1,0,2,2,short,0,VME IRQ Vector Register,16
+VMEIRQLevel,rw,0,1,0,4,4,short,0,VME IRQ Level Register,16
+Status,r,0,1,0,6,6,short,0,Status register,16
+Ident,rc,0,1,0,8,8,short,0,Card ID = 0x0008,16
+Control_2,rw,0,1,0,10,10,short,0,"Control 2, 8 bit Read-Modify-Write",16
+Control_3,rw,0,1,0,12,12,short,0,"Control 3, 8 bit Read-Modify-Write",16
+TriggSel,rw,0,1,0,14,14,short,0,Trigger Select,16
+TriggSel_2,rw,0,1,0,16,16,short,0,Trigger Select 2,16
+RFLowerBound,rw,0,1,0,18,18,long,0,RF Frequency Lower Bound,16
+RFMeasure_2,r,0,1,0,22,22,short,0,Measure of the RF Frequency,16
+RFMeasure_1,r,0,1,0,24,24,short,0,,16
+RFMeasure_0,r,0,1,0,26,26,short,0,,16
+Faults,r,0,1,0,28,28,short,0,,16
+TDC0,rw,0,1,0,30,30,short,0,Time to Digital Converter,16
+TDC1,rw,0,1,0,32,32,short,0,,16
+TDC2,rw,0,1,0,34,34,short,0,,16
+TDC3,rw,0,1,0,36,36,short,0,,16
+TDC4,rw,0,1,0,38,38,short,0,,16
+TDC5,rw,0,1,0,40,40,short,0,,16
+TDC6,rw,0,1,0,42,42,short,0,,16
+TDC7,rw,0,1,0,44,44,short,0,,16
+TDC8,rw,0,1,0,46,46,short,0,TDC Status 1,16
+TDC9,rw,0,1,0,48,48,short,0,TDC Status 2,16
+TDC10,rw,0,1,0,50,50,short,0,,16
+TDC11,w,0,1,0,52,52,short,0,,16
+PDCSyncFP,rw,0,1,0,54,54,short,0,Programmable Delay Chip for  Front Panel Sync,16
+PDCOut,rw,0,1,0,56,56,short,0,Programmable Delay Chip for Main Out Phase,16
+B2_Off,rw,0,1,0,58,58,short,0,Bucket Selector (offline),16
+B1_Off,rw,0,1,0,60,60,short,0,,16
+B0_Off,rw,0,1,0,62,62,short,0,,16
+HT2_Off,rw,0,1,0,64,64,short,0,Harmonic Number * Turns (offline),16
+HT1_Off,rw,0,1,0,66,66,short,0,,16
+HT0_Off,rw,0,1,0,68,68,short,0,,16
+W1_Off,rw,0,1,0,70,70,short,0,Window + Win Control (offline),16
+W0_Off,rw,0,1,0,72,72,short,0,,16
+B2_On,r,0,1,0,74,74,short,0,Bucket Selector (online),16
+B1_On,r,0,1,0,76,76,short,0,,16
+B0_On,r,0,1,0,78,78,short,0,,16
+HT2_On,r,0,1,0,80,80,short,0,Harmonic Number * Turns (online),16
+HT1_On,r,0,1,0,82,82,short,0,,16
+HT0_On,r,0,1,0,84,84,short,0,,16
+W1_On,r,0,1,0,86,86,short,0,Window + Win Control (online),16
+W0_On,r,0,1,0,88,88,short,0,,16
+Control_4,rw,0,1,0,90,90,short,0,"Control 4, 8 bit Read-Modify-Write",16
+SyncDetectWindow,rw,0,1,0,92,92,long,0,Sync Detector Window Counter,16
+Status_2,r,0,1,0,96,96,short,0,Status register 2. Test Only.,16
+Control_5,rw,0,1,0,98,98,short,0,"Control 5, 8 bit Read-Modify-Write",16
+PDCSyncBP,rw,0,1,0,100,100,short,0,Programmable Delay Chip for Backplane Sync,16
+RFUpperBound,rw,0,1,0,102,102,long,0,RF Frequency Upper Bound,16
+SysControl,rw,0,1,0,224,224,short,0,"System Control, 8 bit Read-Modify-Write",16
+FirmwareVersion,r,0,1,0,240,240,long,0,hex (mutad),16
+MemMapVersion,r,0,1,0,252,252,long,0,hex (mutad),16
+RFMeasBuf,r,0,1,0,8192,8192,short,4096,RF Frequency Measurement (32 LSB),16
+VECTOR,rw,1,1,0,2,2,short,0,VME IRQ Vector Register,16
+LEVEL,rw,1,1,0,4,4,short,0,VME IRQ Level Register,16
+RF_Measure,r,1,1,0,22,22,short,3,Array with RF Frequency Measure,16
+TDC_control,w,1,1,0,30,30,short,8,TDC Control registers,16
+B_Offline,rw,1,1,0,58,58,short,3,Array with Bucket Selector Values (Offline),16
+HT_Offline,rw,1,1,0,64,64,short,3,Array with Harmonic * Turns Values (Offline),16
+W_Offline,rw,1,1,0,70,70,short,2,Array with Window Values (Offline),16
+B_Online,r,1,1,0,74,74,short,3,Array with Bucket Selector Values (Online),16
+HT_Online,r,1,1,0,80,80,short,3,Array with Harmonic * Turns Values (Online),16
+W_Online,r,1,1,0,86,86,short,2,Array with Window Values (Online),16

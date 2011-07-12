@@ -1,0 +1,51 @@
+name,rwmode,block,block_address_space,block_offset,register_offset,offset,wordsize,depth,description,data_width
+hw_stat,r,0,1,0,0,0,long,1,Hardware version,32
+count_enb,r,0,1,0,0x4,0x4,long,1,Counter Enable,32
+c1_conf,rw,0,1,0,0x08,0x08,long,1,Configuration channel,32
+c1_delay1,rw,0,1,0,0x0c,0x0c,long,1,Delay counter 1,32
+c1_delay2,rw,0,1,0,0x10,0x10,long,1,Delay counter 2,32
+out1_count,r,0,1,0,0x14,0x14,long,1,Output counter,32
+c1_value1,r,0,1,0,0x18,0x18,long,1,Current value counter 1,32
+c1_value2,r,0,1,0,0x1c,0x1c,long,1,Current value counter 2,32
+c2_conf,rw,0,1,0,0x20,0x20,long,1,Configuration channel,32
+c2_delay1,rw,0,1,0,0x24,0x24,long,1,Delay counter 1,32
+c2_delay2,rw,0,1,0,0x28,0x28,long,1,Delay counter 2,32
+out2_count,r,0,1,0,0x2c,0x2c,long,1,Output counter,32
+c2_value1,r,0,1,0,0x30,0x30,long,1,Current value counter 1,32
+c2_value2,r,0,1,0,0x34,0x34,long,1,Current value counter 2,32
+c3_conf,rw,0,1,0,0x38,0x38,long,1,Configuration channel,32
+c3_delay1,rw,0,1,0,0x3c,0x3c,long,1,Delay counter 1,32
+c3_delay2,rw,0,1,0,0x40,0x40,long,1,Delay counter 2,32
+out3_count,r,0,1,0,0x44,0x44,long,1,Output counter,32
+c3_value1,r,0,1,0,0x48,0x48,long,1,Current value counter 1,32
+c3_value2,r,0,1,0,0x4c,0x4c,long,1,Current value counter 2,32
+c4_conf,rw,0,1,0,0x50,0x50,long,1,Configuration channel,32
+c4_delay1,rw,0,1,0,0x54,0x54,long,1,Delay counter 1,32
+c4_delay2,rw,0,1,0,0x58,0x58,long,1,Delay counter 2,32
+out4_count,r,0,1,0,0x5c,0x5c,long,1,Output counter,32
+c4_value1,r,0,1,0,0x60,0x60,long,1,Current value counter 1,32
+c4_value2,r,0,1,0,0x64,0x64,long,1,Current value counter 2,32
+c5_conf,rw,0,1,0,0x68,0x68,long,1,Configuration channel,32
+c5_delay1,rw,0,1,0,0x6c,0x6c,long,1,Delay counter 1,32
+c5_delay2,rw,0,1,0,0x70,0x70,long,1,Delay counter 2,32
+out5_count,r,0,1,0,0x74,0x74,long,1,Output counter,32
+c5_value1,r,0,1,0,0x78,0x78,long,1,Current value counter 1,32
+c5_value2,r,0,1,0,0x7c,0x7c,long,1,Current value counter 2,32
+c6_conf,rw,0,1,0,0x80,0x80,long,1,Configuration channel,32
+c6_delay1,rw,0,1,0,0x84,0x84,long,1,Delay counter 1,32
+c6_delay2,rw,0,1,0,0x88,0x88,long,1,Delay counter 2,32
+out6_count,r,0,1,0,0x8c,0x8c,long,1,Output counter,32
+c6_value1,r,0,1,0,0x90,0x90,long,1,Current value counter 1,32
+c6_value2,r,0,1,0,0x94,0x94,long,1,Current value counter 2,32
+c7_conf,rw,0,1,0,0x98,0x98,long,1,Configuration channel,32
+c7_delay1,rw,0,1,0,0x9c,0x9c,long,1,Delay counter 1,32
+c7_delay2,rw,0,1,0,0xa0,0xa0,long,1,Delay counter 2,32
+out7_count,r,0,1,0,0xa4,0xa4,long,1,Output counter,32
+c7_value1,r,0,1,0,0xa8,0xa8,long,1,Current value counter 1,32
+c7_value2,r,0,1,0,0xac,0xac,long,1,Current value counter 2,32
+c8_conf,rw,0,1,0,0xb0,0xb0,long,1,Configuration channel,32
+c8_delay1,rw,0,1,0,0xb4,0xb4,long,1,Delay counter 1,32
+c8_delay2,rw,0,1,0,0xb8,0xb8,long,1,Delay counter 2,32
+out8_count,r,0,1,0,0xbc,0xbc,long,1,Output counter,32
+c8_value1,r,0,1,0,0xc0,0xc0,long,1,Current value counter 1,32
+c8_value2,r,0,1,0,0xc4,0xc4,long,1,Current value counter 2,32

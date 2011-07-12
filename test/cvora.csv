@@ -1,0 +1,7 @@
+source,rw,0,1,0,0,0,long,0,"control register",32
+readaddr,rw,0,1,0,0,0,long,0,"memory pointer register",32
+mode,rw,0,1,0,0,0,long,0,"mode register",32
+channel,rw,0,1,0,0,0,long,0,"channel register",32
+freq,r,0,1,0,0,0,long,0,"frequency meter register",32
+dac,rw,0,1,0,0,0,long,0,"DAC outputs register",32
+extmem,r,0,1,0,0,0,long,65520,"external memory",32
