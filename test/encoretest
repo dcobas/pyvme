@@ -482,10 +482,6 @@ class TestProgram(cmd.Cmd):
         pass
     def do_display(self, arg):
         pass
-    def do_read(self, arg):
-        pass
-    def do_write(self, arg):
-        pass
     def do_dma_read(self, arg):
         pass
     def do_dma_write(self, arg):
