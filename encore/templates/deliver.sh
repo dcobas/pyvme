@@ -10,7 +10,6 @@ KVER=2.6.24.7-rt27
 
 # get arguments
 while [ $# != 0 ] ; do
-    echo $1
     case $1 in
 	ACC=*)  ACC=`echo $1 | sed 's!ACC=!!'` ;;
 	CPU=*)  CPU=`echo $1 | sed 's!CPU=!!'`  ; ;;
@@ -26,7 +25,7 @@ if [ x$ACC == x"" -o x$CPU == x"" -o KVER == x"" ] ; then
 	exit
 fi
 
-echo "delivering to ACC=$ACC CPU=$CPU KVER=$KVER"
+echo "# delivering to ACC=$ACC CPU=$CPU KVER=$KVER"
 
 # delivery paths
 DRIVER_PATH=/acc/dsc/$ACC/$CPU/$KVER/$DRIVER/
@@ -38,6 +37,7 @@ INSTPROGS="install_$DRIVER.sh transfer2insmod.awk"
 DRIVER_OBJECT="$DRIVER.ko"
 # SOLIBS="$DRIVER.$CPU.so"
 
+echo mkdir -p $DRIVER_PATH $LIB_PATH
 echo dsc_install $INSTPROGS $DRIVER_OBJECT $SOLIBS $DRIVER_PATH
 echo dsc_install $LIBS $LIB_PATH
 
