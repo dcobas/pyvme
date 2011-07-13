@@ -9,8 +9,11 @@ CPU=L865
 KVER=2.6.24.7-rt27
 
 # get arguments
-while [ $# != 0 ] ; do
-    case $1 in
+set -- $(getopt n $*)
+for o ; do
+    case "$o" in
+       -n)	dryrun=yes ;;
+	--)	;;
 	ACC=*)  ACC=`echo $1 | sed 's!ACC=!!'` ;;
 	CPU=*)  CPU=`echo $1 | sed 's!CPU=!!'`  ; ;;
 	KVER=*) KVER=`echo $1 | sed 's!KVER=!!'` ;;
@@ -37,7 +40,12 @@ INSTPROGS="install_$DRIVER.sh transfer2insmod.awk"
 DRIVER_OBJECT="$DRIVER.ko"
 # SOLIBS="$DRIVER.$CPU.so"
 
-echo mkdir -p $DRIVER_PATH $LIB_PATH
-echo dsc_install $INSTPROGS $DRIVER_OBJECT $SOLIBS $DRIVER_PATH
-echo dsc_install $LIBS $LIB_PATH
+if [ x"$dryrun" = x"yes" ]; then
+	CMD=echo
+else
+	CMD=sh
+fi
+${CMD} mkdir -p $DRIVER_PATH $LIB_PATH
+${CMD} dsc_install $INSTPROGS $DRIVER_OBJECT $SOLIBS $DRIVER_PATH
+${CMD} dsc_install $LIBS $LIB_PATH
 
