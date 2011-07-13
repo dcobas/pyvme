@@ -335,6 +335,7 @@ def main():
 # verbatim files and templates
 class Templates(object):
     program      = os.path.dirname(sys.argv[0])
+    version      = os.path.join(program, '.version')
     dir          = os.path.join(program, 'templates')
     driver       = os.path.join(dir, 'vmeio.c')
     makefile     = os.path.join(dir, 'Makefile')
@@ -358,10 +359,11 @@ class GenerationData(object):
     gecos    =  pwentry[4]
     name     =  gecos.split(',')[0]
     date     =  datetime.datetime.now().isoformat(' ')
+    version  =  file(Templates.version).readline().strip()
 
     gendata  = string.Template(
-        'static char *gendata = '
-        '"gendata:${login}|${name}|${date}"'
+        'static char *gendata = "encore_gendata:"'
+        '"${login}|${name}|${date}|${version}"'
         ';\n')
     gendata = gendata.substitute(locals())
 
