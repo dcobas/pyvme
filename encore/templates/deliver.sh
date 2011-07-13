@@ -36,7 +36,7 @@ LIB_PATH=/acc/local/$CPU/dg/encore/$DRIVER/
 LIBS="lib_$DRIVER.$CPU.a lib_$DRIVER.h ${DRIVER}_regs.h vmeio.h"
 INSTPROGS="install_$DRIVER.sh transfer2insmod.awk"
 DRIVER_OBJECT="$DRIVER.ko"
-SOLIBS="$DRIVER.$CPU.so"
+# SOLIBS="$DRIVER.$CPU.so"
 
 echo dsc_install $INSTPROGS $DRIVER_OBJECT $SOLIBS $DRIVER_PATH
 echo dsc_install $LIBS $LIB_PATH
