@@ -361,7 +361,7 @@ class GenerationData(object):
 
     gendata  = string.Template(
         'static char *gendata = '
-        '"gendata:${login}|${name}|{date}"'
+        '"gendata:${login}|${name}|${date}"'
         ';\n')
     gendata = gendata.substitute(locals())
 
