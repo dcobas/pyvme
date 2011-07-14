@@ -84,41 +84,122 @@ int encore_reg_id(encore_handle h, char *regname)
 	return -1;
 }
 
-int encore_read(encore_handle h, int reg_id, unsigned int *value)
+int encore_raw_read(encore_handle h, int map,
+	unsigned offset, int items, int data_width, void *buffer)
 {
 	struct vmeio_riob riob;
-	struct encore_reginfo *reg;
 
-	if (reg_id < 0 || reg_id >= h->nregs)
-		return -1;
-
-	reg = &h->reginfo[reg_id];
-	riob.mapnum	= reg->block_address_space;
-	riob.offset	= reg->offset;
-	riob.wsize	= 0;
-	riob.buffer	= value;
-	riob.data_width	= reg->data_width;
+	riob.mapnum = map;
+	riob.offset = offset;
+	riob.wsize  = items;
+	riob.data_width = data_width;
+	riob.buffer = buffer;
 	return ioctl(h->fd, VMEIO_RAW_READ, &riob);
 }
 
-int encore_write(encore_handle h, int reg_id, int value)
+int encore_raw_write(encore_handle h, int map,
+	unsigned offset, int items, int data_width, void *buffer)
 {
 	struct vmeio_riob riob;
+
+	riob.mapnum = map;
+	riob.offset = offset;
+	riob.wsize  = items;
+	riob.data_width = data_width;
+	riob.buffer = buffer;
+	return ioctl(h->fd, VMEIO_RAW_WRITE, &riob);
+}
+
+int encore_read_window(encore_handle h, int reg_id, int from, int to,
+					void *buffer)
+{
 	struct encore_reginfo *reg;
 
 	if (reg_id < 0 || reg_id >= h->nregs)
 		return -1;
-
 	reg = &h->reginfo[reg_id];
-	riob.mapnum	= reg->block_address_space;
-	riob.offset	= reg->offset;
-	riob.wsize	= 0;
-	riob.buffer	= &value;
-	riob.data_width	= reg->data_width;
-	return ioctl(h->fd, VMEIO_RAW_WRITE, &riob);
+	return encore_raw_read(h, reg->block_address_space,
+		reg->offset, to-from, reg->data_width, buffer);
 }
 
-int encore_dma(encore_handle h, struct vmeio_dma_op *dmaop)
+int encore_write_window(encore_handle h, int reg_id, int from, int to,
+					void *buffer)
 {
-	return 0;
+	struct encore_reginfo *reg;
+
+	if (reg_id < 0 || reg_id >= h->nregs)
+		return -1;
+	reg = &h->reginfo[reg_id];
+	return encore_raw_write(h, reg->block_address_space,
+		reg->offset, to-from, reg->data_width, buffer);
+}
+
+int encore_read(encore_handle h, int reg_id, unsigned int *value)
+{
+	return encore_read_window(h, reg_id, 0, 1, value);
+}
+
+int encore_write(encore_handle h, int reg_id, unsigned int value)
+{
+	return encore_write_window(h, reg_id, 0, 1, &value);
+}
+
+#define VME_DMA_DEV	"/dev/vme_dma"
+
+int encore_dma_read(encore_handle h, unsigned long address,
+	unsigned am, unsigned data_width, unsigned long size,
+	void *buffer)
+{
+	struct vme_dma dma_desc;
+	int fd, ret = 0;
+
+	if ((fd = open(VME_DMA_DEV, O_RDWR)) < 0)
+		return -1;
+	dma_desc.dir = VME_DMA_FROM_DEVICE;
+
+	dma_desc.src.data_width = data_width;
+	dma_desc.src.am = am;
+	dma_desc.src.addru = 0;
+	dma_desc.src.addrl = address;
+	dma_desc.dst.addru = 0;
+	dma_desc.dst.addrl = (unsigned int) (buffer);
+	dma_desc.length = size;
+
+	dma_desc.ctrl.pci_block_size = VME_DMA_BSIZE_4096;
+	dma_desc.ctrl.pci_backoff_time = VME_DMA_BACKOFF_0;
+	dma_desc.ctrl.vme_block_size = VME_DMA_BSIZE_4096;
+	dma_desc.ctrl.vme_backoff_time = VME_DMA_BACKOFF_0;
+
+	ret = ioctl(fd, VME_IOCTL_START_DMA, &dma_desc);
+	close(fd);
+	return ret;
+}
+
+int encore_dma_write(encore_handle h, unsigned long address,
+	unsigned am, unsigned data_width, unsigned long size,
+	void *buffer)
+{
+	struct vme_dma dma_desc;
+	int fd, ret = 0;
+
+	if ((fd = open(VME_DMA_DEV, O_RDWR)) < 0)
+		return -1;
+	dma_desc.dir = VME_DMA_TO_DEVICE;
+
+	dma_desc.dst.data_width = data_width;
+	dma_desc.dst.am = am;
+	dma_desc.dst.addru = 0;
+	dma_desc.dst.addrl = address;
+	dma_desc.src.addru = 0;
+	dma_desc.src.addrl = (unsigned int) (buffer);
+	dma_desc.length = size;
+
+	dma_desc.ctrl.pci_block_size = VME_DMA_BSIZE_4096;
+	dma_desc.ctrl.pci_backoff_time = VME_DMA_BACKOFF_0;
+	dma_desc.ctrl.vme_block_size = VME_DMA_BSIZE_4096;
+	dma_desc.ctrl.vme_backoff_time = VME_DMA_BACKOFF_0;
+
+	ret = ioctl(fd, VME_IOCTL_START_DMA, &dma_desc);
+	close(fd);
+	return ret;
 }
