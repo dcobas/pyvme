@@ -7,15 +7,9 @@
 #include <errno.h>
 
 #include "vmeio.h"
+#include "libencore.h"
 
 #define MAX_FILENAME	256
-
-typedef struct encore_handle {
-	int			fd;
-	int			nregs;
-	struct encore_reginfo	*reginfo;
-} *encore_handle;
-
 static char devtemplate[] = "/dev/%s.%d";
 
 encore_handle encore_open(char *devname, int lun)
