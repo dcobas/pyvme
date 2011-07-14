@@ -1,6 +1,6 @@
 /* lib_${driver_name} API */
-#ifndef _LIB_${device_name}_H
-#define _LIB_${device_name}_H
+#ifndef _LIB${device_name}_H
+#define _LIB${device_name}_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,4 +21,4 @@ ${get_set_prototypes}
 #ifdef __cplusplus
 }
 #endif
-#endif /* _${device_name}_REGS_H */
+#endif /* _LIB${device_name}_H */

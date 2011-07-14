@@ -272,7 +272,7 @@ def main():
     # prepare output paths
     driver_name   = module_name.lower().replace('-', '_')
     output_dir    = driver_name
-    libname       = 'lib_%s' % driver_name
+    libname       = 'lib%s' % driver_name
     makefile      = join(output_dir, 'Makefile')
     kbuild        = join(output_dir, 'Kbuild')
     driver_c      = join(output_dir, driver_name + '.c')
@@ -351,6 +351,7 @@ class Templates(object):
     'Module.symvers.vmebus',
     'transfer2insmod.awk',
     'libencore.c',
+    'libencore.h',
 ]
 
 class GenerationData(object):
