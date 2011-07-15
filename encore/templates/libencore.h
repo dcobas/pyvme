@@ -7,6 +7,7 @@ extern "C" {
 
 typedef struct encore_handle {
 	int			fd;
+	int			dmafd;
 	int			nregs;
 	struct encore_reginfo	*reginfo;
 } *encore_handle;
@@ -18,22 +19,29 @@ int encore_get_timeout(encore_handle h, int *timeout);
 int encore_wait(encore_handle h);
 
 int encore_reg_id(encore_handle h, char *regname);
-int encore_read(encore_handle h, int reg_id, unsigned int *value);
-int encore_write(encore_handle h, int reg_id, unsigned int value);
-int encore_read_window(encore_handle h, int reg_id, int from, int to, 
+int encore_get_register(encore_handle h, int reg_id, unsigned int *value);
+int encore_set_register(encore_handle h, int reg_id, unsigned int value);
+int encore_get_window(encore_handle h, int reg_id, int from, int to,
 					void *buffer);
-int encore_write_window(encore_handle h, int reg_id, int from, int to, 
+int encore_set_window(encore_handle h, int reg_id, int from, int to,
 					void *buffer);
-int encore_raw_read(encore_handle h, int map, 
+int encore_raw_read(encore_handle h, int map,
 	unsigned offset, int size, int data_width, void *dst);
-int encore_raw_write(encore_handle h, int map, 
+int encore_raw_write(encore_handle h, int map,
 	unsigned offset, int size, int data_width, void *src);
+
 int encore_dma_read(encore_handle h, unsigned long address,
 	unsigned am, unsigned data_width, unsigned long size,
 	void *dst);
 int encore_dma_write(encore_handle h, unsigned long address,
 	unsigned am, unsigned data_width, unsigned long size,
 	void *src);
+int encore_dma_get_register(encore_handle h, int reg_id, unsigned int *value);
+int encore_dma_set_register(encore_handle h, int reg_id, unsigned int value);
+int encore_dma_get_window(encore_handle h, int reg_id, int from, int to,
+					void *buffer);
+int encore_dma_set_window(encore_handle h, int reg_id, int from, int to,
+					void *buffer);
 
 #ifdef __cplusplus
 }

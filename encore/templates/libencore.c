@@ -9,6 +9,7 @@
 #include "vmeio.h"
 #include "libencore.h"
 
+#define VME_DMA_DEV	"/dev/vme_dma"
 #define MAX_FILENAME	256
 static char devtemplate[] = "/dev/%s.%d";
 
@@ -20,41 +21,55 @@ encore_handle encore_open(char *devname, int lun)
 	struct encore_handle	*ret;
 
 	if ((ret = malloc(sizeof(*ret))) == NULL) {
-		errno = -ENOMEM;
+		errno = ENOMEM;
 		return NULL;
 	}
 	cc = snprintf(tmp, MAX_FILENAME, devtemplate, devname, lun);
 	if (cc < 0 || cc >= MAX_FILENAME) {
-		errno = -EINVAL;
-		return NULL;
+		errno = EINVAL;
+		goto fail;
 	}
-	ret->fd = open(tmp, O_RDWR);
+	if ((ret->fd = open(tmp, O_RDWR)) < 0) {
+		errno = EINVAL;
+		goto fail;
+	}
 
-	if ((cc = ioctl(ret->fd, VMEIO_GET_NREGS, &ret->nregs)) < 0) {
-		errno = -ENODEV;
-		return NULL;
+	if (ioctl(ret->fd, VMEIO_GET_NREGS, &ret->nregs) < 0) {
+		errno = ENODEV;
+		goto fail2;
 	}
 
 	ret->reginfo = malloc(nregs*sizeof(struct encore_reginfo));
 	if (ret->reginfo == NULL) {
-		errno = -ENOMEM;
-		return NULL;
+		errno = ENOMEM;
+		goto fail2;
 	}
-	if ((cc = ioctl(ret->fd, VMEIO_GET_REGINFO, &ret->reginfo)) < 0) {
-		errno = -ENODEV;
-		return NULL;
+	if (ioctl(ret->fd, VMEIO_GET_REGINFO, &ret->reginfo) < 0) {
+		errno = ENODEV;
+		goto fail3;
+	}
+	if ((ret->dmafd = open(VME_DMA_DEV, O_RDWR)) < 0) {
+		errno = ENODEV;
+		goto fail3;
 	}
 
 	return ret;
+
+fail3:	free(ret->reginfo);
+fail2:	close(ret->fd);
+fail:	free(ret);
+	return NULL;
 }
 
 int encore_close(encore_handle h)
 {
-	int fd = h->fd;
+	int ret = 0;
 
+	if (close(h->dmafd) < 0 || close(h->fd) < 0)
+		ret = -1;
 	free(h->reginfo);
 	free(h);
-	return close(fd);
+	return ret;
 }
 
 int encore_set_timeout(encore_handle h, int timeout)
@@ -144,17 +159,12 @@ int encore_write(encore_handle h, int reg_id, unsigned int value)
 	return encore_write_window(h, reg_id, 0, 1, &value);
 }
 
-#define VME_DMA_DEV	"/dev/vme_dma"
-
 int encore_dma_read(encore_handle h, unsigned long address,
 	unsigned am, unsigned data_width, unsigned long size,
 	void *buffer)
 {
 	struct vme_dma dma_desc;
-	int fd, ret = 0;
 
-	if ((fd = open(VME_DMA_DEV, O_RDWR)) < 0)
-		return -1;
 	dma_desc.dir = VME_DMA_FROM_DEVICE;
 
 	dma_desc.src.data_width = data_width;
@@ -170,9 +180,7 @@ int encore_dma_read(encore_handle h, unsigned long address,
 	dma_desc.ctrl.vme_block_size = VME_DMA_BSIZE_4096;
 	dma_desc.ctrl.vme_backoff_time = VME_DMA_BACKOFF_0;
 
-	ret = ioctl(fd, VME_IOCTL_START_DMA, &dma_desc);
-	close(fd);
-	return ret;
+	return ioctl(h->dmafd, VME_IOCTL_START_DMA, &dma_desc);
 }
 
 int encore_dma_write(encore_handle h, unsigned long address,
@@ -180,10 +188,7 @@ int encore_dma_write(encore_handle h, unsigned long address,
 	void *buffer)
 {
 	struct vme_dma dma_desc;
-	int fd, ret = 0;
 
-	if ((fd = open(VME_DMA_DEV, O_RDWR)) < 0)
-		return -1;
 	dma_desc.dir = VME_DMA_TO_DEVICE;
 
 	dma_desc.dst.data_width = data_width;
@@ -199,7 +204,5 @@ int encore_dma_write(encore_handle h, unsigned long address,
 	dma_desc.ctrl.vme_block_size = VME_DMA_BSIZE_4096;
 	dma_desc.ctrl.vme_backoff_time = VME_DMA_BACKOFF_0;
 
-	ret = ioctl(fd, VME_IOCTL_START_DMA, &dma_desc);
-	close(fd);
-	return ret;
+	return ioctl(h->dmafd, VME_IOCTL_START_DMA, &dma_desc);
 }
