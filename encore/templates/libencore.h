@@ -26,9 +26,9 @@ int encore_get_window(encore_handle h, int reg_id, int from, int to,
 int encore_set_window(encore_handle h, int reg_id, int from, int to,
 					void *buffer);
 int encore_raw_read(encore_handle h, int map,
-	unsigned offset, int size, int data_width, void *dst);
+	unsigned offset, int items, int data_width, void *dst);
 int encore_raw_write(encore_handle h, int map,
-	unsigned offset, int size, int data_width, void *src);
+	unsigned offset, int items, int data_width, void *src);
 
 int encore_dma_read(encore_handle h, unsigned long address,
 	unsigned am, unsigned data_width, unsigned long size,
@@ -39,9 +39,9 @@ int encore_dma_write(encore_handle h, unsigned long address,
 int encore_dma_get_register(encore_handle h, int reg_id, unsigned int *value);
 int encore_dma_set_register(encore_handle h, int reg_id, unsigned int value);
 int encore_dma_get_window(encore_handle h, int reg_id, int from, int to,
-					void *buffer);
+					void *dst);
 int encore_dma_set_window(encore_handle h, int reg_id, int from, int to,
-					void *buffer);
+					void *src);
 
 #ifdef __cplusplus
 }

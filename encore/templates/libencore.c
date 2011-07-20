@@ -100,7 +100,7 @@ int encore_reg_id(encore_handle h, char *regname)
 }
 
 int encore_raw_read(encore_handle h, int map,
-	unsigned offset, int items, int data_width, void *buffer)
+	unsigned offset, int items, int data_width, void *dst)
 {
 	struct vmeio_riob riob;
 
@@ -108,12 +108,12 @@ int encore_raw_read(encore_handle h, int map,
 	riob.offset = offset;
 	riob.wsize  = items;
 	riob.data_width = data_width;
-	riob.buffer = buffer;
+	riob.buffer = dst;
 	return ioctl(h->fd, VMEIO_RAW_READ, &riob);
 }
 
 int encore_raw_write(encore_handle h, int map,
-	unsigned offset, int items, int data_width, void *buffer)
+	unsigned offset, int items, int data_width, void *src)
 {
 	struct vmeio_riob riob;
 
@@ -121,12 +121,12 @@ int encore_raw_write(encore_handle h, int map,
 	riob.offset = offset;
 	riob.wsize  = items;
 	riob.data_width = data_width;
-	riob.buffer = buffer;
+	riob.buffer = src;
 	return ioctl(h->fd, VMEIO_RAW_WRITE, &riob);
 }
 
-int encore_read_window(encore_handle h, int reg_id, int from, int to,
-					void *buffer)
+int encore_get_window(encore_handle h, int reg_id, int from, int to,
+					void *dst)
 {
 	struct encore_reginfo *reg;
 
@@ -134,11 +134,11 @@ int encore_read_window(encore_handle h, int reg_id, int from, int to,
 		return -1;
 	reg = &h->reginfo[reg_id];
 	return encore_raw_read(h, reg->block_address_space,
-		reg->offset, to-from, reg->data_width, buffer);
+		reg->offset, to-from, reg->data_width, dst);
 }
 
-int encore_write_window(encore_handle h, int reg_id, int from, int to,
-					void *buffer)
+int encore_set_window(encore_handle h, int reg_id, int from, int to,
+					void *src)
 {
 	struct encore_reginfo *reg;
 
@@ -146,22 +146,22 @@ int encore_write_window(encore_handle h, int reg_id, int from, int to,
 		return -1;
 	reg = &h->reginfo[reg_id];
 	return encore_raw_write(h, reg->block_address_space,
-		reg->offset, to-from, reg->data_width, buffer);
+		reg->offset, to-from, reg->data_width, src);
 }
 
-int encore_read(encore_handle h, int reg_id, unsigned int *value)
+int encore_get_register(encore_handle h, int reg_id, unsigned int *value)
 {
-	return encore_read_window(h, reg_id, 0, 1, value);
+	return encore_get_window(h, reg_id, 0, 1, value);
 }
 
-int encore_write(encore_handle h, int reg_id, unsigned int value)
+int encore_set_register(encore_handle h, int reg_id, unsigned int value)
 {
-	return encore_write_window(h, reg_id, 0, 1, &value);
+	return encore_set_window(h, reg_id, 0, 1, &value);
 }
 
 int encore_dma_read(encore_handle h, unsigned long address,
 	unsigned am, unsigned data_width, unsigned long size,
-	void *buffer)
+	void *dst)
 {
 	struct vme_dma dma_desc;
 
@@ -172,7 +172,7 @@ int encore_dma_read(encore_handle h, unsigned long address,
 	dma_desc.src.addru = 0;
 	dma_desc.src.addrl = address;
 	dma_desc.dst.addru = 0;
-	dma_desc.dst.addrl = (unsigned int) (buffer);
+	dma_desc.dst.addrl = (unsigned int) dst;
 	dma_desc.length = size;
 
 	dma_desc.ctrl.pci_block_size = VME_DMA_BSIZE_4096;
@@ -185,7 +185,7 @@ int encore_dma_read(encore_handle h, unsigned long address,
 
 int encore_dma_write(encore_handle h, unsigned long address,
 	unsigned am, unsigned data_width, unsigned long size,
-	void *buffer)
+	void *src)
 {
 	struct vme_dma dma_desc;
 
@@ -196,7 +196,7 @@ int encore_dma_write(encore_handle h, unsigned long address,
 	dma_desc.dst.addru = 0;
 	dma_desc.dst.addrl = address;
 	dma_desc.src.addru = 0;
-	dma_desc.src.addrl = (unsigned int) (buffer);
+	dma_desc.src.addrl = (unsigned int) src;
 	dma_desc.length = size;
 
 	dma_desc.ctrl.pci_block_size = VME_DMA_BSIZE_4096;
@@ -205,4 +205,27 @@ int encore_dma_write(encore_handle h, unsigned long address,
 	dma_desc.ctrl.vme_backoff_time = VME_DMA_BACKOFF_0;
 
 	return ioctl(h->dmafd, VME_IOCTL_START_DMA, &dma_desc);
+}
+
+int encore_dma_get_register(encore_handle h, int reg_id, unsigned int *value)
+{
+	return -1;
+}
+
+int encore_dma_set_register(encore_handle h,
+			int reg_id, unsigned int value)
+{
+	return -1;
+}
+
+int encore_dma_get_window(encore_handle h, int reg_id, int from, int to,
+					void *dst)
+{
+	return -1;
+}
+
+int encore_dma_set_window(encore_handle h, int reg_id, int from, int to,
+					void *src)
+{
+	return -1;
 }
