@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-typedef struct encore_handle {
+typedef struct {
 	int			fd;
 	int			dmafd;
 	int			nregs;

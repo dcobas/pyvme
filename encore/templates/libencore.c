@@ -18,7 +18,7 @@ encore_handle encore_open(char *devname, int lun)
 	char	tmp[MAX_FILENAME];
 	int	nregs;
 	int	cc;
-	struct encore_handle	*ret;
+	encore_handle	ret;
 
 	if ((ret = malloc(sizeof(*ret))) == NULL) {
 		errno = ENOMEM;
