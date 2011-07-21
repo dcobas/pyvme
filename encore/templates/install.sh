@@ -20,7 +20,7 @@ if [ -z "$MAJOR" ]; then
 	exit 1
 fi
 
-MINORS=`awk '/^#\+#/ && $6 == "%(device_name)s" { printf("%%s", $7) }' %(transfer)s`
+MINORS=`awk '/^#\+#/ && $6 == "%(device_name)s" { printf("%%s ", $7) }' %(transfer)s`
 echo "creating device nodes for driver %(driver_name)s, major $MAJOR, minors $MINORS"
 for MINOR in $MINORS; do
     rm -f /dev/%(driver_name)s.$MINOR
