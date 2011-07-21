@@ -16,7 +16,6 @@ static char devtemplate[] = "/dev/%s.%d";
 encore_handle encore_open(char *devname, int lun)
 {
 	char	tmp[MAX_FILENAME];
-	int	nregs;
 	int	cc;
 	encore_handle	ret;
 
@@ -39,7 +38,7 @@ encore_handle encore_open(char *devname, int lun)
 		goto fail2;
 	}
 
-	ret->reginfo = malloc(nregs*sizeof(struct encore_reginfo));
+	ret->reginfo = malloc(ret->nregs*sizeof(struct encore_reginfo));
 	if (ret->reginfo == NULL) {
 		errno = ENOMEM;
 		goto fail2;
