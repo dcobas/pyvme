@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+#include "vmeio.h"
+
 typedef struct {
 	int			fd;
 	int			dmafd;
