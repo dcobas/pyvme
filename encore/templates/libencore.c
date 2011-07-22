@@ -128,24 +128,28 @@ int encore_get_window(encore_handle h, int reg_id, int from, int to,
 					void *dst)
 {
 	struct encore_reginfo *reg;
+	unsigned offset;
 
 	if (reg_id < 0 || reg_id >= h->nregs)
 		return -1;
 	reg = &h->reginfo[reg_id];
+	offset = reg->offset + to * (reg->data_width/8);
 	return encore_raw_read(h, reg->block_address_space,
-		reg->offset, to-from, reg->data_width, dst);
+		offset, to-from, reg->data_width, dst);
 }
 
 int encore_set_window(encore_handle h, int reg_id, int from, int to,
 					void *src)
 {
 	struct encore_reginfo *reg;
+	unsigned offset;
 
 	if (reg_id < 0 || reg_id >= h->nregs)
 		return -1;
 	reg = &h->reginfo[reg_id];
+	offset = reg->offset + to * (reg->data_width/8);
 	return encore_raw_write(h, reg->block_address_space,
-		reg->offset, to-from, reg->data_width, src);
+		offset, to-from, reg->data_width, src);
 }
 
 int encore_get_register(encore_handle h, int reg_id, unsigned int *value)
