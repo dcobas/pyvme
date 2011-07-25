@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <errno.h>
 
 #include "vmeio.h"
@@ -12,6 +13,20 @@
 #define VME_DMA_DEV	"/dev/vme_dma"
 #define MAX_FILENAME	256
 static char devtemplate[] = "/dev/%s.%d";
+
+static void lowercase(char *s, int n)
+{
+	int i;
+
+	for (i = 0; i < n; i++) {
+		int c = s[i];
+
+		if (c == 0)
+			break;
+		else if (isalpha(c))
+			s[i] = tolower(c);
+	}
+}
 
 encore_handle encore_open(char *devname, int lun)
 {
@@ -28,6 +43,7 @@ encore_handle encore_open(char *devname, int lun)
 		errno = EINVAL;
 		goto fail;
 	}
+	lowercase(tmp, MAX_FILENAME);
 	if ((ret->fd = open(tmp, O_RDWR)) < 0) {
 		errno = EINVAL;
 		goto fail;
