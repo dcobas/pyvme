@@ -149,7 +149,7 @@ int encore_get_window(encore_handle h, int reg_id, int from, int to,
 	if (reg_id < 0 || reg_id >= h->nregs)
 		return -1;
 	reg = &h->reginfo[reg_id];
-	offset = reg->offset + to * (reg->data_width/8);
+	offset = reg->offset + from * (reg->data_width/8);
 	return encore_raw_read(h, reg->block_address_space,
 		offset, to-from, reg->data_width, dst);
 }
@@ -163,7 +163,7 @@ int encore_set_window(encore_handle h, int reg_id, int from, int to,
 	if (reg_id < 0 || reg_id >= h->nregs)
 		return -1;
 	reg = &h->reginfo[reg_id];
-	offset = reg->offset + to * (reg->data_width/8);
+	offset = reg->offset + from * (reg->data_width/8);
 	return encore_raw_write(h, reg->block_address_space,
 		offset, to-from, reg->data_width, src);
 }
