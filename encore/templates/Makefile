@@ -32,12 +32,9 @@ clean:
 $(LIBNAME).$(CPU).o: $(SRCS)
 
 $(LIBNAME).$(CPU).a: $(MODLIBOBJS)
-	-$(RM) $@
 	$(AR) $(ARFLAGS) $@ $^
-	$(RANLIB) $@
 
 $(LIBNAME).$(CPU).so: $(MODLIBOBJS)
-	-$(RM) $@
 	$(CC) $(CFLAGS) -o $@ -shared $^
 
 lib$(DRIVER).$(CPU).so: lib$(DRIVER).$(CPU).o
@@ -47,5 +44,4 @@ libencore.$(CPU).o: libencore.c libencore.h
 libencore.$(CPU).a: libencore.$(CPU).o
 	$(AR) $(ARFLAGS) $@ $^
 libencore.$(CPU).so: libencore.$(CPU).o
-	-$(RM) $@
 	$(CC) $(CFLAGS) -o $@ -shared $^
