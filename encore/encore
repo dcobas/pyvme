@@ -359,12 +359,13 @@ class GenerationData(object):
     login    =  pwentry[0]
     gecos    =  pwentry[4]
     name     =  gecos.split(',')[0]
-    date     =  datetime.datetime.now().isoformat(' ')
+    date     =  datetime.datetime.now()
+    date     =  date.strftime('%y.%m.%d@%H:%M:%S')
     version  =  file(Templates.version).readline().strip()
 
     gendata  = string.Template(
-        'static char *gendata = "encore_gendata:"'
-        '"${login}|${name}|${date}|${version}"'
+        'static char *gendata = "driver.encore|"'
+        '"gen-by=${login}|gen-date=${date}|encore-version=${version}"'
         ';\n')
     gendata = gendata.substitute(locals())
 
