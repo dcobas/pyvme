@@ -61,7 +61,7 @@ class vme_dma(Structure):
 	("ctrl",		vme_dma_ctrl),
     ]
 
-libvmebus = CDLL("./libvmebus.so")
+libvmebus = CDLL("libvmebus.so")
 vme_map   = libvmebus.vme_map
 vme_map.restype = c_void_p
 vme_unmap = libvmebus.vme_unmap
