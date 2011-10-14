@@ -182,6 +182,7 @@ def read_register(fd, reg):
     riob.offset = reg.offset
     riob.buffer = addressof(buffer)
     riob.wsize = depth
+    riob.data_width = data_width
 
     cc = libc.ioctl(fd, VMEIO_RAW_READ, byref(riob))
     if cc != 0:
@@ -209,6 +210,7 @@ def write_register(fd, reg, data):
     riob.offset = reg.offset
     riob.buffer = addressof(buffer)
     riob.wsize = depth
+    riob.data_width = data_width
 
     cc = libc.ioctl(fd, VMEIO_RAW_WRITE, byref(riob))
     if cc != 0:
@@ -261,7 +263,7 @@ class TestProgram(cmd.Cmd):
         byte_width = data_width / 8
         buf = create_string_buffer(byte_width*items+1)
         s = vmeio_riob(mapnum=mapnum,
-            offset=offset, wsize=items, buffer=addressof(buf), data_width=0)
+            offset=offset, wsize=items, buffer=addressof(buf), data_width=data_width)
         if libc.ioctl(self.fd, VMEIO_RAW_READ, byref(s)) < 0:
             print 'VMEIO_RAW_READ failed!'
             return
