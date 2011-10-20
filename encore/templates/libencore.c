@@ -14,6 +14,20 @@
 #define MAX_FILENAME	256
 static char devtemplate[] = "/dev/%s.%d";
 
+static int wltodw(char *wordlength)
+{
+	switch (wordlength[0]) {
+	case 'c':
+		return 1;
+	case 's':
+		return 2;
+	case 'l':
+		return 4;
+	default:
+		return 0;
+	}
+}
+
 static void lowercase(char *s, int n)
 {
 	int i;
@@ -145,13 +159,16 @@ int encore_get_window(encore_handle h, int reg_id, int from, int to,
 {
 	struct encore_reginfo *reg;
 	unsigned offset;
+	int bytes;
 
 	if (reg_id < 0 || reg_id >= h->nregs)
 		return -1;
 	reg = &h->reginfo[reg_id];
-	offset = reg->offset + from * (reg->data_width/8);
+	if ((bytes = wltodw(reg->wordsize)) == 0)
+		bytes = (reg->data_width/8);
+	offset = reg->offset + from * bytes;
 	return encore_raw_read(h, reg->block_address_space,
-		offset, to-from, reg->data_width, dst);
+		offset, to-from, 8*bytes, dst);
 }
 
 int encore_set_window(encore_handle h, int reg_id, int from, int to,
@@ -159,13 +176,16 @@ int encore_set_window(encore_handle h, int reg_id, int from, int to,
 {
 	struct encore_reginfo *reg;
 	unsigned offset;
+	int bytes;
 
 	if (reg_id < 0 || reg_id >= h->nregs)
 		return -1;
 	reg = &h->reginfo[reg_id];
-	offset = reg->offset + from * (reg->data_width/8);
+	if ((bytes = wltodw(reg->wordsize)) == 0)
+		bytes = (reg->data_width/8);
+	offset = reg->offset + from * bytes;
 	return encore_raw_write(h, reg->block_address_space,
-		offset, to-from, reg->data_width, src);
+		offset, to-from, 8*bytes, src);
 }
 
 int encore_get_register(encore_handle h, int reg_id, unsigned int *value)
