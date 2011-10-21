@@ -53,7 +53,7 @@ struct vmeio_get_mapping {
  * Parameter for raw IO
  */
 
-#define vmeioMAX_BUF 32768
+#define vmeioMAX_BUF 0x100000
 
 struct vmeio_riob {
    int mapnum;   /** Mapping number 1..2 */
