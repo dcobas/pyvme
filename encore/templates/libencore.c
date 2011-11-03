@@ -214,6 +214,8 @@ int encore_dma_read(encore_handle h, unsigned long address,
 {
 	struct vme_dma dma_desc;
 
+	memset(&dma_desc, 0, sizeof(dma_desc));
+
 	dma_desc.dir = VME_DMA_FROM_DEVICE;
 
 	dma_desc.src.data_width = data_width;
@@ -238,6 +240,8 @@ int encore_dma_write(encore_handle h, unsigned long address,
 {
 	struct vme_dma dma_desc;
 
+	memset(&dma_desc, 0, sizeof(dma_desc));
+
 	dma_desc.dir = VME_DMA_TO_DEVICE;
 
 	dma_desc.dst.data_width = data_width;
@@ -258,23 +262,55 @@ int encore_dma_write(encore_handle h, unsigned long address,
 
 int encore_dma_get_register(encore_handle h, int reg_id, unsigned int *value)
 {
-	return -1;
+	return encore_dma_get_window(h, reg_id, 0, 1, value);
 }
 
 int encore_dma_set_register(encore_handle h,
 			int reg_id, unsigned int value)
 {
-	return -1;
+	return encore_dma_set_window(h, reg_id, 0, 1, &value);
 }
 
 int encore_dma_get_window(encore_handle h, int reg_id, int from, int to,
 					void *dst)
 {
-	return -1;
+	struct encore_reginfo *reg;
+	int mapno;
+	unsigned am;
+	unsigned address;
+	int bytespw;
+
+	if (reg_id < 0 || reg_id >= h->nregs)
+		return -1;
+	reg     = &h->reginfo[reg_id];
+	mapno   = reg->block_address_space - 1;
+	am      = h->mapinfo[mapno].am;
+	address = h->mapinfo[mapno].vme_addrl + reg->offset;
+	bytespw = wltodw(reg->wordsize);
+	if (bytespw == 0)
+		bytespw = (reg->data_width/8);
+	address += from * bytespw;
+	return encore_dma_read(h, address, am, 8*bytespw, bytespw * (to-from), dst);
 }
 
 int encore_dma_set_window(encore_handle h, int reg_id, int from, int to,
 					void *src)
 {
-	return -1;
+	struct encore_reginfo *reg;
+	int mapno;
+	unsigned am;
+	unsigned address;
+	int bytespw;
+
+	if (reg_id < 0 || reg_id >= h->nregs)
+		return -1;
+	reg     = &h->reginfo[reg_id];
+	mapno   = reg->block_address_space - 1;
+	am      = h->mapinfo[mapno].am;
+	address = h->mapinfo[mapno].vme_addrl + reg->offset;
+	bytespw = wltodw(reg->wordsize);
+	if (bytespw == 0)
+		bytespw = (reg->data_width/8);
+	address += from * bytespw;
+	return encore_dma_write(h, address, am, 8*bytespw, bytespw * (to-from), src);
 }
