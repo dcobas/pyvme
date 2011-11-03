@@ -6,6 +6,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <stdint.h>
+#include <netinet/in.h>
 
 #include "vmeio.h"
 #include "libencore.h"
@@ -213,6 +215,7 @@ int encore_dma_read(encore_handle h, unsigned long address,
 	void *dst)
 {
 	struct vme_dma dma_desc;
+	int ret;
 
 	memset(&dma_desc, 0, sizeof(dma_desc));
 
@@ -231,7 +234,27 @@ int encore_dma_read(encore_handle h, unsigned long address,
 	dma_desc.ctrl.vme_block_size = VME_DMA_BSIZE_4096;
 	dma_desc.ctrl.vme_backoff_time = VME_DMA_BACKOFF_0;
 
-	return ioctl(h->dmafd, VME_IOCTL_START_DMA, &dma_desc);
+	ret = ioctl(h->dmafd, VME_IOCTL_START_DMA, &dma_desc);
+
+	if (data_width == 16) {
+		int i;
+		uint16_t *ptr = dst;
+
+		for (i = 0; i < size/2; i++) {
+			*ptr = htons(*ptr);
+			ptr++;
+		}
+	} else if (data_width == 32) {
+		int i;
+		uint32_t *ptr = dst;
+
+		for (i = 0; i < size/4; i++) {
+			*ptr = htonl(*ptr);
+			ptr++;
+		}
+	}
+
+	return ret;
 }
 
 int encore_dma_write(encore_handle h, unsigned long address,
@@ -239,6 +262,7 @@ int encore_dma_write(encore_handle h, unsigned long address,
 	void *src)
 {
 	struct vme_dma dma_desc;
+	int ret;
 
 	memset(&dma_desc, 0, sizeof(dma_desc));
 
@@ -257,7 +281,26 @@ int encore_dma_write(encore_handle h, unsigned long address,
 	dma_desc.ctrl.vme_block_size = VME_DMA_BSIZE_4096;
 	dma_desc.ctrl.vme_backoff_time = VME_DMA_BACKOFF_0;
 
-	return ioctl(h->dmafd, VME_IOCTL_START_DMA, &dma_desc);
+	if (data_width == 16) {
+		int i;
+		uint16_t *ptr = src;
+
+		for (i = 0; i < size/2; i++) {
+			*ptr = htons(*ptr);
+			ptr++;
+		}
+	} else if (data_width == 32) {
+		int i;
+		uint32_t *ptr = src;
+
+		for (i = 0; i < size/4; i++) {
+			*ptr = htonl(*ptr);
+			ptr++;
+		}
+	}
+
+	ret = ioctl(h->dmafd, VME_IOCTL_START_DMA, &dma_desc);
+	return ret;
 }
 
 int encore_dma_get_register(encore_handle h, int reg_id, unsigned int *value)
