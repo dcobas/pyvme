@@ -12,6 +12,11 @@ typedef struct {
 	int			dmafd;
 	int			nregs;
 	struct encore_reginfo	*reginfo;
+	struct vme_mapping	mapinfo[2];
+	int			unused1;
+	int			unused2;
+	int			unused3;
+	int			unused4;
 } *encore_handle;
 
 encore_handle encore_open(char *devname, int lun);

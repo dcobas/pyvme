@@ -46,7 +46,9 @@ encore_handle encore_open(char *devname, int lun)
 {
 	char	tmp[MAX_FILENAME];
 	int	cc;
+	int	i;
 	encore_handle	ret;
+	struct vmeio_get_mapping arg, *argp = &arg;
 
 	if ((ret = malloc(sizeof(*ret))) == NULL) {
 		errno = ENOMEM;
@@ -76,6 +78,14 @@ encore_handle encore_open(char *devname, int lun)
 	if (ioctl(ret->fd, VMEIO_GET_REGINFO, &ret->reginfo) < 0) {
 		errno = ENODEV;
 		goto fail3;
+	}
+	for (i = 0; i < 2; i++) {
+		argp->mapnum = i + 1;
+		if (ioctl(ret->fd, VMEIO_GET_MAPPING, argp) < 0) {
+			errno = ENODEV;
+			goto fail3;
+		}
+		memcpy(&ret->mapinfo[i], &argp->map, sizeof(argp->map));
 	}
 	if ((ret->dmafd = open(VME_DMA_DEV, O_RDWR)) < 0) {
 		errno = ENODEV;
