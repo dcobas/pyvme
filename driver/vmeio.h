@@ -114,10 +114,10 @@ typedef enum {
    vmeioSET_DEVICE,    /** Very dangerous IOCTL, not for users */
    vmeioREAD_DMA,      /** Direct interface to DMA */
    vmeioWRITE_DMA,     /** Direct interface to DMA */
-   vmeioGET_MAPPING,   /** Obtain mapping properties */
 
    /* encore only */
    vmeioGET_NREGS,     /** Obtain number or registers */
+   vmeioGET_MAPPING,   /** Obtain mapping properties */
    vmeioGET_REGINFO,   /** Obtain register properties */
 
    vmeioLAST           /** For range checking (LAST - FIRST) */
@@ -143,8 +143,8 @@ typedef enum {
 #define  VMEIO_RAW_WRITE_DMA  _IOWR(MAGIC,  vmeioRAW_WRITE_DMA,  struct  vmeio_riob)
 #define  VMEIO_READ_DMA       _IOW(MAGIC,   vmeioREAD_DMA,       struct	 vmeio_dma_op)
 #define  VMEIO_WRITE_DMA      _IOW(MAGIC,   vmeioWRITE_DMA,      struct  vmeio_dma_op)
-#define  VMEIO_GET_MAPPING    _IOWR(MAGIC,  vmeioGET_MAPPING,    struct  vme_mapping)
-#define  VMEIO_GET_NREGS      _IOR(MAGIC,   vmeioGET_MAPPING,    int)
+#define  VMEIO_GET_MAPPING    _IOWR(MAGIC,  vmeioGET_MAPPING,    struct  vmeio_get_mapping)
+#define  VMEIO_GET_NREGS      _IOR(MAGIC,   vmeioGET_NREGS,      int)
 #define  VMEIO_GET_REGINFO    _IOW(MAGIC,   vmeioGET_REGINFO,    void *)
 
 #endif
