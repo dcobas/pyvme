@@ -37,9 +37,6 @@ $(LIBNAME).$(CPU).a: $(MODLIBOBJS)
 $(LIBNAME).$(CPU).so: $(MODLIBOBJS)
 	$(CC) $(CFLAGS) -o $@ -shared $^
 
-lib$(DRIVER).$(CPU).so: lib$(DRIVER).$(CPU).o
-	$(CC) -shared -o $@ $^
-
 libencore.$(CPU).o: libencore.c libencore.h
 libencore.$(CPU).a: libencore.$(CPU).o
 	$(AR) $(ARFLAGS) $@ $^
