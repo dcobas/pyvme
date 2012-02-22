@@ -152,4 +152,7 @@ typedef enum {
 #define  VMEIO_GET_NREGS      _IOR(MAGIC,   vmeioGET_NREGS,      int)
 #define  VMEIO_GET_REGINFO    _IOW(MAGIC,   vmeioGET_REGINFO,    void *)
 
+/* deprecated ioctl */
+#define  VMEIO_GET_MAPPING2   _IOWR(MAGIC,  vmeioGET_NREGS,      struct  vme_mapping)
+
 #endif
