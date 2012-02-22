@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+#include <sys/ioctl.h>
 #include "vmeio.h"
 
 typedef struct {

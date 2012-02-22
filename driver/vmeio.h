@@ -13,6 +13,11 @@
 #define _VMEIO_H
 
 #include <vmebus.h>
+#ifdef __KERNEL__
+#include <linux/types.h>
+#else
+#include <sys/ioctl.h>
+#endif
 
 #define DEBUG 0
 #define TIMEOUT 1000
