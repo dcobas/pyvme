@@ -83,7 +83,8 @@ encore_handle encore_open(char *devname, int lun)
 	}
 	for (i = 0; i < 2; i++) {
 		argp->mapnum = i + 1;
-		if (ioctl(ret->fd, VMEIO_GET_MAPPING, argp) < 0) {
+		if (ioctl(ret->fd, VMEIO_GET_MAPPING, argp) < 0 &&
+		    ioctl(ret->fd, VMEIO_GET_MAPPING2, argp) < 0) {
 			errno = ENODEV;
 			goto fail3;
 		}
