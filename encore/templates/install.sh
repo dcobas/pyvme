@@ -41,5 +41,5 @@ MINORS=`awk '/^#\+#/ && $6 == "'"$DEVICE_NAME"'" { printf("%%s ", $7) }' $TRANSF
 $OUTPUT "creating device nodes for driver $DRIVER_NAME, major $MAJOR, minors $MINORS"
 for MINOR in $MINORS; do
     sh -c "$RUN rm -f /dev/$DRIVER_NAME.$MINOR"
-    sh -c "$RUN mknod /dev/$DRIVER_NAME.$MINOR c $MAJOR $MINOR"
+    sh -c "$RUN mknod -m 0666 /dev/$DRIVER_NAME.$MINOR c $MAJOR $MINOR"
 done
