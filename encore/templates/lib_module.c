@@ -76,6 +76,10 @@ static int get_set_register(int fd,
 	enum encore_direction direction)
 {
 	int data_width = reg_wnum(reg);
+	int depth = 1;
+
+	if (reg->depth > 0)
+		depth = reg->depth;
 
 	return ${driver_name}_raw(fd,
 		reg->block_address_space,
@@ -90,6 +94,18 @@ static int get_set_window(int fd,
 {
 	int data_width = reg_wnum(reg);
 	int bytesize = data_width/8;
+	int depth = 1;
+
+	if (reg->depth > 0)
+		depth = reg->depth;
+
+	/* parameter validation */
+	if (from < 0 || from >= depth ||
+	    to < 0   || to > depth || to - from < 1 ||
+	    data_width == 0) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	return ${driver_name}_raw(fd,
 		reg->block_address_space,
