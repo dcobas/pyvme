@@ -3,6 +3,7 @@
 DEVICE_NAME=%(device_name)s
 TRANSFER=%(transfer)s
 DRIVER_NAME=%(driver_name)s
+INIT_SCRIPT=reg_init.sh
 
 # Generated automatically by encore at %(date)s"
 
@@ -43,3 +44,8 @@ for MINOR in $MINORS; do
     sh -c "$RUN rm -f /dev/$DRIVER_NAME.$MINOR"
     sh -c "$RUN mknod -m 0666 /dev/$DRIVER_NAME.$MINOR c $MAJOR $MINOR"
 done
+
+if [ -x $INIT_SCRIPT ] ; then
+	$OUTPUT "initializing interrupt registers"
+	sh -c "$RUN sh $INIT_SCRIPT $DEVICE_NAME $TRANSFER"
+fi

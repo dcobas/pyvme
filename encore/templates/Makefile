@@ -20,8 +20,8 @@ ENCORELIBS = libencore.$(CPU).a
 
 SRCS=$(LIBNAME).c $(LIBNAME).h
 
-all: modules libs rfinit
-rfinit:
+all: modules libs %(rfinit)s
+rfinit: init.$(CPU)
 libs: $(MODLIBS) $(ENCORELIBS)
 modules:
 	cp Module.symvers.vmebus Module.symvers

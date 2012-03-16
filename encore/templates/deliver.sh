@@ -46,13 +46,17 @@ LIB_PATH=/acc/local/$CPU/dg/encore/$DRIVER/
 # deliverable items
 LIBS="lib$DRIVER.$CPU.a lib$DRIVER.h ${DRIVER}_regs.h vmeio.h"
 INSTPROGS="install_$DRIVER.sh transfer2insmod.awk"
+EXTRA_INSTPROGS=""
 DRIVER_OBJECT="$DRIVER.ko"
 # SOLIBS="$DRIVER.$CPU.so"
+if [ -f "reg_init.sh" ] ; then
+    EXTRA_INSTPROGS="reg_init.sh init.$CPU transfer2init.awk"
+fi
 
 ${CMD} mkdir -p $DRIVER_PATH $LIB_PATH
-${CMD} dsc_install $INSTPROGS $DRIVER_OBJECT $SOLIBS $DRIVER_PATH
+${CMD} dsc_install $INSTPROGS $EXTRA_INSTPROGS $DRIVER_OBJECT $SOLIBS $DRIVER_PATH
 ${CMD} dsc_install $LIBS $LIB_PATH
-for i in $INSTPROGS; do
+for i in $INSTPROGS $EXTRA_INSTPROGS; do
     ${CMD} chmod 755 $DRIVER_PATH/$i
 done
 

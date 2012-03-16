@@ -191,7 +191,7 @@ def gen_driver(driver_name, author, filename):
     out.write(driver)
     out.close()
 
-def gen_makefile(driver_name, module_name, filename):
+def gen_makefile(driver_name, module_name, filename, rfinit=''):
     """produce a Makefile for the library"""
 
     template = file(Templates.makefile).read()
@@ -270,6 +270,9 @@ def main():
     parser.add_option("--stdint",
                       action="store_true", dest="stdint", default=False,
                       help="use explicit stdint types (uint*_t) instead of char/short/long")
+    parser.add_option("--rf",
+                      action="store_true", dest="rf", default=False,
+                      help="initialize VECTOR and LEVEL registers as per RF convention")
     (options, args) = parser.parse_args(sys.argv)
 
     # only positional parameter, module name
@@ -315,6 +318,11 @@ def main():
         print 'could not make output dir ' + output_dir
         sys.exit(1)
 
+    # generate rf-specific inits
+    rfinit = ''
+    if options.rf:
+        rfinit = 'rfinit'
+
     # copy verbatim files and locate templates
     # cwd = os.path.dirname(sys.argv[0])
     for f in Templates.verbatim:
@@ -323,12 +331,17 @@ def main():
         if f == 'vmeio.c':
             to = os.path.join(output_dir, driver_name + '.c')
         os.system('cp "%s" "%s"' % (from_, to))
+    if options.rf:
+        for f in Templates.rf_verbatim:
+            from_ = os.path.join(Templates.dir, f)
+            to    = os.path.join(output_dir, f)
+            os.system('cp "%s" "%s"' % (from_, to))
 
     # driver fileset generation
     module.csv_dump(mod_csv, regs_csv)
     gen_driver(driver_name, GenerationData.name, driver_c)
     gen_register_struct_file(register_list, driver_name, regs_h, regs_c)
-    gen_makefile(driver_name, module_name, makefile)
+    gen_makefile(driver_name, module_name, makefile, rfinit)
     gen_kbuild(driver_name, module_name, kbuild)
     gen_install_script(module_name, driver_name, install_sh)
     gen_delivery_script(driver_name, deliver_sh)
@@ -361,7 +374,12 @@ class Templates(object):
     'transfer2insmod.awk',
     'libencore.c',
     'libencore.h',
-]
+    ]
+    rf_verbatim = [
+        'init.c',
+        'reg_init.sh',
+        'transfer2init.awk',
+    ]
 
 class GenerationData(object):
     pwentry  =  pwd.getpwuid(os.getuid())
