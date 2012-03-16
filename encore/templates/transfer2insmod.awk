@@ -45,8 +45,8 @@ END	{
 	if (luns)
 	    insmod_params = "lun=" substr(luns, 2)
 	if (level) {
-	    # insmod_params = insmod_params " vector=" substr(vectors, 2)
-	    # insmod_params = insmod_params " level=" level
+	    insmod_params = insmod_params " vector=" substr(vectors, 2)
+	    insmod_params = insmod_params " level=" level
 	}
 	if (am1) {
 	    insmod_params = insmod_params " am1=" am1
