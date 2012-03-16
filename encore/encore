@@ -48,41 +48,41 @@ def gen_register_struct_file(register_list, module_name, hname, cname):
     outc.write(c)
     outc.close()
 
-def gen_lib_module(register_list, driver_name):
+def gen_lib_module(register_list, driver_name, compat64=False):
     """generate declarations of module lib API"""
 
     get_proto_template = (
-        'int %(driver_name)s_get_%(name)s(int fd, %(wordsize)s *buf);\n' )
+        'int %(driver_name)s_get_%(name)s(int fd, %(ws)s *buf);\n' )
     set_proto_template = (
-		'int %(driver_name)s_set_%(name)s(int fd, %(wordsize)s buf);\n' )
+		'int %(driver_name)s_set_%(name)s(int fd, %(ws)s buf);\n' )
     get_window_proto_template = (
-		'int %(driver_name)s_get_%(name)s_window(int fd, %(wordsize)s buf[], int from, int to);\n' )
+		'int %(driver_name)s_get_%(name)s_window(int fd, %(ws)s buf[], int from, int to);\n' )
     set_window_proto_template = (
-		'int %(driver_name)s_set_%(name)s_window(int fd, %(wordsize)s buf[], int from, int to);\n' )
+		'int %(driver_name)s_set_%(name)s_window(int fd, %(ws)s buf[], int from, int to);\n' )
 
     get_template = """
-int %(driver_name)s_get_%(name)s(int fd, %(wordsize)s *buf)
+int %(driver_name)s_get_%(name)s(int fd, %(ws)s *buf)
 {
 	struct encore_reginfo *reg = &%(driver_name)s_registers[%(name)s];
 	return get_set_register(fd, reg, buf, ENCORE_READ);
 }
 """
     set_template = """
-int %(driver_name)s_set_%(name)s(int fd, %(wordsize)s buf)
+int %(driver_name)s_set_%(name)s(int fd, %(ws)s buf)
 {
 	struct encore_reginfo *reg = &%(driver_name)s_registers[%(name)s];
 	return get_set_register(fd, reg, &buf, ENCORE_WRITE);
 }
 """
     get_window_template = """
-int %(driver_name)s_get_%(name)s_window(int fd, %(wordsize)s buf[], int from, int to)
+int %(driver_name)s_get_%(name)s_window(int fd, %(ws)s buf[], int from, int to)
 {
 	struct encore_reginfo *reg = &%(driver_name)s_registers[%(name)s];
 	return get_set_window(fd, reg, buf, from, to, ENCORE_READ);
 }
 """
     set_window_template = """
-int %(driver_name)s_set_%(name)s_window(int fd, %(wordsize)s buf[], int from, int to)
+int %(driver_name)s_set_%(name)s_window(int fd, %(ws)s buf[], int from, int to)
 {
 	struct encore_reginfo *reg = &%(driver_name)s_registers[%(name)s];
 	return get_set_window(fd, reg, buf, from, to, ENCORE_WRITE);
@@ -91,8 +91,14 @@ int %(driver_name)s_set_%(name)s_window(int fd, %(wordsize)s buf[], int from, in
 
     lib = [ ]
     h   = [ ]
+    ws = { 'char' : 'char', 'short' : 'short', 'long' : 'long' }
+    if compat64:
+        ws = { 'char'  : 'uint8_t',
+               'short' : 'uint16_t',
+               'long'  : 'uint32_t', }
     for reg in register_list:
         reg['driver_name'] = driver_name
+        reg['ws'] = ws[reg['wordsize']]
         if 'r' in reg['rwmode']:
             lib.append(get_template % reg)
             h.append(get_proto_template % reg)
@@ -107,9 +113,9 @@ int %(driver_name)s_set_%(name)s_window(int fd, %(wordsize)s buf[], int from, in
                 h.append(set_window_proto_template % reg)
     return ''.join(h), ''.join(lib)
 
-def gen_lib_module_file(register_list, device_name, driver_name, lib_c, lib_h):
+def gen_lib_module_file(register_list, device_name, driver_name, lib_c, lib_h, compat64=False):
 
-    get_set_prototypes, get_set_routines = gen_lib_module(register_list, driver_name)
+    get_set_prototypes, get_set_routines = gen_lib_module(register_list, driver_name, compat64)
     module_name = device_name
     htemplate = string.Template(file(Templates.lib_module_h).read())
     ctemplate = string.Template(file(Templates.lib_module_c).read())
@@ -261,6 +267,9 @@ def main():
     parser.add_option("--csv",
                       action="store_true", dest="csv",
                       help="do not query the CCSB, read from a CSV file instead")
+    parser.add_option("--stdint",
+                      action="store_true", dest="stdint", default=False,
+                      help="use explicit stdint types (uint*_t) instead of char/short/long")
     (options, args) = parser.parse_args(sys.argv)
 
     # only positional parameter, module name
@@ -323,7 +332,7 @@ def main():
     gen_kbuild(driver_name, module_name, kbuild)
     gen_install_script(module_name, driver_name, install_sh)
     gen_delivery_script(driver_name, deliver_sh)
-    gen_lib_module_file(register_list, module_name, driver_name, lib_c, lib_h)
+    gen_lib_module_file(register_list, module_name, driver_name, lib_c, lib_h, options.stdint)
 
     # optional data files generation
     registers = dict([ (regdata['name'], regdata)
