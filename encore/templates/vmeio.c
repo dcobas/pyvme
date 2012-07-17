@@ -1,1 +1,1 @@
-../../driver/vmeio.c
+../../vmeio.c

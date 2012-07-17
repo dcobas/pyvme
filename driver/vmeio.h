@@ -60,11 +60,15 @@ struct vmeio_get_mapping {
 
 #define vmeioMAX_BUF 0x100000
 
+#ifndef __user
+#define __user
+#endif
+
 struct vmeio_riob {
    int mapnum;   /** Mapping number 1..2 */
    int offset;   /** Byte offset in map */
    int wsize;    /** The number of words to read */
-   void *buffer; /** Pointer to data area */
+   void __user *buffer; /** Pointer to data area */
    int data_width;	/** optional data width */
 };
 
@@ -73,7 +77,7 @@ struct vmeio_dma_op {
    int data_width;	/** transfer data width */
    int address;		/** vme address of start transfer */
    int byte_length;	/** transfer length in bytes */
-   void *buffer;	/** pointer to transfer to/from */
+   void __user *buffer;	/** pointer to transfer to/from */
    enum vme_dma_dir direction;	/** from/to device */
 };
 

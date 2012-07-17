@@ -6,6 +6,8 @@
 
 #include <asm/io.h>
 #include <asm/uaccess.h>
+#include <linux/slab.h>
+#include <linux/sched.h>
 #include <linux/fs.h>
 #include <linux/interrupt.h>
 
@@ -107,7 +109,7 @@ struct vmeio_device {
 	int			level;
 	unsigned		isrc;
 	int			isrfl;
-	void			*isr_source_address;
+	void __iomem		*isr_source_address;
 	int			isr_source_mask;
 
 	wait_queue_head_t	queue;
@@ -119,9 +121,8 @@ struct vmeio_device {
 
 static struct vmeio_device devices[DRV_MAX_DEVICES];
 static dev_t vmeio_major;
-struct file_operations vmeio_fops;
 
-int minor_ok(long num)
+static int minor_ok(long num)
 {
 	if (num < 0 || num >= DRV_MAX_DEVICES) {
 		printk(PFX "minor:%d ", (int) num);
@@ -151,11 +152,11 @@ static irqreturn_t vmeio_irq(void *arg)
 	return IRQ_HANDLED;
 }
 
-int register_isr(struct vmeio_device *dev, unsigned vector, unsigned level)
+static int register_isr(struct vmeio_device *dev, unsigned vector, unsigned level)
 {
 	int err;
 
-	err = vme_request_irq(vector, (int (*)(void *)) vmeio_irq, dev, DRIVER_NAME);
+	err = vme_request_irq(vector, (void *) vmeio_irq, dev, DRIVER_NAME);
 	dev->isrfl = !(err < 0);
 	printk(PFX "ISR:Level:0x%X Vector:0x%X:%s\n",
 		level, vector,
@@ -163,9 +164,9 @@ int register_isr(struct vmeio_device *dev, unsigned vector, unsigned level)
 	return err;
 }
 
-void register_int_source(struct vmeio_device *dev, void *map, unsigned offset)
+static void register_int_source(struct vmeio_device *dev, void *map, unsigned offset)
 {
-	dev->isr_source_address = dev->maps[0].kernel_va + dev->isrc;
+	dev->isr_source_address = (__force void __iomem *)dev->maps[0].kernel_va + dev->isrc;
 	/* printk(KERN_INFO PFX "SourceRegister:0x%p\n", dev->isr_source_address);
 	*/
 }
@@ -209,7 +210,7 @@ static int map(struct vme_mapping *desc,
 	return vme_find_mapping(desc, 1);
 }
 
-int install_device(struct vmeio_device *dev, unsigned i)
+static int install_device(struct vmeio_device *dev, unsigned i)
 {
 	memset(dev, 0, sizeof(*dev));
 
@@ -260,35 +261,7 @@ out_map1:
 
 }
 
-int vmeio_install(void)
-{
-	int i, cc;
-
-	printk(KERN_ERR PFX "%s\n", gendata);	/* ACET string */
-	if ((cc = check_module_params()) != 0)
-		return cc;
-
-	for (i = 0; i < lun_num; i++) {
-		if (install_device(&devices[i], i) == 0)
-			continue;
-		/* error, bail out */
-		printk(KERN_ERR PFX
-			"ERROR: lun %d not installed, quitting\n",
-			devices[i].lun);
-		return -1;
-	}
-
-	/* Register driver */
-	cc = register_chrdev(0, DRIVER_NAME, &vmeio_fops);
-	if (cc < 0) {
-		printk(PFX "Fatal:Error from register_chrdev [%d]\n", cc);
-		return cc;
-	}
-	vmeio_major = cc;
-	return 0;
-}
-
-void unregister_module(struct vmeio_device *dev)
+static void unregister_module(struct vmeio_device *dev)
 {
 	if (dev->vector)
 		vme_free_irq(dev->vector);
@@ -298,7 +271,7 @@ void unregister_module(struct vmeio_device *dev)
 		vme_release_mapping(&dev->maps[1], 1);
 }
 
-void vmeio_uninstall(void)
+static void vmeio_uninstall(void)
 {
 	int i;
 
@@ -310,7 +283,7 @@ void vmeio_uninstall(void)
 
 /* file operations */
 
-int vmeio_open(struct inode *inode, struct file *filp)
+static int vmeio_open(struct inode *inode, struct file *filp)
 {
 	long minor;
 	int i;
@@ -327,7 +300,7 @@ int vmeio_open(struct inode *inode, struct file *filp)
 	return -ENODEV;
 }
 
-int vmeio_close(struct inode *inode, struct file *filp)
+static int vmeio_close(struct inode *inode, struct file *filp)
 {
 	long num;
 
@@ -339,7 +312,7 @@ int vmeio_close(struct inode *inode, struct file *filp)
 	return 0;
 }
 
-ssize_t vmeio_read(struct file * filp, char *buf, size_t count,
+static ssize_t vmeio_read(struct file * filp, char __user *buf, size_t count,
 		   loff_t * f_pos)
 {
 	int cc;
@@ -406,7 +379,7 @@ ssize_t vmeio_read(struct file * filp, char *buf, size_t count,
 	return sizeof(struct vmeio_read_buf_s);
 }
 
-ssize_t vmeio_write(struct file * filp, const char *buf, size_t count,
+static ssize_t vmeio_write(struct file * filp, const char __user *buf, size_t count,
 		    loff_t * f_pos)
 {
 	long minor;
@@ -596,14 +569,15 @@ static int raw_read(struct vmeio_device *dev, struct vmeio_riob *riob)
 	int byte_dwidth = dwidth/8;
 	int bsize = riob->wsize * byte_dwidth;
 	int i, j, cc;
-	char *map, *iob;
+	char __iomem *map;
+	char *iob;
 
 	if (bsize > vmeioMAX_BUF)
 		return -E2BIG;
 	iob = kmalloc(bsize, GFP_KERNEL);
 	if (!iob)
 		return -ENOMEM;
-	if ((map = mapx->kernel_va) == NULL) {
+	if ((map = (__force void __iomem *)mapx->kernel_va) == NULL) {
 		kfree(iob);
 		return -ENODEV;
 	}
@@ -638,14 +612,15 @@ static int raw_write(struct vmeio_device *dev, struct vmeio_riob *riob)
 	int byte_dwidth = dwidth/8;
 	int bsize = riob->wsize * byte_dwidth;
 	int i, j, cc;
-	char *map, *iob;
+	char __iomem *map;
+	char *iob;
 
 	if (bsize > vmeioMAX_BUF)
 		return -E2BIG;
 	iob = kmalloc(bsize, GFP_KERNEL);
 	if (!iob)
 		return -ENOMEM;
-	if ((map = mapx->kernel_va) == NULL) {
+	if ((map = (__force void __iomem *)mapx->kernel_va) == NULL) {
 		kfree(iob);
 		return -ENODEV;
 	}
@@ -686,7 +661,7 @@ static void get_nregs(int *n)
 	*n = *nregs;
 }
 
-static int get_reginfo(struct encore_reginfo **array)
+static int get_reginfo(struct encore_reginfo __user **array)
 {
 	int cc;
 
@@ -698,8 +673,7 @@ static int get_reginfo(struct encore_reginfo **array)
 }
 #endif
 
-int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
-		unsigned long arg)
+static int vmeio_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	void *arb;		/* Argument buffer area */
 
@@ -714,7 +688,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 	iodr = _IOC_DIR(cmd);
 	iosz = _IOC_SIZE(cmd);
 
-	minor = MINOR(inode->i_rdev);
+	minor = MINOR(filp->f_dentry->d_inode->i_rdev);
 	if (!minor_ok(minor))
 		return -EACCES;
 	dev = filp->private_data;
@@ -722,7 +696,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 	if ((arb = kmalloc(iosz, GFP_KERNEL)) == NULL)
 		return -ENOMEM;
 
-	if ((iodr & _IOC_WRITE) && copy_from_user(arb, (void *)arg, iosz)) {
+	if ((iodr & _IOC_WRITE) && copy_from_user(arb, (void __user *)arg, iosz)) {
 		cc = -EACCES;
 		goto out;
 	}
@@ -812,7 +786,7 @@ int vmeio_ioctl(struct inode *inode, struct file *filp, unsigned int cmd,
 		break;
 	}
 
-	if ((iodr & _IOC_READ) && copy_to_user((void *)arg, arb, iosz)) {
+	if ((iodr & _IOC_READ) && copy_to_user((void __user *)arg, arb, iosz)) {
 			cc = -EACCES;
 			goto out;
 	}
@@ -822,24 +796,51 @@ out:	kfree(arb);
 
 static DEFINE_MUTEX(driver_mutex);
 
-int vmeio_ioctl32(struct inode *inode, struct file *filp, unsigned int cmd,
-		  unsigned long arg)
+static long vmeio_ioctl32(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	int res;
 	mutex_lock(&driver_mutex);
-	res = vmeio_ioctl(inode, filp, cmd, arg);
+	res = vmeio_ioctl(filp, cmd, arg);
 	mutex_unlock(&driver_mutex);
 	return res;
 }
 
-struct file_operations vmeio_fops = {
+static struct file_operations vmeio_fops = {
 	.owner = THIS_MODULE,
 	.read = vmeio_read,
 	.write = vmeio_write,
-	.ioctl = vmeio_ioctl32,
+	.unlocked_ioctl = vmeio_ioctl32,
 	.open = vmeio_open,
 	.release = vmeio_close,
 };
+
+static int vmeio_install(void)
+{
+	int i, cc;
+
+	printk(KERN_ERR PFX "%s\n", gendata);	/* ACET string */
+	if ((cc = check_module_params()) != 0)
+		return cc;
+
+	for (i = 0; i < lun_num; i++) {
+		if (install_device(&devices[i], i) == 0)
+			continue;
+		/* error, bail out */
+		printk(KERN_ERR PFX
+			"ERROR: lun %d not installed, quitting\n",
+			devices[i].lun);
+		return -1;
+	}
+
+	/* Register driver */
+	cc = register_chrdev(0, DRIVER_NAME, &vmeio_fops);
+	if (cc < 0) {
+		printk(PFX "Fatal:Error from register_chrdev [%d]\n", cc);
+		return cc;
+	}
+	vmeio_major = cc;
+	return 0;
+}
 
 
 module_init(vmeio_install);
