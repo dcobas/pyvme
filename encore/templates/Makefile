@@ -25,7 +25,7 @@ rfinit: init.$(CPU)
 libs: $(MODLIBS) $(ENCORELIBS)
 modules:
 	cp Module.symvers.vmebus Module.symvers
-	make -C $(KERNELSRC) M=`pwd` KVER=$(KVER) 'DRIVER_NAME=$(DRIVER_NAME)' modules
+	make C=1 -C $(KERNELSRC) M=`pwd` KVER=$(KVER) 'DRIVER_NAME=$(DRIVER_NAME)' modules
 clean:
 	rm -f *.o *.a *.so
 	make -C $(KERNELSRC) M=`pwd` clean
