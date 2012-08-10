@@ -231,6 +231,7 @@ def gen_delivery_script(driver_name, output_file):
     out = file(output_file, 'w')
     out.write(template % locals())
     out.close()
+    os.chmod(output_file, 0755)
 
 def make_out_dir(dirname, kill=False):
     try:
