@@ -53,10 +53,10 @@ if [ -f "reg_init.sh" ] ; then
     EXTRA_INSTPROGS="reg_init.sh init.$CPU transfer2init.awk"
 fi
 
+for i in $INSTPROGS $EXTRA_INSTPROGS; do
+    ${CMD} chmod 755 $i
+done
 ${CMD} mkdir -p $DRIVER_PATH $LIB_PATH
 ${CMD} dsc_install $INSTPROGS $EXTRA_INSTPROGS $DRIVER_OBJECT $SOLIBS $DRIVER_PATH
 ${CMD} dsc_install $LIBS $LIB_PATH
-for i in $INSTPROGS $EXTRA_INSTPROGS; do
-    ${CMD} chmod 755 $DRIVER_PATH/$i
-done
 
