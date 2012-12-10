@@ -1,9 +1,21 @@
 #!   /usr/bin/env	python
 #    coding: utf8
 
+import sys
+import os
+import os.path
 import csv
-import cx_Oracle
 import StringIO
+
+try:
+    import cx_Oracle
+except ImportError:
+    encorepath = os.path.dirname(os.path.realpath(sys.argv[0]))
+    oracle10g  = os.path.join(encorepath, 'cx_Oracle-10g.so')
+    oracle  = os.path.join(encorepath, 'cx_Oracle.so')
+    os.symlink(oracle10g, oracle)
+    import cx_Oracle
+    oracle  = os.unlink(oracle)
 
 register_field_list = [
     'name',
