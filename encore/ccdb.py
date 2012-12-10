@@ -4,6 +4,7 @@
 import sys
 import os
 import os.path
+import platform
 import csv
 import StringIO
 
@@ -11,7 +12,10 @@ try:
     import cx_Oracle
 except ImportError:
     encorepath = os.path.dirname(os.path.realpath(sys.argv[0]))
-    oracle10g  = os.path.join(encorepath, 'cx_Oracle-10g.so')
+    if platform.architecture()[0] == '32bit':
+        oracle10g  = os.path.join(encorepath, 'cx_Oracle-10g.so')
+    else:
+        oracle10g  = os.path.join(encorepath, 'cx_Oracle-10g_x86_64.so')
     oracle  = os.path.join(encorepath, 'cx_Oracle.so')
     os.symlink(oracle10g, oracle)
     import cx_Oracle
